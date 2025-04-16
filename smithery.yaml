@@ -1,0 +1,24 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - VAPI_TOKEN
+    properties:
+      VAPI_TOKEN:
+        type: string
+        default: ""
+        description: Vapi API token used for making API calls
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => ({
+      command: 'node',
+      args: ['dist/index.js'],
+      env: { VAPI_TOKEN: config.VAPI_TOKEN }
+    })
+  exampleConfig:
+    VAPI_TOKEN: dummy_vapi_token_123

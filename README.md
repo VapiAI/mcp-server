@@ -1,5 +1,7 @@
 # Vapi MCP Server
 
+[![smithery badge](https://smithery.ai/badge/@VapiAI/vapi-mcp-server)](https://smithery.ai/server/@VapiAI/vapi-mcp-server)
+
 The Vapi [Model Context Protocol](https://modelcontextprotocol.com/) server allows you to integrate with Vapi APIs through function calling.
 
 <a href="https://glama.ai/mcp/servers/@VapiAI/mcp-server">

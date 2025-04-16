@@ -2,6 +2,10 @@
 
 The Vapi [Model Context Protocol](https://modelcontextprotocol.com/) server allows you to integrate with Vapi APIs through function calling.
 
+<a href="https://glama.ai/mcp/servers/@VapiAI/mcp-server">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@VapiAI/mcp-server/badge" alt="Vapi Server MCP server" />
+</a>
+
 ## Claude Desktop Setup
 
 1. Open `Claude Desktop` and press `CMD + ,` to go to `Settings`.

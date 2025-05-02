@@ -141,6 +141,10 @@ export const CreateAssistantInputSchema = z.object({
     ])
     .default(DEFAULT_LLM)
     .describe('LLM configuration'),
+  toolIds: z
+    .array(z.string())
+    .optional()
+    .describe('IDs of tools to use with this assistant'),
   transcriber: z
     .object({
       provider: z.string().describe('Provider to use for transcription'),
@@ -160,7 +164,7 @@ export const CreateAssistantInputSchema = z.object({
     .string()
     .optional()
     .default('Hello, how can I help you today?')
-    .describe('First message to send'),
+    .describe('First message to say to the user'),
   firstMessageMode: z
     .enum([
       'assistant-speaks-first',
@@ -169,7 +173,7 @@ export const CreateAssistantInputSchema = z.object({
     ])
     .default('assistant-speaks-first')
     .optional()
-    .describe('First message mode'),
+    .describe('This determines who speaks first, either assistant or user'),
 });
 
 export const AssistantOutputSchema = BaseResponseSchema.extend({
@@ -187,10 +191,64 @@ export const AssistantOutputSchema = BaseResponseSchema.extend({
     provider: z.string(),
     model: z.string(),
   }),
+  toolIds: z.array(z.string()).optional(),
 });
 
 export const GetAssistantInputSchema = z.object({
   assistantId: z.string().describe('ID of the assistant to get'),
+});
+
+export const UpdateAssistantInputSchema = z.object({
+  assistantId: z.string().describe('ID of the assistant to update'),
+  name: z.string().optional().describe('New name for the assistant'),
+  instructions: z
+    .string()
+    .optional()
+    .describe('New instructions for the assistant'),
+  llm: z
+    .union([
+      LLMSchema,
+      z.string().transform((str) => {
+        try {
+          return JSON.parse(str);
+        } catch (e) {
+          throw new Error(`Invalid LLM JSON string: ${str}`);
+        }
+      }),
+    ])
+    .optional()
+    .describe('New LLM configuration'),
+  toolIds: z
+    .array(z.string())
+    .optional()
+    .describe('New IDs of tools to use with this assistant'),
+  transcriber: z
+    .object({
+      provider: z.string().describe('Provider to use for transcription'),
+      model: z.string().describe('Transcription model to use'),
+    })
+    .optional()
+    .describe('New transcription configuration'),
+  voice: z
+    .object({
+      provider: VoiceProviderSchema.describe('Provider to use for voice'),
+      voiceId: z.string().describe('Voice ID to use'),
+      model: z.string().optional().describe('Voice model to use'),
+    })
+    .optional()
+    .describe('New voice configuration'),
+  firstMessage: z
+    .string()
+    .optional()
+    .describe('First message to say to the user'),
+  firstMessageMode: z
+    .enum([
+      'assistant-speaks-first',
+      'assistant-waits-for-user',
+      'assistant-speaks-first-with-model-generated-message',
+    ])
+    .optional()
+    .describe('This determines who speaks first, either assistant or user'),
 });
 
 // ===== Call Schemas =====
@@ -213,7 +271,9 @@ export const CallInputSchema = z.object({
   scheduledAt: z
     .string()
     .optional()
-    .describe('ISO datetime string for when the call should be scheduled (e.g. "2025-03-25T22:39:27.771Z")'),
+    .describe(
+      'ISO datetime string for when the call should be scheduled (e.g. "2025-03-25T22:39:27.771Z")'
+    ),
 });
 
 export const CallOutputSchema = BaseResponseSchema.extend({
@@ -235,7 +295,6 @@ export const GetCallInputSchema = z.object({
 
 // ===== Phone Number Schemas =====
 
-
 export const GetPhoneNumberInputSchema = z.object({
   phoneNumberId: z.string().describe('ID of the phone number to get'),
 });
@@ -250,4 +309,18 @@ export const PhoneNumberOutputSchema = BaseResponseSchema.extend({
       voice: z.boolean().optional(),
     })
     .optional(),
+});
+
+// ===== Tool Schemas =====
+
+export const GetToolInputSchema = z.object({
+  toolId: z.string().describe('ID of the tool to get'),
+});
+
+export const ToolOutputSchema = BaseResponseSchema.extend({
+  type: z
+    .string()
+    .describe('Type of the tool (dtmf, function, mcp, query, etc.)'),
+  name: z.string().describe('Name of the tool'),
+  description: z.string().describe('Description of the tool'),
 });

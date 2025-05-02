@@ -6,6 +6,8 @@ import {
   AssistantOutputSchema,
   CallOutputSchema,
   PhoneNumberOutputSchema,
+  ToolOutputSchema,
+  UpdateAssistantInputSchema,
 } from '../schemas/index.js';
 
 // ===== Assistant Transformers =====
@@ -21,6 +23,10 @@ export function transformAssistantInput(
     provider: input.llm.provider as any,
     model: input.llm.model,
   };
+
+  if (input.toolIds && input.toolIds.length > 0) {
+    assistantDto.model.toolIds = input.toolIds;
+  }
 
   if (input.instructions) {
     assistantDto.model.messages = [
@@ -53,6 +59,75 @@ export function transformAssistantInput(
   return assistantDto as Vapi.CreateAssistantDto;
 }
 
+export function transformUpdateAssistantInput(
+  input: z.infer<typeof UpdateAssistantInputSchema>
+): Vapi.UpdateAssistantDto {
+  const updateDto: any = {};
+
+  if (input.name) {
+    updateDto.name = input.name;
+  }
+
+  if (input.llm) {
+    updateDto.model = {
+      provider: input.llm.provider as any,
+      model: input.llm.model,
+    };
+
+    if (input.toolIds && input.toolIds.length > 0) {
+      updateDto.model.toolIds = input.toolIds;
+    }
+
+    if (input.instructions) {
+      updateDto.model.messages = [
+        {
+          role: 'system',
+          content: input.instructions,
+        },
+      ];
+    }
+  } else {
+    if (input.toolIds && input.toolIds.length > 0) {
+      updateDto.model = { toolIds: input.toolIds };
+    }
+
+    if (input.instructions) {
+      if (!updateDto.model) updateDto.model = {};
+      updateDto.model.messages = [
+        {
+          role: 'system',
+          content: input.instructions,
+        },
+      ];
+    }
+  }
+
+  if (input.transcriber) {
+    updateDto.transcriber = {
+      provider: input.transcriber.provider,
+      ...(input.transcriber.model ? { model: input.transcriber.model } : {}),
+    };
+  }
+
+  if (input.voice) {
+    updateDto.voice = {
+      provider: input.voice.provider as any,
+      voiceId: input.voice.voiceId,
+      ...(input.voice.model ? { model: input.voice.model } : {}),
+    };
+  }
+
+  if (input.firstMessage) {
+    updateDto.firstMessage = input.firstMessage;
+  }
+
+  if (input.firstMessageMode) {
+    updateDto.firstMessageMode = input.firstMessageMode;
+  }
+
+  return updateDto as Vapi.UpdateAssistantDto;
+}
+
 export function transformAssistantOutput(
   assistant: Vapi.Assistant
 ): z.infer<typeof AssistantOutputSchema> {
@@ -74,6 +149,7 @@ export function transformAssistantOutput(
       provider: assistant.transcriber?.provider || 'deepgram',
       model: getAssistantTranscriberModel(assistant.transcriber) || 'nova-3',
     },
+    toolIds: assistant.model?.toolIds || [],
   };
 }
 
@@ -157,5 +233,20 @@ export function transformPhoneNumberOutput(
     updatedAt: phoneNumber.updatedAt,
     phoneNumber: phoneNumber.number,
     status: phoneNumber.status,
+  };
+}
+
+// ===== Tool Transformers =====
+
+export function transformToolOutput(
+  tool: any
+): z.infer<typeof ToolOutputSchema> {
+  return {
+    id: tool.id,
+    createdAt: tool.createdAt,
+    updatedAt: tool.updatedAt,
+    type: tool.type || '',
+    name: tool.function?.name || '',
+    description: tool.function?.description || '',
   };
 }

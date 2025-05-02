@@ -143,6 +143,7 @@ The Vapi MCP Server provides the following tools for integration:
 
 - `list_assistants`: Lists all Vapi assistants
 - `create_assistant`: Creates a new Vapi assistant
+- `update_assistant`: Updates an existing Vapi assistant
 - `get_assistant`: Gets a Vapi assistant by ID
 
 ### Call Tools
@@ -157,3 +158,8 @@ The Vapi MCP Server provides the following tools for integration:
 
 - `list_phone_numbers`: Lists all Vapi phone numbers
 - `get_phone_number`: Gets details of a specific phone number
+
+### Vapi Tools
+
+- `list_tools`: Lists all Vapi tools
+- `get_tool`: Gets details of a specific tool

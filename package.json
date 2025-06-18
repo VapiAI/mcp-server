@@ -39,6 +39,7 @@
     "dev": "tsx watch src/index.ts",
     "dev:stdio-example": "tsx examples/stdio-client.ts",
     "dev:sse-example": "tsx examples/sse-client.ts",
+    "dev:shttp-example": "tsx examples/shttp-client.ts",
     "inspector": "mcp-inspector",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "test:unit": "NODE_OPTIONS=--experimental-vm-modules jest src/tests/mcp-server-mock.test.ts",

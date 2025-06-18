@@ -77,6 +77,40 @@ I'd like to speak with my ShopHelper assistant to talk about my recent order. Ca
 I need to schedule a call with Mary assistant for next Tuesday at 3:00 PM. My phone number is +1555123456.
 ```
 
+**Example 3:** Make a call with dynamic variables
+
+```md
+I want to call +1234567890 with my appointment reminder assistant. Use these details:
+- Customer name: Sarah Johnson
+- Appointment date: March 25th
+- Appointment time: 2:30 PM
+- Doctor name: Dr. Smith
+```
+
+## Using Variable Values in Assistant Prompts
+
+The `create_call` action supports passing dynamic variables through `assistantOverrides.variableValues`. These variables can be used in your assistant's prompts using double curly braces: `{{variableName}}`.
+
+### Example Assistant Prompt with Variables
+
+```
+Hello {{customerName}}, this is a reminder about your appointment on {{appointmentDate}} at {{appointmentTime}} with {{doctorName}}.
+```
+
+### Default Variables
+
+The following variables are automatically available (no need to pass in variableValues):
+
+- `{{now}}` - Current date and time (UTC)
+- `{{date}}` - Current date (UTC)
+- `{{time}}` - Current time (UTC)
+- `{{month}}` - Current month (UTC)
+- `{{day}}` - Current day of month (UTC)
+- `{{year}}` - Current year (UTC)
+- `{{customer.number}}` - Customer's phone number
+
+For more details on default variables and advanced date/time formatting, see the [official Vapi documentation](https://docs.vapi.ai/assistants/dynamic-variables#default-variables).
+
 ## Remote MCP
 
 To connect to Vapi's MCP server remotely:
@@ -187,10 +221,12 @@ The Vapi MCP Server provides the following tools for integration:
 ### Call Tools
 
 - `list_calls`: Lists all Vapi calls
-- `create_call`: Creates an outbound call
+- `create_call`: Creates an outbound call with support for:
+  - Immediate or scheduled calls
+  - Dynamic variable values through `assistantOverrides`
 - `get_call`: Gets details of a specific call
 
-> **Note:** The `create_call` action supports scheduling calls for immediate execution or for a future time.
+> **Note:** The `create_call` action supports scheduling calls for immediate execution or for a future time. You can also pass dynamic variables using `assistantOverrides.variableValues` to personalize assistant messages.
 
 ### Phone Number Tools
 

@@ -264,7 +264,7 @@ export const CallInputSchema = z.object({
     .describe('ID of the phone number to use for the call'),
   customer: z
     .object({
-      phoneNumber: z.string().describe('Customer phone number'),
+      number: z.string().describe('Customer phone number'),
     })
     .optional()
     .describe('Customer information'),
@@ -274,6 +274,17 @@ export const CallInputSchema = z.object({
     .describe(
       'ISO datetime string for when the call should be scheduled (e.g. "2025-03-25T22:39:27.771Z")'
     ),
+  assistantOverrides: z
+    .object({
+      variableValues: z
+        .record(z.string(), z.any())
+        .optional()
+        .describe(
+          'Key-value pairs for dynamic variables to use in the assistant\'s prompts (e.g. {"name": "Joe", "age": "24"})'
+        ),
+    })
+    .optional()
+    .describe('Overrides for the assistant configuration'),
 });
 
 export const CallOutputSchema = BaseResponseSchema.extend({
@@ -283,7 +294,7 @@ export const CallOutputSchema = BaseResponseSchema.extend({
   phoneNumberId: z.string().optional(),
   customer: z
     .object({
-      phoneNumber: z.string(),
+      number: z.string(),
     })
     .optional(),
   scheduledAt: z.string().optional(),

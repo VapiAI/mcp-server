@@ -187,7 +187,7 @@ export function transformCallInput(
     ...(input.customer
       ? {
           customer: {
-            number: input.customer.phoneNumber,
+            number: input.customer.number,
           },
         }
       : {}),
@@ -196,6 +196,11 @@ export function transformCallInput(
           schedulePlan: {
             earliestAt: input.scheduledAt,
           },
+        }
+      : {}),
+    ...(input.assistantOverrides
+      ? {
+          assistantOverrides: input.assistantOverrides,
         }
       : {}),
   };
@@ -214,7 +219,7 @@ export function transformCallOutput(
     phoneNumberId: call.phoneNumberId,
     customer: call.customer
       ? {
-          phoneNumber: call.customer.number || '',
+          number: call.customer.number || '',
         }
       : undefined,
     scheduledAt: call.schedulePlan?.earliestAt,

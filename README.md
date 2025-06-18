@@ -169,6 +169,7 @@ npm test
 
 - [VAPI Remote MCP Server](https://mcp.vapi.ai/)
 - [VAPI MCP Tool](https://docs.vapi.ai/tools/mcp)
+- [VAPI MCP Server SDK](https://docs.vapi.ai/sdk/mcp-server)
 - [Model Context Protocol](https://modelcontextprotocol.com/)
 - [Claude Desktop](https://modelcontextprotocol.io/quickstart/user)
 

@@ -18,6 +18,8 @@ The Vapi [Model Context Protocol](https://modelcontextprotocol.com/) server allo
 6. Add the following to your `claude_desktop_config.json` file. See [here](https://modelcontextprotocol.io/quickstart/user) for more details.
 7. Restart the Claude Desktop after editing the config file.
 
+### Local Configuration
+
 ```json
 {
   "mcpServers": {
@@ -33,7 +35,27 @@ The Vapi [Model Context Protocol](https://modelcontextprotocol.com/) server allo
     }
   }
 }
+```
 
+### Remote Configuration
+
+```json
+{
+  "mcpServers": {
+    "vapi-mcp": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://mcp.vapi.ai/mcp",
+        "--header",
+        "Authorization: Bearer ${VAPI_TOKEN}"
+      ],
+      "env": {
+        "VAPI_TOKEN": "<your_vapi_token>"
+      }
+    }
+  }
+}
 ```
 
 ### Example Usage with Claude Desktop
@@ -55,9 +77,21 @@ I'd like to speak with my ShopHelper assistant to talk about my recent order. Ca
 I need to schedule a call with Mary assistant for next Tuesday at 3:00 PM. My phone number is +1555123456.
 ```
 
-## Remote SSE Connection
+## Remote MCP
 
-To connect to Vapi's MCP server via Server-Sent Events (SSE) Transport:
+To connect to Vapi's MCP server remotely:
+
+### Streamable HTTP (Recommended)
+
+The default and recommended way to connect is via Streamable HTTP Transport:
+
+- Connect to `https://mcp.vapi.ai/mcp` from any MCP client using Streamable HTTP Transport
+- Include your Vapi API key as a bearer token in the request headers
+- Example header: `Authorization: Bearer your_vapi_api_key_here`
+
+### SSE (Deprecated)
+
+Server-Sent Events (SSE) Transport is still supported but deprecated:
 
 - Connect to `https://mcp.vapi.ai/sse` from any MCP client using SSE Transport
 - Include your Vapi API key as a bearer token in the request headers
@@ -73,6 +107,9 @@ npm install
 
 # Build the server
 npm run build
+
+# Use inspector to test the server
+npm run inspector
 ```
 
 Update your `claude_desktop_config.json` to use the local server.

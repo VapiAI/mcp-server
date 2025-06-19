@@ -328,6 +328,78 @@ export const GetToolInputSchema = z.object({
   toolId: z.string().describe('ID of the tool to get'),
 });
 
+const TransferCallDestinationSchema = z.object({
+  type: z.literal('number'),
+  number: z.string().describe('Phone number to transfer to (e.g., "+16054440129"). It can be any phone number in E.164 format.'),
+  extension: z.string().optional().describe('Extension number if applicable'),
+  callerId: z.string().optional().describe('Caller ID to use for the transfer'),
+  description: z.string().optional().describe('Description of the transfer destination'),
+});
+
+// Generic custom tool schemas
+const JsonSchemaProperty = z.object({
+  type: z.string(),
+  description: z.string().optional(),
+  enum: z.array(z.string()).optional(),
+  items: z.any().optional(),
+  properties: z.record(z.any()).optional(),
+  required: z.array(z.string()).optional(),
+});
+
+const JsonSchema = z.object({
+  type: z.literal('object'),
+  properties: z.record(JsonSchemaProperty),
+  required: z.array(z.string()).optional(),
+});
+
+const ServerSchema = z.object({
+  url: z.string().url().describe('Server URL where the function will be called'),
+  headers: z.record(z.string()).optional().describe('Headers to send with the request'),
+});
+
+const BackoffPlanSchema = z.object({
+  type: z.enum(['fixed', 'exponential']).default('fixed'),
+  maxRetries: z.number().default(3).describe('Maximum number of retries'),
+  baseDelaySeconds: z.number().default(1).describe('Base delay between retries in seconds'),
+});
+
+export const CreateToolInputSchema = z.object({
+  type: z.enum(['sms', 'transferCall', 'function', 'apiRequest'])
+    .describe('Type of the tool to create'),
+  
+  // Common fields for all tools
+  name: z.string().optional().describe('Name of the function/tool'),
+  description: z.string().optional().describe('Description of what the function/tool does'),
+  
+  // SMS tool configuration
+  sms: z.object({
+    metadata: z.object({
+      from: z.string().describe('Phone number to send SMS from (e.g., "+15551234567"). It must be a twilio number in E.164 format.'),
+    }).describe('SMS configuration metadata'),
+  }).optional().describe('SMS tool configuration - to send text messages'),
+  
+  // Transfer call tool configuration
+  transferCall: z.object({
+    destinations: z.array(TransferCallDestinationSchema).describe('Array of possible transfer destinations'),
+  }).optional().describe('Transfer call tool configuration - to transfer calls to destinations'),
+  
+  // Function tool configuration (custom functions with parameters)
+  function: z.object({
+    parameters: JsonSchema.describe('JSON schema for function parameters'),
+    server: ServerSchema.describe('Server configuration with URL where the function will be called'),
+  }).optional().describe('Custom function tool configuration - for custom server-side functions'),
+  
+  // API Request tool configuration
+  apiRequest: z.object({
+    url: z.string().url().describe('URL to make the API request to'),
+    method: z.enum(['GET', 'POST']).default('POST').describe('HTTP method for the API request'),
+    headers: z.record(z.string()).optional().describe('Headers to send with the request (key-value pairs)'),
+    body: JsonSchema.optional().describe('Body schema for the API request in JSON Schema format'),
+    backoffPlan: BackoffPlanSchema.optional().describe('Retry configuration for failed API requests'),
+    timeoutSeconds: z.number().default(20).describe('Request timeout in seconds'),
+  }).optional().describe('API Request tool configuration - for HTTP API integration'),
+});
+
 export const ToolOutputSchema = BaseResponseSchema.extend({
   type: z
     .string()

@@ -8,6 +8,7 @@ import {
   PhoneNumberOutputSchema,
   ToolOutputSchema,
   UpdateAssistantInputSchema,
+  CreateToolInputSchema,
 } from '../schemas/index.js';
 
 // ===== Assistant Transformers =====
@@ -242,6 +243,72 @@ export function transformPhoneNumberOutput(
 }
 
 // ===== Tool Transformers =====
+
+export function transformToolInput(
+  input: z.infer<typeof CreateToolInputSchema>
+): any {
+  let toolDto: any = {
+    type: input.type,
+  };
+
+  // Add function definition if name and description are provided
+  if (input.name || input.description) {
+    toolDto.function = {
+      ...(input.name && { name: input.name }),
+      ...(input.description && { description: input.description }),
+    };
+  }
+
+  // Handle different tool types using the new nested structure
+  switch (input.type) {
+    case 'sms':
+      if (input.sms?.metadata) {
+        toolDto.metadata = input.sms.metadata;
+      }
+      break;
+
+    case 'transferCall':
+      if (input.transferCall?.destinations) {
+        toolDto.destinations = input.transferCall.destinations;
+      }
+      break;
+
+    case 'function':
+      if (input.function?.parameters && input.function?.server) {
+        // For function tools, add parameters to the existing function object
+        if (toolDto.function) {
+          toolDto.function.parameters = input.function.parameters;
+        } else {
+          toolDto.function = {
+            parameters: input.function.parameters,
+          };
+        }
+        
+        toolDto.server = {
+          url: input.function.server.url,
+          ...(input.function.server.headers && { headers: input.function.server.headers }),
+        };
+      }
+      break;
+
+    case 'apiRequest':
+      if (input.apiRequest?.url) {
+        toolDto.url = input.apiRequest.url;
+        toolDto.method = input.apiRequest.method || 'POST';
+        
+        if (input.apiRequest.headers) toolDto.headers = input.apiRequest.headers;
+        if (input.apiRequest.body) toolDto.body = input.apiRequest.body;
+        if (input.apiRequest.backoffPlan) toolDto.backoffPlan = input.apiRequest.backoffPlan;
+        if (input.apiRequest.timeoutSeconds) toolDto.timeoutSeconds = input.apiRequest.timeoutSeconds;
+      }
+      break;
+
+    default:
+      throw new Error(`Unsupported tool type: ${(input as any).type}`);
+  }
+
+  return toolDto;
+}
 
 export function transformToolOutput(
   tool: any

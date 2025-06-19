@@ -363,10 +363,8 @@ const BackoffPlanSchema = z.object({
   baseDelaySeconds: z.number().default(1).describe('Base delay between retries in seconds'),
 });
 
-export const CreateToolInputSchema = z.object({
-  type: z.enum(['sms', 'transferCall', 'function', 'apiRequest'])
-    .describe('Type of the tool to create'),
-  
+// Base tool configuration schema (reusable for both create and update)
+const BaseToolConfigSchema = z.object({
   // Common fields for all tools
   name: z.string().optional().describe('Name of the function/tool'),
   description: z.string().optional().describe('Description of what the function/tool does'),
@@ -400,10 +398,21 @@ export const CreateToolInputSchema = z.object({
   }).optional().describe('API Request tool configuration - for HTTP API integration'),
 });
 
+export const CreateToolInputSchema = BaseToolConfigSchema.extend({
+  type: z.enum(['sms', 'transferCall', 'function', 'apiRequest'])
+    .describe('Type of the tool to create'),
+});
+
+export const UpdateToolInputSchema = BaseToolConfigSchema.extend({
+  toolId: z.string().describe('ID of the tool to update'),
+});
+
 export const ToolOutputSchema = BaseResponseSchema.extend({
   type: z
     .string()
     .describe('Type of the tool (dtmf, function, mcp, query, etc.)'),
   name: z.string().describe('Name of the tool'),
   description: z.string().describe('Description of the tool'),
+  parameters: z.record(z.any()).describe('Parameters of the tool'),
+  server: ServerSchema.describe('Server of the tool'),
 });

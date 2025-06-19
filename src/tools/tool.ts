@@ -50,14 +50,4 @@ export const registerToolTools = (
       return transformToolOutput(tool);
     })
   );
-
-  server.tool(
-    'delete_tool',
-    'Deletes a Vapi tool',
-    GetToolInputSchema.shape,
-    createToolHandler(async (data) => {
-      const tool = await vapiClient.tools.delete(data.toolId);
-      return transformToolOutput(tool);
-    })
-  );
 };

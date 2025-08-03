@@ -228,6 +228,25 @@ export function transformCallOutput(
   };
 }
 
+export function transformCallTranscriptOutput(
+  call: Vapi.Call
+): z.infer<typeof CallTranscriptOutputSchema> {
+  return {
+    id: call.id,
+    createdAt: call.createdAt,
+    updatedAt: call.updatedAt,
+    transcript: call.artifact?.transcript,
+    messages: call.artifact?.messages?.map(msg => ({
+      role: msg.role,
+      message: msg.message,
+      time: msg.time,
+      duration: msg.duration,
+    })),
+    recordingUrl: call.artifact?.recordingUrl,
+    summary: call.analysis?.summary,
+  };
+}
+
 // ===== Phone Number Transformers =====
 
 export function transformPhoneNumberOutput(

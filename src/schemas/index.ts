@@ -304,6 +304,21 @@ export const GetCallInputSchema = z.object({
   callId: z.string().describe('ID of the call to get'),
 });
 
+export const CallTranscriptOutputSchema = BaseResponseSchema.extend({
+  id: z.string(),
+  transcript: z.string().optional(),
+  messages: z.array(z.object({
+    role: z.string(),
+    message: z.string(),
+    time: z.number().optional(),
+    duration: z.number().optional(),
+  })).optional(),
+  recordingUrl: z.string().optional(),
+  summary: z.string().optional(),
+});
+
+export const GetCallTranscriptInputSchema = GetCallInputSchema;
+
 // ===== Phone Number Schemas =====
 
 export const GetPhoneNumberInputSchema = z.object({

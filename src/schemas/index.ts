@@ -309,7 +309,7 @@ export const CallTranscriptOutputSchema = BaseResponseSchema.extend({
   transcript: z.string().optional(),
   messages: z.array(z.object({
     role: z.string(),
-    message: z.string(),
+    message: z.string().optional(),
     time: z.number().optional(),
     duration: z.number().optional(),
   })).optional(),

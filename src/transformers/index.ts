@@ -5,6 +5,7 @@ import {
   CallInputSchema,
   AssistantOutputSchema,
   CallOutputSchema,
+  CallTranscriptOutputSchema,
   PhoneNumberOutputSchema,
   ToolOutputSchema,
   UpdateAssistantInputSchema,
@@ -236,12 +237,31 @@ export function transformCallTranscriptOutput(
     createdAt: call.createdAt,
     updatedAt: call.updatedAt,
     transcript: call.artifact?.transcript,
-    messages: call.artifact?.messages?.map(msg => ({
-      role: msg.role,
-      message: msg.message,
-      time: msg.time,
-      duration: msg.duration,
-    })),
+    messages: call.artifact?.messages?.map(msg => {
+      // Handle different message types safely
+      const transformedMessage: any = {
+        role: msg.role,
+        time: msg.time || 0,
+      };
+
+      // Check if message has a 'message' property (UserMessage, BotMessage, SystemMessage, ToolCallMessage)
+      if ('message' in msg && typeof msg.message === 'string') {
+        transformedMessage.message = msg.message;
+      } else if ('result' in msg && typeof msg.result === 'string') {
+        // For ToolCallResultMessage, use result as message
+        transformedMessage.message = msg.result;
+      } else {
+        // Fallback for unknown message types - set to undefined since schema allows optional
+        transformedMessage.message = undefined;
+      }
+
+      // Check if message has a 'duration' property (UserMessage, BotMessage)
+      if ('duration' in msg && typeof msg.duration === 'number') {
+        transformedMessage.duration = msg.duration;
+      }
+
+      return transformedMessage;
+    }),
     recordingUrl: call.artifact?.recordingUrl,
     summary: call.analysis?.summary,
   };

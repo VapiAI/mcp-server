@@ -1,10 +1,11 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient, Vapi } from '@vapi-ai/server-sdk';
 
-import { CallInputSchema, GetCallInputSchema } from '../schemas/index.js';
+import { CallInputSchema, GetCallInputSchema, GetCallTranscriptInputSchema } from '../schemas/index.js';
 import {
   transformCallInput,
   transformCallOutput,
+  transformCallTranscriptOutput,
 } from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
 
@@ -40,6 +41,16 @@ export const registerCallTools = (
     createToolHandler(async (data) => {
       const call = await vapiClient.calls.get(data.callId);
       return transformCallOutput(call);
+    })
+  );
+
+  server.tool(
+    'get_call_transcript',
+    'Gets the full transcript and conversation data of a specific call',
+    GetCallTranscriptInputSchema.shape,
+    createToolHandler(async (data) => {
+      const call = await vapiClient.calls.get(data.callId);
+      return transformCallTranscriptOutput(call);
     })
   );
 };

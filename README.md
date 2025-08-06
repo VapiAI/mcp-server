@@ -225,6 +225,7 @@ The Vapi MCP Server provides the following tools for integration:
   - Immediate or scheduled calls
   - Dynamic variable values through `assistantOverrides`
 - `get_call`: Gets details of a specific call
+- `get_call_transcript`: Gets the full transcript and conversation data of a specific call
 
 > **Note:** The `create_call` action supports scheduling calls for immediate execution or for a future time. You can also pass dynamic variables using `assistantOverrides.variableValues` to personalize assistant messages.
 

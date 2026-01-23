@@ -10,13 +10,14 @@ import { createToolHandler } from './utils.js';
 
 export const registerCallTools = (
   server: McpServer,
-  vapiClient: VapiClient
+  getClient: () => VapiClient
 ) => {
   server.tool(
     'list_calls',
     'Lists all Vapi calls',
     {},
     createToolHandler(async () => {
+      const vapiClient = getClient();
       const calls = await vapiClient.calls.list({ limit: 10 });
       return calls.map(transformCallOutput);
     })
@@ -27,6 +28,7 @@ export const registerCallTools = (
     'Creates a outbound call',
     CallInputSchema.shape,
     createToolHandler(async (data) => {
+      const vapiClient = getClient();
       const createCallDto = transformCallInput(data);
       const call = await vapiClient.calls.create(createCallDto);
       return transformCallOutput(call as unknown as Vapi.Call);
@@ -38,6 +40,7 @@ export const registerCallTools = (
     'Gets details of a specific call',
     GetCallInputSchema.shape,
     createToolHandler(async (data) => {
+      const vapiClient = getClient();
       const call = await vapiClient.calls.get(data.callId);
       return transformCallOutput(call);
     })

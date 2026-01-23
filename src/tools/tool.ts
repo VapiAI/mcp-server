@@ -7,13 +7,14 @@ import { createToolHandler } from './utils.js';
 
 export const registerToolTools = (
   server: McpServer,
-  vapiClient: VapiClient
+  getClient: () => VapiClient
 ) => {
   server.tool(
     'list_tools',
     'Lists all Vapi tools',
     {},
     createToolHandler(async () => {
+      const vapiClient = getClient();
       const tools = await vapiClient.tools.list({ limit: 10 });
       return tools.map(transformToolOutput);
     })
@@ -24,6 +25,7 @@ export const registerToolTools = (
     'Gets details of a specific tool',
     GetToolInputSchema.shape,
     createToolHandler(async (data) => {
+      const vapiClient = getClient();
       const tool = await vapiClient.tools.get(data.toolId);
       return transformToolOutput(tool);
     })
@@ -34,6 +36,7 @@ export const registerToolTools = (
     'Creates a new Vapi tool',
     CreateToolInputSchema.shape,
     createToolHandler(async (data) => {
+      const vapiClient = getClient();
       const createToolDto = transformToolInput(data);
       const tool = await vapiClient.tools.create(createToolDto);
       return transformToolOutput(tool);
@@ -45,6 +48,7 @@ export const registerToolTools = (
     'Updates an existing Vapi tool',
     UpdateToolInputSchema.shape,
     createToolHandler(async (data) => {
+      const vapiClient = getClient();
       const updateToolDto = transformUpdateToolInput(data);
       const tool = await vapiClient.tools.update(data.toolId, updateToolDto);
       return transformToolOutput(tool);

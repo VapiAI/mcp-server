@@ -14,7 +14,7 @@ import { createToolHandler } from './utils.js';
 
 export const registerAssistantTools = (
   server: McpServer,
-  vapiClient: VapiClient
+  getClient: () => VapiClient
 ) => {
   server.tool(
     'list_assistants',
@@ -22,6 +22,7 @@ export const registerAssistantTools = (
     {},
     createToolHandler(async () => {
       //   console.log('list_assistants');
+      const vapiClient = getClient();
       const assistants = await vapiClient.assistants.list({ limit: 10 });
       //   console.log('assistants', assistants);
       return assistants.map(transformAssistantOutput);
@@ -34,6 +35,7 @@ export const registerAssistantTools = (
     CreateAssistantInputSchema.shape,
     createToolHandler(async (data) => {
       //   console.log('create_assistant', data);
+      const vapiClient = getClient();
       const createAssistantDto = transformAssistantInput(data);
       const assistant = await vapiClient.assistants.create(createAssistantDto);
       return transformAssistantOutput(assistant);
@@ -46,6 +48,7 @@ export const registerAssistantTools = (
     GetAssistantInputSchema.shape,
     createToolHandler(async (data) => {
       //   console.log('get_assistant', data);
+      const vapiClient = getClient();
       const assistantId = data.assistantId;
       try {
         const assistant = await vapiClient.assistants.get(assistantId);
@@ -65,6 +68,7 @@ export const registerAssistantTools = (
     'Updates an existing Vapi assistant',
     UpdateAssistantInputSchema.shape,
     createToolHandler(async (data) => {
+      const vapiClient = getClient();
       const assistantId = data.assistantId;
       try {
         // First check if the assistant exists

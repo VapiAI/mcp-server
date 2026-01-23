@@ -10,15 +10,14 @@ dotenv.config();
 
 function createMcpServer() {
   const vapiToken = process.env.VAPI_TOKEN;
-  if (!vapiToken) {
-    throw new Error('VAPI_TOKEN environment variable is required');
-  }
 
-  const vapiClient = createVapiClient(vapiToken);
+  // Create client only if token is provided
+  // OAuth flow will set the token later
+  const vapiClient = vapiToken ? createVapiClient(vapiToken) : null;
 
   const mcpServer = new McpServer({
     name: 'Vapi MCP',
-    version: '0.1.0',
+    version: '0.2.0',
     capabilities: [],
   });
 

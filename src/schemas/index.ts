@@ -287,6 +287,24 @@ export const CallInputSchema = z.object({
     .describe('Overrides for the assistant configuration'),
 });
 
+// Message schema for call transcript messages
+const CallMessageSchema = z.object({
+  role: z.string(),
+  message: z.string().optional(),
+  time: z.number().optional(),
+  secondsFromStart: z.number().optional(),
+  content: z.string().optional(),
+}).passthrough();
+
+// Cost breakdown schema
+const CostBreakdownSchema = z.object({
+  stt: z.number().optional(),
+  llm: z.number().optional(),
+  tts: z.number().optional(),
+  vapi: z.number().optional(),
+  total: z.number().optional(),
+}).passthrough();
+
 export const CallOutputSchema = BaseResponseSchema.extend({
   status: z.string(),
   endedReason: z.string().optional(),
@@ -294,11 +312,29 @@ export const CallOutputSchema = BaseResponseSchema.extend({
   phoneNumberId: z.string().optional(),
   customer: z
     .object({
-      number: z.string(),
+      number: z.string().optional(),
     })
+    .passthrough()
     .optional(),
   scheduledAt: z.string().optional(),
-});
+  // Full transcript fields
+  messages: z.array(CallMessageSchema).optional(),
+  transcript: z.string().optional(),
+  // Recording URLs
+  recordingUrl: z.string().optional(),
+  stereoRecordingUrl: z.string().optional(),
+  // Cost information
+  cost: z.number().optional(),
+  costBreakdown: CostBreakdownSchema.optional(),
+  // Analysis and artifact data
+  analysis: z.any().optional(),
+  artifact: z.any().optional(),
+  // Additional call metadata
+  startedAt: z.string().optional(),
+  endedAt: z.string().optional(),
+  type: z.string().optional(),
+  // Allow any additional fields from the API
+}).passthrough();
 
 export const GetCallInputSchema = z.object({
   callId: z.string().describe('ID of the call to get'),

@@ -211,21 +211,17 @@ export function transformCallInput(
 export function transformCallOutput(
   call: Vapi.Call
 ): z.infer<typeof CallOutputSchema> {
+  // Return the full call object to include all fields from the API response,
+  // including messages (transcript), cost, recording URLs, etc.
+  // Using type assertion since Vapi.Call contains all the fields we need
+  // and we want to pass through the complete response.
   return {
-    id: call.id,
-    createdAt: call.createdAt,
-    updatedAt: call.updatedAt,
+    ...call,
+    // Ensure required fields have default values
     status: call.status || '',
-    endedReason: call.endedReason,
-    assistantId: call.assistantId,
-    phoneNumberId: call.phoneNumberId,
-    customer: call.customer
-      ? {
-          number: call.customer.number || '',
-        }
-      : undefined,
+    // Map schedulePlan.earliestAt to scheduledAt for backward compatibility
     scheduledAt: call.schedulePlan?.earliestAt,
-  };
+  } as z.infer<typeof CallOutputSchema>;
 }
 
 // ===== Phone Number Transformers =====

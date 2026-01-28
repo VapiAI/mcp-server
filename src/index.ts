@@ -136,7 +136,7 @@ function createMcpServer() {
     'vapi://prompt-guide',
     { description: 'Voice assistant prompt engineering guide with best practices for crafting Vapi assistant prompts', mimeType: 'text/markdown' },
     async (uri) => {
-      const guidePath = join(__dirname, '..', 'skill', 'PROMPT_GUIDE.md');
+      const guidePath = join(__dirname, '..', 'skills', 'vapi', 'PROMPT_GUIDE.md');
       const content = readFileSync(guidePath, 'utf-8');
       return {
         contents: [{ uri: uri.href, text: content }],

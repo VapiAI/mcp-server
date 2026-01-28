@@ -13,23 +13,13 @@ When a user wants to build a voice assistant or phone agent, follow these steps:
 
 ### Step 1: Check if Vapi MCP is Installed
 
-First, check if the Vapi MCP server is available by looking for `vapi_` tools. If not available:
+First, check if the Vapi MCP server is available by looking for `vapi_` tools. If not available, tell the user to run:
 
-1. Add the Vapi MCP server to the `mcpServers` section:
-
-```json
-{
-  "mcpServers": {
-    "vapi": {
-      "command": "npx",
-      "args": ["-y", "@vapi-ai/mcp-server"]
-    }
-  }
-}
+```bash
+claude mcp add vapi -- npx -y @vapi-ai/mcp-server
 ```
 
-2. Tell the user to restart Claude Code for the changes to take effect
-3. After restart, continue with Step 2
+Then restart Claude Code and continue with Step 2.
 
 ### Step 2: Authenticate with Vapi
 

@@ -14,17 +14,8 @@ The easiest way to get started. No API key needed - authenticate via browser on 
 
 ### 1. Add MCP Server
 
-Add to your `~/.claude.json`:
-
-```json
-{
-  "mcpServers": {
-    "vapi": {
-      "command": "npx",
-      "args": ["-y", "@vapi-ai/mcp-server"]
-    }
-  }
-}
+```bash
+claude mcp add vapi -- npx -y @vapi-ai/mcp-server
 ```
 
 ### 2. Install Skill (Optional)

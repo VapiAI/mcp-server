@@ -6,8 +6,14 @@ import { VapiClient } from '@vapi-ai/server-sdk';
 import { hasValidToken, getToken, startAuthFlow, isAuthInProgress, getAuthUrl, clearConfig } from './auth.js';
 import { registerAllTools } from './tools/index.js';
 
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import dotenv from 'dotenv';
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Lazy-initialized Vapi client
 let vapiClient: VapiClient | null = null;
@@ -123,6 +129,20 @@ function createMcpServer() {
   });
 
   registerAllTools(mcpServer, clientProxy);
+
+  // Expose the prompt guide as an MCP resource
+  mcpServer.resource(
+    'prompt-guide',
+    'vapi://prompt-guide',
+    { description: 'Voice assistant prompt engineering guide with best practices for crafting Vapi assistant prompts', mimeType: 'text/markdown' },
+    async (uri) => {
+      const guidePath = join(__dirname, '..', 'skill', 'PROMPT_GUIDE.md');
+      const content = readFileSync(guidePath, 'utf-8');
+      return {
+        contents: [{ uri: uri.href, text: content }],
+      };
+    }
+  );
 
   return mcpServer;
 }

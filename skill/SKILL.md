@@ -31,7 +31,7 @@ If the user hasn't authenticated yet (tools return auth errors):
 
 ### Step 3: Build the Voice Assistant
 
-Before creating an assistant, fetch the latest prompt engineering guidelines from the [Prompt Guide](https://raw.githubusercontent.com/VapiAI/mcp-server/main/skill/PROMPT_GUIDE.md).
+Before creating an assistant, read the prompt engineering guidelines from the MCP resource `vapi://prompt-guide` (available from the Vapi MCP server).
 
 Use these guidelines to craft effective voice assistant prompts based on what the user wants to build.
 
@@ -72,7 +72,7 @@ Use these guidelines to craft effective voice assistant prompts based on what th
 **Claude should:**
 1. Check for Vapi MCP -> install if needed
 2. Authenticate if needed
-3. Fetch the prompt guide for best practices
+3. Read the prompt guide resource for best practices
 4. Ask about their business to understand context
 5. Create an assistant with a scheduling-focused prompt
 6. Offer to set up a phone number

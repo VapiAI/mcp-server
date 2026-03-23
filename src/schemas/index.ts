@@ -261,7 +261,9 @@ export const CallInputSchema = z.object({
   phoneNumberId: z
     .string()
     .optional()
-    .describe('ID of the phone number to use for the call'),
+    .describe(
+      'ID of the phone number to use for the call. For outbound calls, this must be a Twilio or Vonage imported number. Vapi-provisioned numbers are inbound-only and cannot dial outbound. Use list_phone_numbers to check the provider field.'
+    ),
   customer: z
     .object({
       number: z.string().describe('Customer phone number'),
@@ -314,6 +316,11 @@ export const PhoneNumberOutputSchema = BaseResponseSchema.extend({
   name: z.string().optional(),
   phoneNumber: z.string(),
   status: z.string(),
+  provider: z
+    .string()
+    .describe(
+      'Phone number provider (e.g. "vapi", "twilio", "vonage"). Vapi numbers are inbound-only. Twilio and Vonage numbers support outbound dialing.'
+    ),
   capabilities: z
     .object({
       sms: z.boolean().optional(),

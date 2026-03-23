@@ -24,7 +24,7 @@ export const registerCallTools = (
 
   server.tool(
     'create_call',
-    'Creates a outbound call',
+    'Creates an outbound call. Important: outbound calls require a Twilio or Vonage imported phone number. Vapi-provisioned numbers are inbound-only and will fail with a transport error if used for outbound dialing.',
     CallInputSchema.shape,
     createToolHandler(async (data) => {
       const createCallDto = transformCallInput(data);

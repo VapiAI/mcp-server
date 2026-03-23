@@ -240,6 +240,7 @@ export function transformPhoneNumberOutput(
     updatedAt: phoneNumber.updatedAt,
     phoneNumber: phoneNumber.number,
     status: phoneNumber.status,
+    provider: phoneNumber.provider || 'unknown',
   };
 }
 

@@ -10,6 +10,7 @@ import {
   UpdateAssistantInputSchema,
   CreateToolInputSchema,
   UpdateToolInputSchema,
+  CALL_DETAIL_FIELDS,
 } from '../schemas/index.js';
 
 // ===== Assistant Transformers =====
@@ -226,6 +227,29 @@ export function transformCallOutput(
       : undefined,
     scheduledAt: call.schedulePlan?.earliestAt,
   };
+}
+
+export function transformCallDetailsOutput(
+  call: Vapi.Call,
+  include?: ReadonlyArray<(typeof CALL_DETAIL_FIELDS)[number]>
+): Record<string, unknown> {
+  const summary = transformCallOutput(call);
+  const callRecord = call as unknown as Record<string, unknown>;
+  const artifact = (callRecord.artifact ?? {}) as Record<string, unknown>;
+
+  const fields = include ?? CALL_DETAIL_FIELDS;
+  const details: Record<string, unknown> = {};
+  for (const field of fields) {
+    const value = callRecord[field] ?? artifact[field];
+    if (value !== undefined) {
+      details[field] = value;
+    }
+  }
+
+  if (include) {
+    return { id: call.id, ...details };
+  }
+  return { ...summary, ...details };
 }
 
 // ===== Phone Number Transformers =====

@@ -304,6 +304,38 @@ export const GetCallInputSchema = z.object({
   callId: z.string().describe('ID of the call to get'),
 });
 
+export const CALL_DETAIL_FIELDS = [
+  'transcript',
+  'recordingUrl',
+  'messages',
+  'costs',
+  'cost',
+  'analysis',
+  'summary',
+  'artifact',
+] as const;
+
+export const GetCallDetailsInputSchema = z.object({
+  callId: z.string().describe('ID of the call to get full details for'),
+  include: z
+    .array(z.enum(CALL_DETAIL_FIELDS))
+    .optional()
+    .describe(
+      'Subset of detail fields to return. Omit to return the full call object. Useful for keeping LLM context small on long calls.'
+    ),
+});
+
+export const CallDetailsOutputSchema = CallOutputSchema.extend({
+  transcript: z.string().optional(),
+  recordingUrl: z.string().optional(),
+  summary: z.string().optional(),
+  messages: z.array(z.any()).optional(),
+  costs: z.array(z.any()).optional(),
+  cost: z.number().optional(),
+  analysis: z.any().optional(),
+  artifact: z.any().optional(),
+});
+
 // ===== Phone Number Schemas =====
 
 export const GetPhoneNumberInputSchema = z.object({

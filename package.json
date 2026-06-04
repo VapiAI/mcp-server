@@ -48,7 +48,10 @@
   "files": [
     "dist",
     "dist/**/*.d.ts",
-    "dist/**/*.d.ts.map"
+    "dist/**/*.d.ts.map",
+    ".claude-plugin",
+    ".mcp.json",
+    "skills"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.3",

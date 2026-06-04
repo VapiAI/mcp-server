@@ -1,0 +1,15 @@
+{
+  "name": "vapi",
+  "description": "Build AI voice assistants and phone agents with Vapi",
+  "version": "0.0.10",
+  "author": {
+    "name": "Vapi AI",
+    "url": "https://vapi.ai"
+  },
+  "homepage": "https://github.com/VapiAI/mcp-server#readme",
+  "repository": "https://github.com/VapiAI/mcp-server",
+  "license": "MIT",
+  "keywords": ["vapi", "voice", "ai", "phone", "assistant", "mcp"],
+  "mcpServers": "./.mcp.json",
+  "skills": "./skills/"
+}

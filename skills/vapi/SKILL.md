@@ -11,17 +11,7 @@ Build AI-powered voice assistants, phone agents, and conversational AI applicati
 
 When a user wants to build a voice assistant or phone agent, follow these steps:
 
-### Step 1: Check if Vapi MCP is Installed
-
-First, check if the Vapi MCP server is available by looking for `vapi_` tools. If not available, tell the user to run:
-
-```bash
-claude mcp add vapi -- npx -y @vapi-ai/mcp-server
-```
-
-Then restart Claude Code and continue with Step 2.
-
-### Step 2: Authenticate with Vapi
+### Step 1: Authenticate with Vapi
 
 If the user hasn't authenticated yet (tools return auth errors):
 
@@ -29,9 +19,9 @@ If the user hasn't authenticated yet (tools return auth errors):
 2. Tell the user to open the provided URL and sign in
 3. Once authenticated, proceed with their request
 
-### Step 3: Build the Voice Assistant
+### Step 2: Build the Voice Assistant
 
-Before creating an assistant, fetch the latest prompt engineering guidelines from the [Prompt Guide](https://raw.githubusercontent.com/VapiAI/mcp-server/main/skill/PROMPT_GUIDE.md).
+Before creating an assistant, read the prompt engineering guidelines from the MCP resource `vapi://prompt-guide` from server `plugin:vapi:vapi` (use `ReadMcpResourceTool` with server `plugin:vapi:vapi` and uri `vapi://prompt-guide`).
 
 Use these guidelines to craft effective voice assistant prompts based on what the user wants to build.
 
@@ -70,19 +60,18 @@ Use these guidelines to craft effective voice assistant prompts based on what th
 **User:** "I want to build a voice assistant that can schedule appointments"
 
 **Claude should:**
-1. Check for Vapi MCP -> install if needed
-2. Authenticate if needed
-3. Fetch the prompt guide for best practices
-4. Ask about their business to understand context
-5. Create an assistant with a scheduling-focused prompt
-6. Offer to set up a phone number
-7. Help create calendar integration tools if needed
+1. Authenticate if needed
+2. Read the prompt guide resource for best practices
+3. Ask about their business to understand context
+4. Create an assistant with a scheduling-focused prompt
+5. Offer to set up a phone number
+6. Help create calendar integration tools if needed
 
 **User:** "Make me a phone bot that answers questions about my business"
 
 **Claude should:**
-1. Ensure Vapi MCP is installed and authenticated
-2. Fetch the prompt guide for best practices
+1. Authenticate if needed
+2. Read the prompt guide resource for best practices
 3. Ask about the business: name, services, hours, common questions
 4. Craft a system prompt following the guidelines
 5. Create the assistant

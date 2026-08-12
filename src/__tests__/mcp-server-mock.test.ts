@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { beforeAll, describe, expect, jest, test } from '@jest/globals';
 import { createMcpServer } from '../index.js';
 import { createMockVapiClient } from './mocks/vapi-client.mock.js';
 

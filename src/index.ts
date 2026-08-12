@@ -2,127 +2,27 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { VapiClient } from '@vapi-ai/server-sdk';
-import { hasValidToken, getToken, startAuthFlow, isAuthInProgress, getAuthUrl, clearConfig } from './auth.js';
 import { registerAllTools } from './tools/index.js';
+import { createVapiClient } from './client.js';
 
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Lazy-initialized Vapi client
-let vapiClient: VapiClient | null = null;
-
-function getVapiClient(): VapiClient {
-  const token = getToken();
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-  // Reset client if token changed
-  if (!vapiClient) {
-    vapiClient = new VapiClient({ token });
-  }
-  return vapiClient;
-}
-
 function createMcpServer() {
+  const vapiToken = process.env.VAPI_TOKEN;
+  if (!vapiToken) {
+    throw new Error('VAPI_TOKEN environment variable is required');
+  }
+
+  const vapiClient = createVapiClient(vapiToken);
+
   const mcpServer = new McpServer({
     name: 'Vapi MCP',
     version: '0.1.0',
     capabilities: [],
   });
 
-  // Register the login tool - always available
-  mcpServer.tool(
-    'vapi_login',
-    'Authenticate with Vapi. Call this first if other tools return authentication errors.',
-    {},
-    async () => {
-      // Check if we have a token and validate it
-      if (hasValidToken()) {
-        try {
-          const client = getVapiClient();
-          await client.assistants.list({ limit: 1 });
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: 'Already authenticated with Vapi! You can now use other Vapi tools.',
-              },
-            ],
-          };
-        } catch {
-          // Token is stale — clear it and restart auth
-          clearConfig();
-          vapiClient = null;
-        }
-      }
-
-      // Check if auth is already in progress
-      if (isAuthInProgress()) {
-        const url = getAuthUrl();
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Authentication in progress. Please complete sign-in:\n\n${url}\n\nAfter signing in, try your request again.`,
-            },
-          ],
-        };
-      }
-
-      // Start auth flow
-      try {
-        const authUrl = await startAuthFlow();
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Please sign in to Vapi:\n\n${authUrl}\n\nAfter signing in, try your request again.`,
-            },
-          ],
-        };
-      } catch (error: any) {
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Failed to start authentication: ${error.message}`,
-            },
-          ],
-          isError: true,
-        };
-      }
-    }
-  );
-
-  // Register logout tool
-  mcpServer.tool(
-    'vapi_logout',
-    'Log out of Vapi and clear stored credentials. Use this if your auth token is stale or you want to switch accounts.',
-    {},
-    async () => {
-      clearConfig();
-      vapiClient = null;
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: 'Logged out of Vapi. Use vapi_login to sign in again.',
-          },
-        ],
-      };
-    }
-  );
-
-  // Register all Vapi tools - they will check auth via createToolHandler
-  // We use a proxy that creates the client lazily
-  const clientProxy = new Proxy({} as VapiClient, {
-    get(_, prop) {
-      return getVapiClient()[prop as keyof VapiClient];
-    },
-  });
-
-  registerAllTools(mcpServer, clientProxy);
+  registerAllTools(mcpServer, vapiClient);
 
   return mcpServer;
 }

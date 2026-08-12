@@ -1,9 +1,7 @@
 import { z } from 'zod';
-import { hasValidToken, startAuthFlow, isAuthInProgress, getAuthUrl } from '../auth.js';
 
 export type ToolResponse = {
   content: Array<{ type: 'text'; text: string }>;
-  isError?: boolean;
 };
 
 export function createSuccessResponse(data: any): ToolResponse {
@@ -29,39 +27,10 @@ export function createErrorResponse(error: any): ToolResponse {
   };
 }
 
-export function createAuthRequiredResponse(url: string): ToolResponse {
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: `Authentication required. Please sign in:\n\n${url}\n\nAfter signing in, try your request again.`,
-      },
-    ],
-    isError: true,
-  };
-}
-
 export function createToolHandler<T>(
   handler: (params: T) => Promise<any>
 ): (params: T) => Promise<ToolResponse> {
   return async (params: T) => {
-    // Check auth first
-    if (!hasValidToken()) {
-      // Start auth if not already in progress
-      if (!isAuthInProgress()) {
-        try {
-          await startAuthFlow();
-        } catch (error) {
-          // Ignore - we'll show the auth URL below
-        }
-      }
-      const url = getAuthUrl();
-      if (url) {
-        return createAuthRequiredResponse(url);
-      }
-      return createErrorResponse('Authentication required. Please use vapi_login tool first.');
-    }
-
     try {
       const result = await handler(params);
       return createSuccessResponse(result);

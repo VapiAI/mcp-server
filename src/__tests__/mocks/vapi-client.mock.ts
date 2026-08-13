@@ -1,6 +1,8 @@
+import { jest } from '@jest/globals';
+
 export class MockVapiClient {
   assistants = {
-    list: jest.fn().mockResolvedValue([
+    list: jest.fn(async () => [
       {
         id: 'mock-assistant-id-1',
         name: 'Mock Assistant 1',
@@ -19,7 +21,7 @@ export class MockVapiClient {
       },
     ]),
 
-    get: jest.fn().mockImplementation((id) => {
+    get: jest.fn((id: string) => {
       return Promise.resolve({
         id,
         name: `Mock Assistant ${id}`,
@@ -30,7 +32,7 @@ export class MockVapiClient {
       });
     }),
 
-    create: jest.fn().mockImplementation((data) => {
+    create: jest.fn((data: Record<string, unknown>) => {
       return Promise.resolve({
         id: 'new-mock-assistant-id',
         ...data,

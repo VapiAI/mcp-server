@@ -8,14 +8,14 @@ Build AI voice assistants and phone agents with [Vapi](https://vapi.ai) using th
   <img width="380" height="200" src="https://glama.ai/mcp/servers/@VapiAI/mcp-server/badge" alt="Vapi Server MCP server" />
 </a>
 
-## Claude Code Setup (Recommended)
+## Claude Code Setup
 
-The easiest way to get started. No API key needed - authenticate via browser on first use.
+The MCP server requires a Vapi API key. Get one from the [Vapi dashboard](https://dashboard.vapi.ai/org/api-keys).
 
 ### 1. Add MCP Server
 
 ```bash
-claude mcp add vapi -- npx -y @vapi-ai/mcp-server
+claude mcp add -e VAPI_TOKEN=your_vapi_token vapi -- npx -y @vapi-ai/mcp-server
 ```
 
 ### 2. Install Skill (Optional)
@@ -29,28 +29,15 @@ curl -o ~/.claude/skills/vapi/SKILL.md https://raw.githubusercontent.com/VapiAI/
 
 ### 3. Restart Claude Code
 
-After restarting, use `/vapi` or ask Claude to help build a voice assistant. On first use, you'll be prompted to sign in via browser - no API key copy-paste needed.
+After restarting, use `/vapi` or ask Claude to help build a voice assistant.
 
 ---
 
 ## Claude Desktop Setup
 
-### With OAuth (No API Key)
+### Local Configuration
 
-```json
-{
-  "mcpServers": {
-    "vapi": {
-      "command": "npx",
-      "args": ["-y", "@vapi-ai/mcp-server"]
-    }
-  }
-}
-```
-
-### With API Key
-
-If you prefer to use an API key directly, get one from the [Vapi dashboard](https://dashboard.vapi.ai/org/api-keys):
+Get an API key from the [Vapi dashboard](https://dashboard.vapi.ai/org/api-keys):
 
 ```json
 {
@@ -194,12 +181,6 @@ Connect to Vapi's hosted MCP server from any MCP client:
 | `vapi_create_tool` | Create tool for API integration |
 | `vapi_update_tool` | Update tool |
 | `vapi_delete_tool` | Delete tool |
-
-### Authentication
-| Tool | Description |
-|------|-------------|
-| `vapi_login` | Start OAuth flow |
-| `vapi_logout` | Log out and clear credentials |
 
 ---
 

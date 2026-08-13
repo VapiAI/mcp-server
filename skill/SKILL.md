@@ -16,18 +16,14 @@ When a user wants to build a voice assistant or phone agent, follow these steps:
 First, check if the Vapi MCP server is available by looking for `vapi_` tools. If not available, tell the user to run:
 
 ```bash
-claude mcp add vapi -- npx -y @vapi-ai/mcp-server
+claude mcp add -e VAPI_TOKEN=your_vapi_token vapi -- npx -y @vapi-ai/mcp-server
 ```
 
 Then restart Claude Code and continue with Step 2.
 
-### Step 2: Authenticate with Vapi
+### Step 2: Confirm Vapi Credentials
 
-If the user hasn't authenticated yet (tools return auth errors):
-
-1. Call `vapi_login` to start the OAuth flow
-2. Tell the user to open the provided URL and sign in
-3. Once authenticated, proceed with their request
+If the tools return authentication errors, tell the user to configure `VAPI_TOKEN` with a Vapi API key in their MCP server environment and restart Claude Code.
 
 ### Step 3: Build the Voice Assistant
 
@@ -36,10 +32,6 @@ Before creating an assistant, fetch the latest prompt engineering guidelines fro
 Use these guidelines to craft effective voice assistant prompts based on what the user wants to build.
 
 ## Available Tools
-
-### Authentication
-- `vapi_login` - Start OAuth authentication flow
-- `vapi_logout` - Log out and clear stored credentials
 
 ### Assistants
 - `vapi_list_assistants` - List all assistants
@@ -71,7 +63,7 @@ Use these guidelines to craft effective voice assistant prompts based on what th
 
 **Claude should:**
 1. Check for Vapi MCP -> install if needed
-2. Authenticate if needed
+2. Confirm `VAPI_TOKEN` is configured if the tools return authentication errors
 3. Fetch the prompt guide for best practices
 4. Ask about their business to understand context
 5. Create an assistant with a scheduling-focused prompt
@@ -81,7 +73,7 @@ Use these guidelines to craft effective voice assistant prompts based on what th
 **User:** "Make me a phone bot that answers questions about my business"
 
 **Claude should:**
-1. Ensure Vapi MCP is installed and authenticated
+1. Ensure Vapi MCP is installed and configured with `VAPI_TOKEN`
 2. Fetch the prompt guide for best practices
 3. Ask about the business: name, services, hours, common questions
 4. Craft a system prompt following the guidelines

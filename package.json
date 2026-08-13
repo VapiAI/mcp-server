@@ -34,7 +34,8 @@
   },
   "scripts": {
     "prepare": "npm run build",
-    "build": "shx rm -rf dist && tsc -p tsconfig.build.json && shx chmod +x dist/*.js",
+    "clean": "shx rm -rf dist",
+    "build": "npm run clean && tsc -p tsconfig.build.json && shx chmod +x dist/*.js",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "dev:stdio-example": "tsx examples/stdio-client.ts",

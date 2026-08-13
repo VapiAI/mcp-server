@@ -59,6 +59,7 @@ describe('MCP Server E2E Test', () => {
     expect(toolNames).toContain('list_calls');
     expect(toolNames).toContain('create_call');
     expect(toolNames).toContain('get_call');
+    expect(toolNames).toContain('get_call_details');
   });
 
   describe('Assistant Tools', () => {

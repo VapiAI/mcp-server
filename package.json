@@ -42,8 +42,8 @@
     "dev:shttp-example": "tsx examples/shttp-client.ts",
     "inspector": "mcp-inspector",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
-    "test:unit": "VAPI_TOKEN=test-mock-token NODE_OPTIONS=--experimental-vm-modules jest --testPathIgnorePatterns='mcp-server-e2e\\.test\\.ts$'",
-    "test:e2e": "NODE_OPTIONS=--experimental-vm-modules jest src/tests/mcp-server-e2e.test.ts"
+    "test:unit": "VAPI_TOKEN=test-mock-token NODE_OPTIONS=--experimental-vm-modules jest src/__tests__/mcp-server-mock.test.ts",
+    "test:e2e": "NODE_OPTIONS=--experimental-vm-modules jest src/__tests__/mcp-server-e2e.test.ts"
   },
   "files": [
     "dist",

@@ -104,18 +104,20 @@ function startServer() {
   return { request, notify, close };
 }
 
-const compatibilityMatrix: Array<[string, string]> = [
-  ['claude-desktop', '2024-10-07'],
-  ['claude-desktop', '2024-11-05'],
-  ['cursor', '2025-03-26'],
-  ['cursor', '2025-06-18'],
-  ['codex', '2025-11-25'],
+// Exercise the packaged CLI over real stdio framing for every protocol version
+// supported by the installed SDK. Host-specific smoke tests belong outside this suite.
+const supportedProtocolVersions = [
+  '2024-10-07',
+  '2024-11-05',
+  '2025-03-26',
+  '2025-06-18',
+  '2025-11-25',
 ];
 
-describe('stdio MCP client compatibility', () => {
-  test.each(compatibilityMatrix)(
-    '%s negotiates protocol %s and lists the complete catalog',
-    async (clientName, protocolVersion) => {
+describe('stdio MCP protocol compatibility', () => {
+  test.each(supportedProtocolVersions)(
+    'negotiates protocol %s and lists the complete catalog',
+    async (protocolVersion) => {
       const server = startServer();
 
       try {
@@ -123,7 +125,7 @@ describe('stdio MCP client compatibility', () => {
           protocolVersion,
           capabilities: {},
           clientInfo: {
-            name: clientName,
+            name: 'stdio-compatibility-test',
             version: 'compat-test',
           },
         });

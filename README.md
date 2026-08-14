@@ -8,36 +8,19 @@ Build AI voice assistants and phone agents with [Vapi](https://vapi.ai) using th
   <img width="380" height="200" src="https://glama.ai/mcp/servers/@VapiAI/mcp-server/badge" alt="Vapi Server MCP server" />
 </a>
 
-## Claude Code Setup
+## Setup
 
 The MCP server requires a Vapi API key. Get one from the [Vapi dashboard](https://dashboard.vapi.ai/org/api-keys).
 
-### 1. Add MCP Server
+### Local Server (stdio)
 
-```bash
-claude mcp add -e VAPI_TOKEN=your_vapi_token vapi -- npx -y @vapi-ai/mcp-server
+Configure any MCP client that supports local stdio servers to run:
+
+```text
+npx -y @vapi-ai/mcp-server
 ```
 
-### 2. Install Skill (Optional)
-
-The Vapi skill helps Claude guide you through building voice assistants:
-
-```bash
-mkdir -p ~/.claude/skills/vapi
-curl -o ~/.claude/skills/vapi/SKILL.md https://raw.githubusercontent.com/VapiAI/mcp-server/main/skill/SKILL.md
-```
-
-### 3. Restart Claude Code
-
-After restarting, use `/vapi` or ask Claude to help build a voice assistant.
-
----
-
-## Claude Desktop Setup
-
-### Local Configuration
-
-Get an API key from the [Vapi dashboard](https://dashboard.vapi.ai/org/api-keys):
+Set `VAPI_TOKEN` in the server environment. MCP client configuration formats vary, but the server definition generally looks like this:
 
 ```json
 {
@@ -53,9 +36,24 @@ Get an API key from the [Vapi dashboard](https://dashboard.vapi.ai/org/api-keys)
 }
 ```
 
-### Remote Configuration
+### Remote Server (Streamable HTTP)
 
-Connect to Vapi's hosted MCP server:
+Clients that support remote MCP servers can connect directly:
+
+- URL: `https://mcp.vapi.ai/mcp`
+- Header: `Authorization: Bearer your_vapi_api_key_here`
+
+### Client-Specific Examples
+
+#### Claude Code
+
+```bash
+claude mcp add -e VAPI_TOKEN=your_vapi_token vapi -- npx -y @vapi-ai/mcp-server
+```
+
+#### Claude Desktop
+
+Use the local server configuration above in the Claude Desktop configuration file. To connect to the hosted server through an stdio bridge instead:
 
 ```json
 {
@@ -76,13 +74,24 @@ Connect to Vapi's hosted MCP server:
 }
 ```
 
+### Optional Agent Skill
+
+The [`skill`](./skill) directory contains reusable instructions for AI coding agents that support Agent Skills. Install it using your host's skill installation process.
+
+For Claude Code:
+
+```bash
+mkdir -p ~/.claude/skills/vapi
+curl -o ~/.claude/skills/vapi/SKILL.md https://raw.githubusercontent.com/VapiAI/mcp-server/main/skill/SKILL.md
+```
+
 ---
 
 ## Example Usage
 
 ### Create a Voice Assistant
 
-Ask Claude:
+Ask your MCP-enabled agent:
 ```
 I want to build a voice assistant that can schedule appointments
 ```

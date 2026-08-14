@@ -1,6 +1,6 @@
 {
   "name": "@vapi-ai/mcp-server",
-  "description": "Vapi MCP Server - Build AI voice assistants with Claude",
+  "description": "Build AI voice assistants and phone agents with Vapi through the Model Context Protocol",
   "version": "0.0.10",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -24,8 +24,10 @@
     "vapi",
     "mcp",
     "model-context-protocol",
+    "mcp-server",
+    "mcp-client",
     "ai",
-    "claude",
+    "voice-agents",
     "voice-api",
     "tool-calling"
   ],

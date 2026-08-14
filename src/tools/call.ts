@@ -1,5 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient, Vapi } from '@vapi-ai/server-sdk';
+import { z } from 'zod';
 
 import { CallInputSchema, GetCallInputSchema } from '../schemas/index.js';
 import {
@@ -12,10 +13,12 @@ export const registerCallTools = (
   server: McpServer,
   vapiClient: VapiClient
 ) => {
-  server.tool(
+  server.registerTool(
     'list_calls',
-    'Lists all Vapi calls',
-    {},
+    {
+      description: 'Lists all Vapi calls',
+      inputSchema: z.object({}),
+    },
     createToolHandler(async () => {
       const calls = await vapiClient.calls.list({ limit: 10 });
       return calls.map(transformCallOutput);

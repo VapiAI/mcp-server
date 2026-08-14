@@ -19,7 +19,6 @@ function createMcpServer() {
   const mcpServer = new McpServer({
     name: 'Vapi MCP',
     version: '0.1.0',
-    capabilities: [],
   });
 
   registerAllTools(mcpServer, vapiClient);

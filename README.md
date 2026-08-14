@@ -2,10 +2,6 @@
 
 Build AI voice assistants and phone agents with [Vapi](https://vapi.ai) using the [Model Context Protocol](https://modelcontextprotocol.com/).
 
-<a href="https://glama.ai/mcp/servers/@VapiAI/mcp-server">
-  <img width="380" height="200" src="https://glama.ai/mcp/servers/@VapiAI/mcp-server/badge" alt="Vapi Server MCP server" />
-</a>
-
 ## Setup
 
 The MCP server requires a Vapi API key. Get one from the [Vapi dashboard](https://dashboard.vapi.ai/org/api-keys).

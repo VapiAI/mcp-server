@@ -1,7 +1,5 @@
 # Vapi MCP Server
 
-[![smithery badge](https://smithery.ai/badge/@VapiAI/vapi-mcp-server)](https://smithery.ai/server/@VapiAI/vapi-mcp-server)
-
 Build AI voice assistants and phone agents with [Vapi](https://vapi.ai) using the [Model Context Protocol](https://modelcontextprotocol.com/).
 
 <a href="https://glama.ai/mcp/servers/@VapiAI/mcp-server">

@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const expectedExecutableName = 'mcp-server';
 const expectedToolNames = [
   'create_assistant',
   'create_call',
@@ -233,13 +234,18 @@ try {
       `Expected exactly one declared package bin, found ${declaredBins.length}`
     );
   }
+  if (declaredBins[0] !== expectedExecutableName) {
+    throw new Error(
+      `Expected package bin "${expectedExecutableName}" so npx can resolve it, ` +
+        `found "${declaredBins[0]}"`
+    );
+  }
 
-  const executableName = declaredBins[0].split('/').pop();
   const binPath = join(
     consumerDirectory,
     'node_modules',
     '.bin',
-    `${executableName}${process.platform === 'win32' ? '.cmd' : ''}`
+    `${expectedExecutableName}${process.platform === 'win32' ? '.cmd' : ''}`
   );
   await access(binPath);
 

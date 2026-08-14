@@ -7,25 +7,24 @@ description: Build AI voice assistants and phone agents with Vapi. Use this skil
 
 Build AI-powered voice assistants, phone agents, and conversational AI applications with Vapi.
 
-## When This Skill is Activated
+## Workflow
 
-When a user wants to build a voice assistant or phone agent, follow these steps:
+### 1. Check for the Vapi MCP Server
 
-### Step 1: Check if Vapi MCP is Installed
+Check whether a Vapi MCP server is connected by discovering tools such as `list_assistants`. MCP hosts may namespace displayed tool names with the configured server name.
 
-First, check if the Vapi MCP server is available by looking for `vapi_` tools. If not available, tell the user to run:
+If the server is unavailable, tell the user to configure one of these supported connections in their MCP host:
 
-```bash
-claude mcp add -e VAPI_TOKEN=your_vapi_token vapi -- npx -y @vapi-ai/mcp-server
-```
+- Local stdio command: `npx -y @vapi-ai/mcp-server`, with `VAPI_TOKEN` set in the server environment
+- Remote Streamable HTTP: `https://mcp.vapi.ai/mcp`, with an `Authorization: Bearer <VAPI_TOKEN>` header
 
-Then restart Claude Code and continue with Step 2.
+Tell the user to reload or restart their MCP host if it requires that after configuration.
 
-### Step 2: Confirm Vapi Credentials
+### 2. Confirm Vapi Credentials
 
-If the tools return authentication errors, tell the user to configure `VAPI_TOKEN` with a Vapi API key in their MCP server environment and restart Claude Code.
+If a tool returns an authentication error, tell the user to configure a Vapi API key as `VAPI_TOKEN` for a local server or as the bearer token for the remote server. Then retry after reloading the connection if required by the host.
 
-### Step 3: Build the Voice Assistant
+### 3. Build the Voice Assistant
 
 Before creating an assistant, fetch the latest prompt engineering guidelines from the [Prompt Guide](https://raw.githubusercontent.com/VapiAI/mcp-server/main/skill/PROMPT_GUIDE.md).
 
@@ -34,46 +33,43 @@ Use these guidelines to craft effective voice assistant prompts based on what th
 ## Available Tools
 
 ### Assistants
-- `vapi_list_assistants` - List all assistants
-- `vapi_get_assistant` - Get assistant details
-- `vapi_create_assistant` - Create new assistant
-- `vapi_update_assistant` - Update assistant
-- `vapi_delete_assistant` - Delete assistant
+- `list_assistants` - List all assistants
+- `get_assistant` - Get assistant details
+- `create_assistant` - Create new assistant
+- `update_assistant` - Update assistant
 
 ### Calls
-- `vapi_list_calls` - List call history
-- `vapi_get_call` - Get call details
-- `vapi_create_call` - Start outbound call
+- `list_calls` - List call history
+- `get_call` - Get call details
+- `create_call` - Start outbound call
 
 ### Phone Numbers
-- `vapi_list_phone_numbers` - List phone numbers
-- `vapi_buy_phone_number` - Purchase new number
-- `vapi_update_phone_number` - Update number settings
-- `vapi_delete_phone_number` - Release number
+- `list_phone_numbers` - List phone numbers
+- `get_phone_number` - Get phone number details
 
 ### Tools (Function Calling)
-- `vapi_list_tools` - List custom tools
-- `vapi_create_tool` - Create tool for API integration
-- `vapi_update_tool` - Update tool
-- `vapi_delete_tool` - Delete tool
+- `list_tools` - List custom tools
+- `get_tool` - Get tool details
+- `create_tool` - Create tool for API integration
+- `update_tool` - Update tool
 
 ## Workflow Examples
 
 **User:** "I want to build a voice assistant that can schedule appointments"
 
-**Claude should:**
-1. Check for Vapi MCP -> install if needed
+**Agent workflow:**
+1. Check for Vapi MCP -> configure a connection if needed
 2. Confirm `VAPI_TOKEN` is configured if the tools return authentication errors
 3. Fetch the prompt guide for best practices
 4. Ask about their business to understand context
 5. Create an assistant with a scheduling-focused prompt
-6. Offer to set up a phone number
+6. Help select an existing phone number, or direct the user to the Vapi dashboard to provision one
 7. Help create calendar integration tools if needed
 
 **User:** "Make me a phone bot that answers questions about my business"
 
-**Claude should:**
-1. Ensure Vapi MCP is installed and configured with `VAPI_TOKEN`
+**Agent workflow:**
+1. Ensure Vapi MCP is connected and authenticated
 2. Fetch the prompt guide for best practices
 3. Ask about the business: name, services, hours, common questions
 4. Craft a system prompt following the guidelines

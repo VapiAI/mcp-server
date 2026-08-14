@@ -123,34 +123,83 @@ describe('MCP tool execution compatibility', () => {
   }
 
   test.each([
-    ['list_assistants', 'assistant-1'],
-    ['list_calls', 'call-1'],
-    ['list_phone_numbers', 'phone-number-1'],
-    ['list_tools', 'tool-1'],
-  ])('%s returns transformed list results', async (name, expectedId) => {
+    [
+      'list_assistants',
+      vapiOperations.assistants.list,
+      expect.objectContaining({
+        id: assistant.id,
+        name: assistant.name,
+        llm: { provider: 'openai', model: 'gpt-4o' },
+        toolIds: ['tool-1'],
+      }),
+    ],
+    [
+      'list_calls',
+      vapiOperations.calls.list,
+      expect.objectContaining({
+        id: call.id,
+        status: 'ended',
+        assistantId: assistant.id,
+        customer: { number: '+15555550100' },
+      }),
+    ],
+    [
+      'list_phone_numbers',
+      vapiOperations.phoneNumbers.list,
+      expect.objectContaining({
+        id: phoneNumber.id,
+        name: phoneNumber.name,
+        phoneNumber: '+15555550101',
+        status: 'active',
+      }),
+    ],
+    [
+      'list_tools',
+      vapiOperations.tools.list,
+      expect.objectContaining({
+        id: tool.id,
+        type: 'function',
+        name: 'compatibility_tool',
+        description: 'Compatibility tool',
+      }),
+    ],
+  ])('%s forwards the list limit and returns transformed results', async (
+    name,
+    listOperation,
+    expectedResult
+  ) => {
     const result = await invoke(name, {});
 
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe(expectedId);
+    expect(result[0]).toEqual(expectedResult);
+    expect(listOperation).toHaveBeenLastCalledWith({ limit: 10 });
   });
 
   test.each([
-    ['get_assistant', { assistantId: assistant.id }, assistant.id],
-    ['get_call', { callId: call.id }, call.id],
+    [
+      'get_assistant',
+      { assistantId: assistant.id },
+      vapiOperations.assistants.get,
+      assistant.id,
+    ],
+    ['get_call', { callId: call.id }, vapiOperations.calls.get, call.id],
     [
       'get_phone_number',
       { phoneNumberId: phoneNumber.id },
+      vapiOperations.phoneNumbers.get,
       phoneNumber.id,
     ],
-    ['get_tool', { toolId: tool.id }, tool.id],
-  ])('%s accepts its identifier and returns a transformed result', async (
+    ['get_tool', { toolId: tool.id }, vapiOperations.tools.get, tool.id],
+  ])('%s forwards its identifier and returns a transformed result', async (
     name,
     args,
+    getOperation,
     expectedId
   ) => {
     const result = await invoke(name, args);
     expect(result.id).toBe(expectedId);
+    expect(getOperation).toHaveBeenLastCalledWith(expectedId);
   });
 
   test('create_assistant preserves schema defaults and calls Vapi', async () => {
@@ -191,7 +240,7 @@ describe('MCP tool execution compatibility', () => {
     );
   });
 
-  test('create_call preserves the outbound-call payload without calling Vapi', async () => {
+  test('create_call preserves the outbound-call payload passed to Vapi', async () => {
     const result = await invoke('create_call', {
       assistantId: assistant.id,
       phoneNumberId: phoneNumber.id,
@@ -236,6 +285,39 @@ describe('MCP tool execution compatibility', () => {
     expect(result.id).toBe(tool.id);
     expect(vapiOperations.tools.update).toHaveBeenLastCalledWith(tool.id, {
       function: { name: 'updated_compatibility_tool' },
+    });
+  });
+
+  test('rejects invalid tool input before calling Vapi', async () => {
+    const callsBefore = vapiOperations.assistants.create.mock.calls.length;
+
+    const response = await client.callTool({
+      name: 'create_assistant',
+      arguments: {},
+    });
+
+    expect(response.isError).toBe(true);
+    expect(response.content).toEqual([
+      expect.objectContaining({
+        type: 'text',
+        text: expect.stringContaining('Input validation error'),
+      }),
+    ]);
+    expect(vapiOperations.assistants.create).toHaveBeenCalledTimes(callsBefore);
+  });
+
+  test('returns a visible error response when Vapi rejects an operation', async () => {
+    vapiOperations.calls.list.mockRejectedValueOnce(
+      new Error('simulated Vapi failure') as never
+    );
+
+    const response = await client.callTool({
+      name: 'list_calls',
+      arguments: {},
+    });
+
+    expect(parseToolResponse(response)).toEqual({
+      error: 'Error: simulated Vapi failure',
     });
   });
 });

@@ -1,6 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient, Vapi } from '@vapi-ai/server-sdk';
-import { z } from 'zod';
 import {
   CreateAssistantInputSchema,
   GetAssistantInputSchema,
@@ -21,7 +20,7 @@ export const registerAssistantTools = (
     'list_assistants',
     {
       description: 'Lists all Vapi assistants',
-      inputSchema: z.object({}),
+      inputSchema: {},
     },
     createToolHandler(async () => {
       //   console.log('list_assistants');

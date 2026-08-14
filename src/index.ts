@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { readFileSync } from 'node:fs';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { registerAllTools } from './tools/index.js';
@@ -7,6 +8,10 @@ import { createVapiClient } from './client.js';
 
 import dotenv from 'dotenv';
 dotenv.config();
+
+const packageMetadata = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8')
+) as { version: string };
 
 function createMcpServer() {
   const vapiToken = process.env.VAPI_TOKEN;
@@ -18,7 +23,7 @@ function createMcpServer() {
 
   const mcpServer = new McpServer({
     name: 'Vapi MCP',
-    version: '0.1.0',
+    version: packageMetadata.version,
   });
 
   registerAllTools(mcpServer, vapiClient);

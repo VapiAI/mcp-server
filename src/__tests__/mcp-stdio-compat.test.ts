@@ -1,8 +1,13 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, jest, test } from '@jest/globals';
 
 jest.setTimeout(15_000);
+
+const packageMetadata = JSON.parse(
+  readFileSync(new URL('../../package.json', import.meta.url), 'utf8')
+) as { version: string };
 
 type JsonRpcResponse = {
   id?: number;
@@ -99,18 +104,20 @@ function startServer() {
   return { request, notify, close };
 }
 
-const compatibilityMatrix: Array<[string, string]> = [
-  ['claude-desktop', '2024-10-07'],
-  ['claude-desktop', '2024-11-05'],
-  ['cursor', '2025-03-26'],
-  ['cursor', '2025-06-18'],
-  ['codex', '2025-11-25'],
+// Exercise the locally built entrypoint over real stdio framing for every protocol version
+// supported by the installed SDK. Host-specific smoke tests belong outside this suite.
+const supportedProtocolVersions = [
+  '2024-10-07',
+  '2024-11-05',
+  '2025-03-26',
+  '2025-06-18',
+  '2025-11-25',
 ];
 
-describe('stdio MCP client compatibility', () => {
-  test.each(compatibilityMatrix)(
-    '%s negotiates protocol %s and lists the complete catalog',
-    async (clientName, protocolVersion) => {
+describe('stdio MCP protocol compatibility', () => {
+  test.each(supportedProtocolVersions)(
+    'negotiates protocol %s and lists the complete catalog',
+    async (protocolVersion) => {
       const server = startServer();
 
       try {
@@ -118,7 +125,7 @@ describe('stdio MCP client compatibility', () => {
           protocolVersion,
           capabilities: {},
           clientInfo: {
-            name: clientName,
+            name: 'stdio-compatibility-test',
             version: 'compat-test',
           },
         });
@@ -128,7 +135,7 @@ describe('stdio MCP client compatibility', () => {
         expect(initialization.result?.serverInfo).toEqual(
           expect.objectContaining({
             name: 'Vapi MCP',
-            version: '0.1.0',
+            version: packageMetadata.version,
           })
         );
         expect(initialization.result?.capabilities).toEqual(

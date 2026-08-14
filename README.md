@@ -8,36 +8,19 @@ Build AI voice assistants and phone agents with [Vapi](https://vapi.ai) using th
   <img width="380" height="200" src="https://glama.ai/mcp/servers/@VapiAI/mcp-server/badge" alt="Vapi Server MCP server" />
 </a>
 
-## Claude Code Setup
+## Setup
 
 The MCP server requires a Vapi API key. Get one from the [Vapi dashboard](https://dashboard.vapi.ai/org/api-keys).
 
-### 1. Add MCP Server
+### Local Server (stdio)
 
-```bash
-claude mcp add -e VAPI_TOKEN=your_vapi_token vapi -- npx -y @vapi-ai/mcp-server
+Configure any MCP client that supports local stdio servers to run:
+
+```text
+npx -y @vapi-ai/mcp-server
 ```
 
-### 2. Install Skill (Optional)
-
-The Vapi skill helps Claude guide you through building voice assistants:
-
-```bash
-mkdir -p ~/.claude/skills/vapi
-curl -o ~/.claude/skills/vapi/SKILL.md https://raw.githubusercontent.com/VapiAI/mcp-server/main/skill/SKILL.md
-```
-
-### 3. Restart Claude Code
-
-After restarting, use `/vapi` or ask Claude to help build a voice assistant.
-
----
-
-## Claude Desktop Setup
-
-### Local Configuration
-
-Get an API key from the [Vapi dashboard](https://dashboard.vapi.ai/org/api-keys):
+Set `VAPI_TOKEN` in the server environment. MCP client configuration formats vary, but the server definition generally looks like this:
 
 ```json
 {
@@ -53,9 +36,24 @@ Get an API key from the [Vapi dashboard](https://dashboard.vapi.ai/org/api-keys)
 }
 ```
 
-### Remote Configuration
+### Remote Server (Streamable HTTP)
 
-Connect to Vapi's hosted MCP server:
+Clients that support remote MCP servers can connect directly:
+
+- URL: `https://mcp.vapi.ai/mcp`
+- Header: `Authorization: Bearer your_vapi_api_key_here`
+
+### Client-Specific Examples
+
+#### Claude Code
+
+```bash
+claude mcp add -e VAPI_TOKEN=your_vapi_token vapi -- npx -y @vapi-ai/mcp-server
+```
+
+#### Claude Desktop
+
+Use the local server configuration above in the Claude Desktop configuration file. To connect to the hosted server through an stdio bridge instead:
 
 ```json
 {
@@ -76,13 +74,24 @@ Connect to Vapi's hosted MCP server:
 }
 ```
 
+### Optional Agent Skill
+
+The [`skill`](./skill) directory contains reusable instructions for AI coding agents that support Agent Skills. Install it using your host's skill installation process.
+
+For Claude Code:
+
+```bash
+mkdir -p ~/.claude/skills/vapi
+curl -o ~/.claude/skills/vapi/SKILL.md https://raw.githubusercontent.com/VapiAI/mcp-server/main/skill/SKILL.md
+```
+
 ---
 
 ## Example Usage
 
 ### Create a Voice Assistant
 
-Ask Claude:
+Ask your MCP-enabled agent:
 ```
 I want to build a voice assistant that can schedule appointments
 ```
@@ -151,36 +160,31 @@ Connect to Vapi's hosted MCP server from any MCP client:
 ### Assistants
 | Tool | Description |
 |------|-------------|
-| `vapi_list_assistants` | List all assistants |
-| `vapi_get_assistant` | Get assistant by ID |
-| `vapi_create_assistant` | Create new assistant |
-| `vapi_update_assistant` | Update assistant |
-| `vapi_delete_assistant` | Delete assistant |
+| `list_assistants` | List all assistants |
+| `get_assistant` | Get assistant by ID |
+| `create_assistant` | Create new assistant |
+| `update_assistant` | Update assistant |
 
 ### Calls
 | Tool | Description |
 |------|-------------|
-| `vapi_list_calls` | List call history |
-| `vapi_get_call` | Get call details |
-| `vapi_create_call` | Start outbound call (immediate or scheduled) |
+| `list_calls` | List call history |
+| `get_call` | Get call details |
+| `create_call` | Start outbound call (immediate or scheduled) |
 
 ### Phone Numbers
 | Tool | Description |
 |------|-------------|
-| `vapi_list_phone_numbers` | List phone numbers |
-| `vapi_get_phone_number` | Get phone number details |
-| `vapi_buy_phone_number` | Purchase new number |
-| `vapi_update_phone_number` | Update number settings |
-| `vapi_delete_phone_number` | Release number |
+| `list_phone_numbers` | List phone numbers |
+| `get_phone_number` | Get phone number details |
 
 ### Tools (Function Calling)
 | Tool | Description |
 |------|-------------|
-| `vapi_list_tools` | List custom tools |
-| `vapi_get_tool` | Get tool details |
-| `vapi_create_tool` | Create tool for API integration |
-| `vapi_update_tool` | Update tool |
-| `vapi_delete_tool` | Delete tool |
+| `list_tools` | List custom tools |
+| `get_tool` | Get tool details |
+| `create_tool` | Create tool for API integration |
+| `update_tool` | Update tool |
 
 ---
 
@@ -216,15 +220,31 @@ npm run inspector
 ### Testing
 
 ```bash
-# Unit tests (mocked)
+# Safe default suite (build, mocked execution, contract, and stdio compatibility)
+npm test
+
+# Unit tests (mocked public tool execution and catalog contract)
 npm run test:unit
 
-# E2E tests (requires VAPI_TOKEN)
-export VAPI_TOKEN=your_token_here
-npm run test:e2e
+# Documentation/tool-catalog consistency lint
+npm run test:docs
 
-# All tests
-npm test
+# Full TypeScript check (production and test code)
+npm run typecheck
+
+# Build and run local stdio protocol compatibility tests (no Vapi API calls)
+npm run test:stdio
+
+# Pack, install, and launch the package from a clean temporary consumer
+npm run test:package
+
+# Live read-only API tests
+export VAPI_TOKEN=your_token_here
+npm run test:live:readonly
+
+# Live mutating tests (creates and cleans up disposable assistants and tools)
+export VAPI_TOKEN=your_test_org_token_here
+npm run test:live:mutating
 ```
 
 ---

@@ -605,7 +605,6 @@
     "description": "Lists all Vapi assistants",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": false,
       "properties": {},
       "type": "object"
     }
@@ -615,7 +614,6 @@
     "description": "Lists all Vapi calls",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": false,
       "properties": {},
       "type": "object"
     }
@@ -625,7 +623,6 @@
     "description": "Lists all Vapi phone numbers",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": false,
       "properties": {},
       "type": "object"
     }
@@ -635,7 +632,6 @@
     "description": "Lists all Vapi tools",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": false,
       "properties": {},
       "type": "object"
     }

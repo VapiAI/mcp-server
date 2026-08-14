@@ -1,6 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient } from '@vapi-ai/server-sdk';
-import { z } from 'zod';
 
 import { transformPhoneNumberOutput } from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
@@ -14,7 +13,7 @@ export const registerPhoneNumberTools = (
     'list_phone_numbers',
     {
       description: 'Lists all Vapi phone numbers',
-      inputSchema: z.object({}),
+      inputSchema: {},
     },
     createToolHandler(async () => {
       const phoneNumbers = await vapiClient.phoneNumbers.list({ limit: 10 });

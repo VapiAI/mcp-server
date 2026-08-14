@@ -151,36 +151,31 @@ Connect to Vapi's hosted MCP server from any MCP client:
 ### Assistants
 | Tool | Description |
 |------|-------------|
-| `vapi_list_assistants` | List all assistants |
-| `vapi_get_assistant` | Get assistant by ID |
-| `vapi_create_assistant` | Create new assistant |
-| `vapi_update_assistant` | Update assistant |
-| `vapi_delete_assistant` | Delete assistant |
+| `list_assistants` | List all assistants |
+| `get_assistant` | Get assistant by ID |
+| `create_assistant` | Create new assistant |
+| `update_assistant` | Update assistant |
 
 ### Calls
 | Tool | Description |
 |------|-------------|
-| `vapi_list_calls` | List call history |
-| `vapi_get_call` | Get call details |
-| `vapi_create_call` | Start outbound call (immediate or scheduled) |
+| `list_calls` | List call history |
+| `get_call` | Get call details |
+| `create_call` | Start outbound call (immediate or scheduled) |
 
 ### Phone Numbers
 | Tool | Description |
 |------|-------------|
-| `vapi_list_phone_numbers` | List phone numbers |
-| `vapi_get_phone_number` | Get phone number details |
-| `vapi_buy_phone_number` | Purchase new number |
-| `vapi_update_phone_number` | Update number settings |
-| `vapi_delete_phone_number` | Release number |
+| `list_phone_numbers` | List phone numbers |
+| `get_phone_number` | Get phone number details |
 
 ### Tools (Function Calling)
 | Tool | Description |
 |------|-------------|
-| `vapi_list_tools` | List custom tools |
-| `vapi_get_tool` | Get tool details |
-| `vapi_create_tool` | Create tool for API integration |
-| `vapi_update_tool` | Update tool |
-| `vapi_delete_tool` | Delete tool |
+| `list_tools` | List custom tools |
+| `get_tool` | Get tool details |
+| `create_tool` | Create tool for API integration |
+| `update_tool` | Update tool |
 
 ---
 
@@ -216,15 +211,25 @@ npm run inspector
 ### Testing
 
 ```bash
+# Safe default suite (build, mocked execution, contract, and stdio compatibility)
+npm test
+
 # Unit tests (mocked)
 npm run test:unit
 
-# E2E tests (requires VAPI_TOKEN)
-export VAPI_TOKEN=your_token_here
+# Full TypeScript check (production and test code)
+npm run typecheck
+
+# Build and run packaged stdio compatibility tests (no Vapi API calls)
 npm run test:e2e
 
-# All tests
-npm test
+# Live read-only API tests
+export VAPI_TOKEN=your_token_here
+npm run test:live:readonly
+
+# Live mutating tests (creates and cleans up disposable assistants and tools)
+export VAPI_TOKEN=your_test_org_token_here
+npm run test:live:mutating
 ```
 
 ---

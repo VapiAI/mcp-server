@@ -1,7 +1,7 @@
 {
   "name": "@vapi-ai/mcp-server",
   "description": "Vapi MCP Server - Build AI voice assistants with Claude",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -36,15 +36,20 @@
     "prepare": "npm run build",
     "clean": "shx rm -rf dist",
     "build": "npm run clean && tsc -p tsconfig.build.json && shx chmod +x dist/*.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "dev:stdio-example": "tsx examples/stdio-client.ts",
     "dev:sse-example": "tsx examples/sse-client.ts",
     "dev:shttp-example": "tsx examples/shttp-client.ts",
     "inspector": "mcp-inspector",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
-    "test:unit": "VAPI_TOKEN=test-mock-token NODE_OPTIONS=--experimental-vm-modules jest src/__tests__/mcp-server-mock.test.ts",
-    "test:e2e": "NODE_OPTIONS=--experimental-vm-modules jest src/__tests__/mcp-server-e2e.test.ts"
+    "pretest": "npm run build",
+    "test": "VAPI_TOKEN=test-mock-token NODE_OPTIONS=--experimental-vm-modules jest --runInBand --testPathIgnorePatterns='.*-live\\.test\\.ts$'",
+    "test:unit": "VAPI_TOKEN=test-mock-token NODE_OPTIONS=--experimental-vm-modules jest --runInBand src/__tests__/mcp-server-mock.test.ts src/__tests__/mcp-tool-execution.test.ts src/__tests__/mcp-tools-list.test.ts src/__tests__/documentation-tools.test.ts",
+    "pretest:e2e": "npm run build",
+    "test:e2e": "VAPI_TOKEN=test-mock-token NODE_OPTIONS=--experimental-vm-modules jest --runInBand src/__tests__/mcp-stdio-compat.test.ts",
+    "test:live:readonly": "npm run build && RUN_VAPI_READONLY_TESTS=1 NODE_OPTIONS=--experimental-vm-modules jest --runInBand src/__tests__/mcp-server-readonly-live.test.ts",
+    "test:live:mutating": "npm run build && RUN_VAPI_MUTATING_TESTS=1 NODE_OPTIONS=--experimental-vm-modules jest --runInBand src/__tests__/mcp-server-mutating-live.test.ts"
   },
   "files": [
     "dist",

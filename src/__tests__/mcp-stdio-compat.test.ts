@@ -1,8 +1,13 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, jest, test } from '@jest/globals';
 
 jest.setTimeout(15_000);
+
+const packageMetadata = JSON.parse(
+  readFileSync(new URL('../../package.json', import.meta.url), 'utf8')
+) as { version: string };
 
 type JsonRpcResponse = {
   id?: number;
@@ -128,7 +133,7 @@ describe('stdio MCP client compatibility', () => {
         expect(initialization.result?.serverInfo).toEqual(
           expect.objectContaining({
             name: 'Vapi MCP',
-            version: '0.1.0',
+            version: packageMetadata.version,
           })
         );
         expect(initialization.result?.capabilities).toEqual(

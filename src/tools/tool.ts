@@ -1,6 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient, Vapi } from '@vapi-ai/server-sdk';
-import { z } from 'zod';
 
 import { GetToolInputSchema, CreateToolInputSchema, UpdateToolInputSchema } from '../schemas/index.js';
 import { transformToolInput, transformUpdateToolInput, transformToolOutput } from '../transformers/index.js';
@@ -14,7 +13,7 @@ export const registerToolTools = (
     'list_tools',
     {
       description: 'Lists all Vapi tools',
-      inputSchema: z.object({}),
+      inputSchema: {},
     },
     createToolHandler(async () => {
       const tools = await vapiClient.tools.list({ limit: 10 });

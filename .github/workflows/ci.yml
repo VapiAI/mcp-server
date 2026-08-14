@@ -60,8 +60,8 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Verify package contents
-        run: npm pack --dry-run --ignore-scripts
+      - name: Test packed package as a clean consumer
+        run: npm run test:package
 
   publish:
     needs: [compile, test]

@@ -223,14 +223,20 @@ npm run inspector
 # Safe default suite (build, mocked execution, contract, and stdio compatibility)
 npm test
 
-# Unit tests (mocked)
+# Unit tests (mocked public tool execution and catalog contract)
 npm run test:unit
+
+# Documentation/tool-catalog consistency lint
+npm run test:docs
 
 # Full TypeScript check (production and test code)
 npm run typecheck
 
-# Build and run packaged stdio compatibility tests (no Vapi API calls)
-npm run test:e2e
+# Build and run local stdio protocol compatibility tests (no Vapi API calls)
+npm run test:stdio
+
+# Pack, install, and launch the package from a clean temporary consumer
+npm run test:package
 
 # Live read-only API tests
 export VAPI_TOKEN=your_token_here

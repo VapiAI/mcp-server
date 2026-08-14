@@ -104,7 +104,7 @@ function startServer() {
   return { request, notify, close };
 }
 
-// Exercise the packaged CLI over real stdio framing for every protocol version
+// Exercise the locally built entrypoint over real stdio framing for every protocol version
 // supported by the installed SDK. Host-specific smoke tests belong outside this suite.
 const supportedProtocolVersions = [
   '2024-10-07',

@@ -65,7 +65,7 @@
     "@modelcontextprotocol/sdk": "1.26.0",
     "@vapi-ai/server-sdk": "^0.5.2",
     "dotenv": "^16.4.7",
-    "zod": "^3.25.76",
+    "zod": "^4.4.3",
     "zod-to-json-schema": "^3.24.5"
   },
   "devDependencies": {

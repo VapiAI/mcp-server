@@ -30,10 +30,9 @@ export const registerAssistantTools = (
     })
   );
 
-  server.tool(
+  server.registerTool(
     'create_assistant',
-    'Creates a new Vapi assistant',
-    CreateAssistantInputSchema.shape,
+    { description: 'Creates a new Vapi assistant', inputSchema: CreateAssistantInputSchema.shape },
     createToolHandler(async (data) => {
       //   console.log('create_assistant', data);
       const createAssistantDto = transformAssistantInput(data);
@@ -42,10 +41,9 @@ export const registerAssistantTools = (
     })
   );
 
-  server.tool(
+  server.registerTool(
     'get_assistant',
-    'Gets a Vapi assistant by ID',
-    GetAssistantInputSchema.shape,
+    { description: 'Gets a Vapi assistant by ID', inputSchema: GetAssistantInputSchema.shape },
     createToolHandler(async (data) => {
       //   console.log('get_assistant', data);
       const assistantId = data.assistantId;
@@ -62,10 +60,9 @@ export const registerAssistantTools = (
     })
   );
 
-  server.tool(
+  server.registerTool(
     'update_assistant',
-    'Updates an existing Vapi assistant',
-    UpdateAssistantInputSchema.shape,
+    { description: 'Updates an existing Vapi assistant', inputSchema: UpdateAssistantInputSchema.shape },
     createToolHandler(async (data) => {
       const assistantId = data.assistantId;
       try {

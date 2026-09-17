@@ -24,10 +24,9 @@ export const registerCallTools = (
     })
   );
 
-  server.tool(
+  server.registerTool(
     'create_call',
-    'Creates a outbound call',
-    CallInputSchema.shape,
+    { description: 'Creates a outbound call', inputSchema: CallInputSchema.shape },
     createToolHandler(async (data) => {
       const createCallDto = transformCallInput(data);
       const call = await vapiClient.calls.create(createCallDto);
@@ -35,10 +34,9 @@ export const registerCallTools = (
     })
   );
 
-  server.tool(
+  server.registerTool(
     'get_call',
-    'Gets details of a specific call',
-    GetCallInputSchema.shape,
+    { description: 'Gets details of a specific call', inputSchema: GetCallInputSchema.shape },
     createToolHandler(async (data) => {
       const call = await vapiClient.calls.get(data.callId);
       return transformCallOutput(call);

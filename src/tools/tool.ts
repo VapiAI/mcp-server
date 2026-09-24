@@ -21,20 +21,18 @@ export const registerToolTools = (
     })
   );
 
-  server.tool(
+  server.registerTool(
     'get_tool',
-    'Gets details of a specific tool',
-    GetToolInputSchema.shape,
+    { description: 'Gets details of a specific tool', inputSchema: GetToolInputSchema.shape },
     createToolHandler(async (data) => {
       const tool = await vapiClient.tools.get(data.toolId);
       return transformToolOutput(tool);
     })
   );
 
-  server.tool(
+  server.registerTool(
     'create_tool',
-    'Creates a new Vapi tool',
-    CreateToolInputSchema.shape,
+    { description: 'Creates a new Vapi tool', inputSchema: CreateToolInputSchema.shape },
     createToolHandler(async (data) => {
       const createToolDto = transformToolInput(data);
       const tool = await vapiClient.tools.create(createToolDto);
@@ -42,10 +40,9 @@ export const registerToolTools = (
     })
   );
 
-  server.tool(
+  server.registerTool(
     'update_tool',
-    'Updates an existing Vapi tool',
-    UpdateToolInputSchema.shape,
+    { description: 'Updates an existing Vapi tool', inputSchema: UpdateToolInputSchema.shape },
     createToolHandler(async (data) => {
       const updateToolDto = transformUpdateToolInput(data);
       const tool = await vapiClient.tools.update(data.toolId, updateToolDto);

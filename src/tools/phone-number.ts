@@ -21,10 +21,9 @@ export const registerPhoneNumberTools = (
     })
   );
 
-  server.tool(
+  server.registerTool(
     'get_phone_number',
-    'Gets details of a specific phone number',
-    GetPhoneNumberInputSchema.shape,
+    { description: 'Gets details of a specific phone number', inputSchema: GetPhoneNumberInputSchema.shape },
     createToolHandler(async (data) => {
       const phoneNumberId = data.phoneNumberId;
       const phoneNumber = await vapiClient.phoneNumbers.get(phoneNumberId);

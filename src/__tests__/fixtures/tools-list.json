@@ -1306,21 +1306,18 @@
               "description": "Retry configuration for failed API requests",
               "properties": {
                 "baseDelaySeconds": {
-                  "default": 1,
                   "description": "Base delay between retries in seconds",
                   "maximum": 10,
                   "minimum": 0,
                   "type": "number"
                 },
                 "maxRetries": {
-                  "default": 3,
                   "description": "Maximum number of retries",
                   "maximum": 10,
                   "minimum": 0,
                   "type": "number"
                 },
                 "type": {
-                  "default": "fixed",
                   "description": "This is the type of backoff plan to use. Defaults to fixed.\n\n@default fixed",
                   "enum": [
                     "fixed",
@@ -1399,7 +1396,6 @@
               "type": "object"
             },
             "method": {
-              "default": "POST",
               "description": "HTTP method for the API request",
               "enum": [
                 "POST",
@@ -1411,7 +1407,6 @@
               "type": "string"
             },
             "timeoutSeconds": {
-              "default": 20,
               "description": "Request timeout in seconds",
               "maximum": 300,
               "minimum": 1,

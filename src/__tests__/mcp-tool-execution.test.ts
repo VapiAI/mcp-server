@@ -288,6 +288,46 @@ describe('MCP tool execution compatibility', () => {
     });
   });
 
+  test('update_tool sends only the apiRequest fields the caller provided', async () => {
+    await invoke('update_tool', {
+      toolId: tool.id,
+      apiRequest: { url: 'https://example.com/hook' },
+    });
+
+    expect(vapiOperations.tools.update).toHaveBeenLastCalledWith(tool.id, {
+      url: 'https://example.com/hook',
+    });
+
+    await invoke('update_tool', {
+      toolId: tool.id,
+      apiRequest: {
+        url: 'https://example.com/hook',
+        backoffPlan: { maxRetries: 5 },
+      },
+    });
+
+    expect(vapiOperations.tools.update).toHaveBeenLastCalledWith(tool.id, {
+      url: 'https://example.com/hook',
+      backoffPlan: { maxRetries: 5 },
+    });
+  });
+
+  test('create_tool still applies apiRequest defaults', async () => {
+    await invoke('create_tool', {
+      type: 'apiRequest',
+      name: 'lookup',
+      apiRequest: { url: 'https://example.com/hook' },
+    });
+
+    expect(vapiOperations.tools.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        url: 'https://example.com/hook',
+        method: 'POST',
+        timeoutSeconds: 20,
+      })
+    );
+  });
+
   test('rejects invalid tool input before calling Vapi', async () => {
     const callsBefore = vapiOperations.assistants.create.mock.calls.length;
 

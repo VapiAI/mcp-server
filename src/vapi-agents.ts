@@ -31,9 +31,9 @@ export function managedByVapiAgents(
 export function vapiAgentsInstructions(managed?: ManagedByVapiAgents): string {
   const connect = `connect the Vapi Agents MCP server at ${VAPI_AGENTS_MCP_URL} (claude.ai or Claude Desktop: add it as a custom connector and sign in; Claude Code: claude mcp add --transport http vapi-agents ${VAPI_AGENTS_MCP_URL}, then sign in with /mcp)`;
   if (managed) {
-    return `This assistant is managed by Vapi Agents (agent ${managed.agentId}), so changes here are locked to keep its experiments valid. Change it in Vapi Agents instead: open ${managed.agentUrl}, or ${connect}. Then call get_agent_status with agentId ${managed.agentId} to see where it stands, and request_improvement with that agentId to request the change.`;
+    return `This assistant is managed by Vapi Agents (agent ${managed.agentId}), so changes here are locked to keep its experiments valid. Change it in Vapi Agents instead: open ${managed.agentUrl}, or ${connect}. Then call get_agent_status with agentId ${managed.agentId} to see where it stands, and request_improvement with that agentId to request the change. To hand it back to Vapi (for example to delete it), call delete_agent with that agentId; the assistant stays in Vapi, unlocked.`;
   }
-  return `Assistants marked managedByVapiAgents are managed by Vapi Agents, so changes here are locked to keep their experiments valid. Change them in Vapi Agents instead: open the agentUrl, or ${connect}. Then call get_agent_status with the agentId to see where it stands, and request_improvement with that agentId to request the change.`;
+  return `Assistants marked managedByVapiAgents are managed by Vapi Agents, so changes here are locked to keep their experiments valid. Change them in Vapi Agents instead: open the agentUrl, or ${connect}. Then call get_agent_status with the agentId to see where it stands, and request_improvement with that agentId to request the change. To hand one back to Vapi, call delete_agent with its agentId.`;
 }
 
 export function vapiAgentsNote(
@@ -50,10 +50,7 @@ export function vapiAgentsNote(
 }
 
 /** The API's 409 for a managed assistant, as a tool error carrying its message. */
-export function vapiAgentsLockError(
-  error: unknown,
-  metadata: unknown
-): ToolError | undefined {
+export function vapiAgentsLockError(error: unknown): ToolError | undefined {
   const { statusCode, body } = (error ?? {}) as {
     statusCode?: unknown;
     body?: { error?: unknown; message?: unknown };
@@ -65,11 +62,5 @@ export function vapiAgentsLockError(
   ) {
     return undefined;
   }
-  const managed = managedByVapiAgents(metadata);
-  // Older API builds send a shorter message that names no Vapi Agents tools.
-  return new ToolError(
-    managed && !body.message.includes('request_improvement')
-      ? `${body.message}\n\n${vapiAgentsInstructions(managed)}`
-      : body.message
-  );
+  return new ToolError(body.message);
 }

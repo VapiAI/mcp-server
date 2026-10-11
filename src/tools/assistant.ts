@@ -40,7 +40,7 @@ export const registerAssistantTools = (
       const createAssistantDto = transformAssistantInput(data);
       const assistant = await vapiClient.assistants.create(createAssistantDto);
       return transformAssistantOutput(assistant);
-    }, vapiAgentsNote)
+    })
   );
 
   server.tool(
@@ -83,9 +83,7 @@ export const registerAssistantTools = (
         const updatedAssistant = await vapiClient.assistants
           .update(assistantId, updateAssistantDto)
           .catch((error) => {
-            throw (
-              vapiAgentsLockError(error, existingAssistant.metadata) ?? error
-            );
+            throw vapiAgentsLockError(error) ?? error;
           });
 
         return transformAssistantOutput(updatedAssistant);

@@ -37,7 +37,7 @@ const managedAssistant = {
   metadata: { preset: 'balanced:1', vapiAgentId: agentId },
 };
 
-const managedNote = `This assistant is managed by Vapi Agents (agent ${agentId}), so changes here are locked to keep its experiments valid. Change it in Vapi Agents instead: open https://agents.vapi.ai/agents/${agentId}, or connect the Vapi Agents MCP server at https://agents.vapi.ai/api/v1/mcp (claude.ai or Claude Desktop: add it as a custom connector and sign in; Claude Code: claude mcp add --transport http vapi-agents https://agents.vapi.ai/api/v1/mcp, then sign in with /mcp). Then call get_agent_status with agentId ${agentId} to see where it stands, and request_improvement with that agentId to request the change.`;
+const managedNote = `This assistant is managed by Vapi Agents (agent ${agentId}), so changes here are locked to keep its experiments valid. Change it in Vapi Agents instead: open https://agents.vapi.ai/agents/${agentId}, or connect the Vapi Agents MCP server at https://agents.vapi.ai/api/v1/mcp (claude.ai or Claude Desktop: add it as a custom connector and sign in; Claude Code: claude mcp add --transport http vapi-agents https://agents.vapi.ai/api/v1/mcp, then sign in with /mcp). Then call get_agent_status with agentId ${agentId} to see where it stands, and request_improvement with that agentId to request the change. To hand it back to Vapi (for example to delete it), call delete_agent with that agentId; the assistant stays in Vapi, unlocked.`;
 
 const lockError = (message: string) =>
   new VapiError({
@@ -366,7 +366,7 @@ describe('MCP tool execution compatibility', () => {
       ).toEqual([agentId, undefined, agentId]);
       expect(response.content).toHaveLength(2);
       expect((response.content as any)[1].text).toMatch(
-        /^Assistants marked managedByVapiAgents are managed by Vapi Agents.*https:\/\/agents\.vapi\.ai\/api\/v1\/mcp.*get_agent_status.*request_improvement/
+        /^Assistants marked managedByVapiAgents are managed by Vapi Agents.*https:\/\/agents\.vapi\.ai\/api\/v1\/mcp.*get_agent_status.*request_improvement.*delete_agent/
       );
     });
 
@@ -407,26 +407,6 @@ describe('MCP tool execution compatibility', () => {
       expect(response.isError).toBe(true);
       expect(response.content).toEqual([
         { type: 'text', text: `Error: ${managedNote}` },
-      ]);
-    });
-
-    test('update_assistant adds the instructions when the API message lacks them', async () => {
-      const shortMessage = `This assistant is managed by Vapi Agents, so changes are locked to keep its experiments valid. Make changes at https://agents.vapi.ai/agents/${agentId} or through the Vapi Agents MCP (https://agents.vapi.ai/api/v1/mcp).`;
-      vapiOperations.assistants.get.mockResolvedValueOnce(
-        managedAssistant as never
-      );
-      vapiOperations.assistants.update.mockRejectedValueOnce(
-        lockError(shortMessage) as never
-      );
-
-      const response = await client.callTool({
-        name: 'update_assistant',
-        arguments: { assistantId: managedAssistant.id, name: 'Renamed' },
-      });
-
-      expect(response.isError).toBe(true);
-      expect(response.content).toEqual([
-        { type: 'text', text: `Error: ${shortMessage}\n\n${managedNote}` },
       ]);
     });
 

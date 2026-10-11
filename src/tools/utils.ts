@@ -2,15 +2,20 @@ import { z } from 'zod';
 
 export type ToolResponse = {
   content: Array<{ type: 'text'; text: string }>;
+  isError?: boolean;
 };
 
-export function createSuccessResponse(data: any): ToolResponse {
+/** A failure whose message is written for the client, returned with `isError`. */
+export class ToolError extends Error {}
+
+export function createSuccessResponse(data: any, note?: string): ToolResponse {
   return {
     content: [
       {
         type: 'text' as const,
         text: typeof data === 'string' ? data : JSON.stringify(data),
       },
+      ...(note ? [{ type: 'text' as const, text: note }] : []),
     ],
   };
 }
@@ -24,16 +29,18 @@ export function createErrorResponse(error: any): ToolResponse {
         text: `Error: ${errorMessage}`,
       },
     ],
+    ...(error instanceof ToolError ? { isError: true } : {}),
   };
 }
 
-export function createToolHandler<T>(
-  handler: (params: T) => Promise<any>
+export function createToolHandler<T, R = any>(
+  handler: (params: T) => Promise<R>,
+  note?: (result: R) => string | undefined
 ): (params: T) => Promise<ToolResponse> {
   return async (params: T) => {
     try {
       const result = await handler(params);
-      return createSuccessResponse(result);
+      return createSuccessResponse(result, note?.(result));
     } catch (error) {
       return createErrorResponse(error);
     }

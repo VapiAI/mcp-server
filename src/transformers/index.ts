@@ -11,6 +11,7 @@ import {
   CreateToolInputSchema,
   UpdateToolInputSchema,
 } from '../schemas/index.js';
+import { managedByVapiAgents } from '../vapi-agents.js';
 
 // ===== Assistant Transformers =====
 
@@ -133,6 +134,7 @@ export function transformUpdateAssistantInput(
 export function transformAssistantOutput(
   assistant: Vapi.Assistant
 ): z.infer<typeof AssistantOutputSchema> {
+  const managed = managedByVapiAgents(assistant.metadata);
   return {
     id: assistant.id,
     createdAt: assistant.createdAt,
@@ -152,6 +154,7 @@ export function transformAssistantOutput(
       model: getAssistantTranscriberModel(assistant.transcriber) || 'nova-3',
     },
     toolIds: assistant.model?.toolIds || [],
+    ...(managed ? { managedByVapiAgents: managed } : {}),
   };
 }
 

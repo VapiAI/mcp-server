@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, jest, test } from '@jest/globals
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { VapiClient } from '@vapi-ai/server-sdk';
+import { VapiError, type VapiClient } from '@vapi-ai/server-sdk';
 import { registerAllTools } from '../tools/index.js';
 import { parseToolResponse } from '../utils/response.js';
 
@@ -28,6 +28,22 @@ const assistant = {
     model: 'nova-3',
   },
 };
+
+const agentId = '3f1b7c2e-8d4a-4e6b-9a51-2c7d0e4f6a18';
+
+const managedAssistant = {
+  ...assistant,
+  id: 'assistant-managed',
+  metadata: { preset: 'balanced:1', vapiAgentId: agentId },
+};
+
+const managedNote = `This assistant is managed by Vapi Agents (agent ${agentId}), so changes here are locked to keep its experiments valid. Change it in Vapi Agents instead: open https://agents.vapi.ai/agents/${agentId}, or connect the Vapi Agents MCP server at https://agents.vapi.ai/api/v1/mcp (claude.ai or Claude Desktop: add it as a custom connector and sign in; Claude Code: claude mcp add --transport http vapi-agents https://agents.vapi.ai/api/v1/mcp, then sign in with /mcp). Then call get_agent_status with agentId ${agentId} to see where it stands, and request_improvement with that agentId to request the change.`;
+
+const lockError = (message: string) =>
+  new VapiError({
+    statusCode: 409,
+    body: { error: 'assistant_managed_by_vapi_agents', message },
+  });
 
 const call = {
   id: 'call-1',
@@ -304,6 +320,133 @@ describe('MCP tool execution compatibility', () => {
       }),
     ]);
     expect(vapiOperations.assistants.create).toHaveBeenCalledTimes(callsBefore);
+  });
+
+  describe('assistants managed by Vapi Agents', () => {
+    test('get_assistant marks the assistant and adds how to change it in Vapi Agents', async () => {
+      vapiOperations.assistants.get.mockResolvedValueOnce(
+        managedAssistant as never
+      );
+
+      const response = await client.callTool({
+        name: 'get_assistant',
+        arguments: { assistantId: managedAssistant.id },
+      });
+
+      expect(parseToolResponse(response)).toEqual(
+        expect.objectContaining({
+          id: managedAssistant.id,
+          managedByVapiAgents: {
+            agentId,
+            agentUrl: `https://agents.vapi.ai/agents/${agentId}`,
+          },
+        })
+      );
+      expect(response.content).toEqual([
+        expect.anything(),
+        { type: 'text', text: managedNote },
+      ]);
+    });
+
+    test('list_assistants marks each managed assistant and adds the instructions once', async () => {
+      vapiOperations.assistants.list.mockResolvedValueOnce([
+        managedAssistant,
+        assistant,
+        { ...managedAssistant, id: 'assistant-managed-2' },
+      ] as never);
+
+      const response = await client.callTool({
+        name: 'list_assistants',
+        arguments: {},
+      });
+
+      const listed = parseToolResponse(response);
+      expect(
+        listed.map((item: any) => item.managedByVapiAgents?.agentId)
+      ).toEqual([agentId, undefined, agentId]);
+      expect(response.content).toHaveLength(2);
+      expect((response.content as any)[1].text).toMatch(
+        /^Assistants marked managedByVapiAgents are managed by Vapi Agents.*https:\/\/agents\.vapi\.ai\/api\/v1\/mcp.*get_agent_status.*request_improvement/
+      );
+    });
+
+    test.each([
+      ['no marker', { preset: 'balanced:1' }],
+      ['a marker that is not a uuid', { vapiAgentId: 'agent-sales' }],
+      ['a marker that would change the link', { vapiAgentId: `${agentId}/../evil` }],
+    ])('get_assistant adds nothing for %s', async (_label, metadata) => {
+      vapiOperations.assistants.get.mockResolvedValueOnce({
+        ...assistant,
+        metadata,
+      } as never);
+
+      const response = await client.callTool({
+        name: 'get_assistant',
+        arguments: { assistantId: assistant.id },
+      });
+
+      expect(parseToolResponse(response)).not.toHaveProperty(
+        'managedByVapiAgents'
+      );
+      expect(response.content).toHaveLength(1);
+    });
+
+    test('update_assistant returns the API lock message as the tool error', async () => {
+      vapiOperations.assistants.get.mockResolvedValueOnce(
+        managedAssistant as never
+      );
+      vapiOperations.assistants.update.mockRejectedValueOnce(
+        lockError(managedNote) as never
+      );
+
+      const response = await client.callTool({
+        name: 'update_assistant',
+        arguments: { assistantId: managedAssistant.id, name: 'Renamed' },
+      });
+
+      expect(response.isError).toBe(true);
+      expect(response.content).toEqual([
+        { type: 'text', text: `Error: ${managedNote}` },
+      ]);
+    });
+
+    test('update_assistant adds the instructions when the API message lacks them', async () => {
+      const shortMessage = `This assistant is managed by Vapi Agents, so changes are locked to keep its experiments valid. Make changes at https://agents.vapi.ai/agents/${agentId} or through the Vapi Agents MCP (https://agents.vapi.ai/api/v1/mcp).`;
+      vapiOperations.assistants.get.mockResolvedValueOnce(
+        managedAssistant as never
+      );
+      vapiOperations.assistants.update.mockRejectedValueOnce(
+        lockError(shortMessage) as never
+      );
+
+      const response = await client.callTool({
+        name: 'update_assistant',
+        arguments: { assistantId: managedAssistant.id, name: 'Renamed' },
+      });
+
+      expect(response.isError).toBe(true);
+      expect(response.content).toEqual([
+        { type: 'text', text: `Error: ${shortMessage}\n\n${managedNote}` },
+      ]);
+    });
+
+    test('update_assistant leaves other conflicts as they were', async () => {
+      const conflict = new VapiError({
+        statusCode: 409,
+        body: { error: 'something_else', message: 'Other conflict' },
+      });
+      vapiOperations.assistants.update.mockRejectedValueOnce(conflict as never);
+
+      const response = await client.callTool({
+        name: 'update_assistant',
+        arguments: { assistantId: assistant.id, name: 'Renamed' },
+      });
+
+      expect(response.isError).toBeUndefined();
+      expect(response.content).toEqual([
+        { type: 'text', text: `Error: ${conflict.message}` },
+      ]);
+    });
   });
 
   test('returns a visible error response when Vapi rejects an operation', async () => {

@@ -192,6 +192,9 @@ export const AssistantOutputSchema = BaseResponseSchema.extend({
     model: z.string(),
   }),
   toolIds: z.array(z.string()).optional(),
+  managedByVapiAgents: z
+    .object({ agentId: z.string(), agentUrl: z.string() })
+    .optional(),
 });
 
 export const GetAssistantInputSchema = z.object({

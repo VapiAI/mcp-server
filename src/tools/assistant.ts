@@ -11,6 +11,7 @@ import {
   transformUpdateAssistantInput,
 } from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
+import { vapiAgentsLockError, vapiAgentsNote } from '../vapi-agents.js';
 
 export const registerAssistantTools = (
   server: McpServer,
@@ -27,7 +28,7 @@ export const registerAssistantTools = (
       const assistants = await vapiClient.assistants.list({ limit: 10 });
       //   console.log('assistants', assistants);
       return assistants.map(transformAssistantOutput);
-    })
+    }, vapiAgentsNote)
   );
 
   server.tool(
@@ -39,7 +40,7 @@ export const registerAssistantTools = (
       const createAssistantDto = transformAssistantInput(data);
       const assistant = await vapiClient.assistants.create(createAssistantDto);
       return transformAssistantOutput(assistant);
-    })
+    }, vapiAgentsNote)
   );
 
   server.tool(
@@ -59,7 +60,7 @@ export const registerAssistantTools = (
         console.error(`Error getting assistant: ${error.message}`);
         throw error;
       }
-    })
+    }, vapiAgentsNote)
   );
 
   server.tool(
@@ -79,16 +80,19 @@ export const registerAssistantTools = (
         const updateAssistantDto = transformUpdateAssistantInput(data);
 
         // Update the assistant
-        const updatedAssistant = await vapiClient.assistants.update(
-          assistantId,
-          updateAssistantDto
-        );
+        const updatedAssistant = await vapiClient.assistants
+          .update(assistantId, updateAssistantDto)
+          .catch((error) => {
+            throw (
+              vapiAgentsLockError(error, existingAssistant.metadata) ?? error
+            );
+          });
 
         return transformAssistantOutput(updatedAssistant);
       } catch (error: any) {
         console.error(`Error updating assistant: ${error.message}`);
         throw error;
       }
-    })
+    }, vapiAgentsNote)
   );
 };

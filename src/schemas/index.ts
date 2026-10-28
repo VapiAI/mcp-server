@@ -357,14 +357,23 @@ const ServerSchema = z.object({
   headers: z.record(z.string()).optional().describe('Headers to send with the request'),
 });
 
-const BackoffPlanSchema = z.object({
-  type: z.enum(['fixed', 'exponential']).default('fixed'),
-  maxRetries: z.number().default(3).describe('Maximum number of retries'),
-  baseDelaySeconds: z.number().default(1).describe('Base delay between retries in seconds'),
-});
+// Defaults apply on create only. On update, an omitted field must stay
+// omitted so the existing tool setting is not overwritten.
+const withDefault = <T extends z.ZodTypeAny>(
+  schema: T,
+  value: z.input<T>,
+  applyDefaults: boolean
+) => (applyDefaults ? schema.default(value) : schema.optional());
+
+const createBackoffPlanSchema = (applyDefaults: boolean) =>
+  z.object({
+    type: withDefault(z.enum(['fixed', 'exponential']), 'fixed', applyDefaults),
+    maxRetries: withDefault(z.number(), 3, applyDefaults).describe('Maximum number of retries'),
+    baseDelaySeconds: withDefault(z.number(), 1, applyDefaults).describe('Base delay between retries in seconds'),
+  });
 
 // Base tool configuration schema (reusable for both create and update)
-const BaseToolConfigSchema = z.object({
+const createBaseToolConfigSchema = (applyDefaults: boolean) => z.object({
   // Common fields for all tools
   name: z.string().optional().describe('Name of the function/tool'),
   description: z.string().optional().describe('Description of what the function/tool does'),
@@ -390,20 +399,20 @@ const BaseToolConfigSchema = z.object({
   // API Request tool configuration
   apiRequest: z.object({
     url: z.string().url().describe('URL to make the API request to'),
-    method: z.enum(['GET', 'POST']).default('POST').describe('HTTP method for the API request'),
+    method: withDefault(z.enum(['GET', 'POST']), 'POST', applyDefaults).describe('HTTP method for the API request'),
     headers: z.record(z.string()).optional().describe('Headers to send with the request (key-value pairs)'),
     body: JsonSchema.optional().describe('Body schema for the API request in JSON Schema format'),
-    backoffPlan: BackoffPlanSchema.optional().describe('Retry configuration for failed API requests'),
-    timeoutSeconds: z.number().default(20).describe('Request timeout in seconds'),
+    backoffPlan: createBackoffPlanSchema(applyDefaults).optional().describe('Retry configuration for failed API requests'),
+    timeoutSeconds: withDefault(z.number(), 20, applyDefaults).describe('Request timeout in seconds'),
   }).optional().describe('API Request tool configuration - for HTTP API integration'),
 });
 
-export const CreateToolInputSchema = BaseToolConfigSchema.extend({
+export const CreateToolInputSchema = createBaseToolConfigSchema(true).extend({
   type: z.enum(['sms', 'transferCall', 'function', 'apiRequest'])
     .describe('Type of the tool to create'),
 });
 
-export const UpdateToolInputSchema = BaseToolConfigSchema.extend({
+export const UpdateToolInputSchema = createBaseToolConfigSchema(false).extend({
   toolId: z.string().describe('ID of the tool to update'),
 });
 

@@ -19,15 +19,27 @@ const expectedExecutableName = 'mcp-server';
 const expectedToolNames = [
   'create_assistant',
   'create_call',
+  'create_simulation',
+  'create_simulation_personality',
+  'create_simulation_scenario',
+  'create_simulation_suite',
   'create_tool',
   'get_assistant',
   'get_call',
   'get_phone_number',
+  'get_simulation_run',
+  'get_simulation_run_item',
   'get_tool',
   'list_assistants',
   'list_calls',
   'list_phone_numbers',
+  'list_simulation_personalities',
+  'list_simulation_runs',
+  'list_simulation_scenarios',
+  'list_simulation_suites',
+  'list_simulations',
   'list_tools',
+  'run_simulations',
   'update_assistant',
   'update_tool',
 ];
@@ -291,6 +303,17 @@ try {
   if (invalidInput.error || invalidInput.result?.isError !== true ||
       validation?.code !== 'INVALID_ARGUMENTS' || validation.issues?.[0]?.path !== 'toolId') {
     throw new Error('Packed consumer did not return the expected field-level validation error');
+  }
+
+  const invalidSimulation = await server.request('tools/call', {
+    name: 'create_simulation_personality',
+    arguments: { name: 'Test', assistant: { maxDurationSeconds: 1 } },
+  });
+  const simulationValidation = invalidSimulation.result?.structuredContent?.validationError;
+  if (invalidSimulation.error || invalidSimulation.result?.isError !== true ||
+      simulationValidation?.code !== 'INVALID_ARGUMENTS' ||
+      simulationValidation.issues?.[0]?.path !== 'assistant.maxDurationSeconds') {
+    throw new Error('Packed consumer did not validate the bundled nested simulation contract');
   }
 
   console.log(

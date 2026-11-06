@@ -313,3 +313,5 @@ export const ToolOutputSchema = BaseResponseSchema.extend({
   parameters: z.record(z.string(), z.any()).describe('Parameters of the tool'),
   server: ServerSchema.describe('Server of the tool'),
 });
+
+export * from './simulation.js';

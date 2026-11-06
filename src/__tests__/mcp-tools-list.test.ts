@@ -113,11 +113,26 @@ describe('MCP tools/list compatibility baseline', () => {
           compareStrings(left, right)
         );
 
-      expect(normalizedCatalog).toHaveLength(13);
+      expect(normalizedCatalog).toHaveLength(25);
       expect(normalizedCatalog).toEqual(expectedCatalog);
 
       // This is the agent-visible payload, not just the pretty-printed fixture.
-      expect(Buffer.byteLength(JSON.stringify(normalizedCatalog))).toBeLessThan(20_000);
+      const simulationTools = normalizedCatalog.filter(tool => tool.name.includes('simulation'));
+      const originalTools = normalizedCatalog.filter(tool => !tool.name.includes('simulation'));
+      expect(originalTools).toHaveLength(13);
+      expect(simulationTools).toHaveLength(12);
+      // Keep #47's original budget; the 12 simulation tools add at most 10 KB.
+      expect(Buffer.byteLength(JSON.stringify(originalTools))).toBeLessThan(20_000);
+      expect(Buffer.byteLength(JSON.stringify(simulationTools))).toBeLessThan(10_000);
+      expect(Buffer.byteLength(JSON.stringify(normalizedCatalog))).toBeLessThan(30_000);
+      for (const tool of simulationTools) {
+        expect(Buffer.byteLength(JSON.stringify(tool))).toBeLessThan(3_000);
+        JSON.stringify(tool.inputSchema, (key, value) => {
+          if (key === 'description') expect(value.length).toBeLessThanOrEqual(180);
+          if (key === 'enum') expect(value.length).toBeLessThanOrEqual(8);
+          return value;
+        });
+      }
       for (const name of ['create_assistant', 'update_assistant']) {
         const tool = response.tools.find(tool => tool.name === name)!;
         expect(Buffer.byteLength(JSON.stringify(tool))).toBeLessThan(4_000);
@@ -139,6 +154,12 @@ describe('MCP tools/list compatibility baseline', () => {
         get_phone_number: { phoneNumberId: id }, get_tool: { toolId: id },
         create_call: {}, create_tool: { type: 'apiRequest', apiRequest: { url: 'https://example.test' } },
         update_tool: { toolId: id },
+        create_simulation: { scenarioId: id, personalityId: id },
+        create_simulation_personality: { name: 'Tester', assistant: {} },
+        create_simulation_scenario: { name: 'Test', instructions: 'Ask for help', evaluations: [] },
+        create_simulation_suite: { name: 'Suite', simulationIds: [id] },
+        get_simulation_run: { runId: id }, get_simulation_run_item: { runId: id, itemId: id },
+        run_simulations: { assistantId: id, simulationIds: [id] },
       };
       for (const tool of response.tools) {
         expect({ name: tool.name, valid: ajv.compile(tool.inputSchema)(validArguments[tool.name] ?? {}) }).toEqual({ name: tool.name, valid: true });

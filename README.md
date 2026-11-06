@@ -180,6 +180,29 @@ Connect to Vapi's hosted MCP server from any MCP client:
 | `create_tool` | Create tool for API integration |
 | `update_tool` | Update tool |
 
+### Simulations
+
+| Tool | Description |
+|------|-------------|
+| `list_simulation_personalities` | List simulated callers |
+| `create_simulation_personality` | Create a simulated caller with a tester assistant |
+| `list_simulation_scenarios` | List tester scripts and evaluations |
+| `create_simulation_scenario` | Create a tester script and evaluations |
+| `list_simulations` | List scenario/personality pairs |
+| `create_simulation` | Pair a scenario with a personality |
+| `list_simulation_suites` | List groups of simulations |
+| `create_simulation_suite` | Group simulations into a suite |
+| `run_simulations` | Run simulations or suites against an assistant or squad |
+| `list_simulation_runs` | List runs and filter by status or target |
+| `get_simulation_run` | Get run status and item summaries |
+| `get_simulation_run_item` | Get a full item including transcript and results |
+
+The catalog contains 25 tools. Simulation lists default to 50 results.
+`get_simulation_run` returns the first 100 item summaries, with API pagination
+metadata in `itemsMetadata` and `itemsTruncated: true` when more items exist.
+Legacy array responses are also supported. Use `get_simulation_run_item` for
+the full details of a known item.
+
 ---
 
 ## Development
@@ -243,19 +266,43 @@ npm run test:live:mutating
 
 ### Input validation from OpenAPI
 
-All nine parameterized MCP tools use imported OpenAPI constraints through
+All 21 parameterized MCP tools use imported OpenAPI constraints through
 Zod's experimental `z.fromJSONSchema()`, pinned to Zod 4.6.7. This covers
 assistant names/LLMs/voices/transcribers, call schedules and customer numbers,
 lookup/update IDs, function parameters, transfer destinations, HTTP methods,
-timeouts and retry plans. The four list tools have local empty input schemas.
+timeouts and retry plans, plus all 12 simulation tools. The four original list
+tools have local empty input schemas.
 
-`src/schemas/assistant-openapi.json` is the shared compact projection for these
-surfaces (the filename is retained from the initial assistant cutover). It
+`src/schemas/assistant-openapi.json` is the compact projection for the original
+tool surfaces (the filename is retained from the initial assistant cutover). It
 records the [public API spec](https://api.vapi.ai/api-json) source SHA-256 and
 includes the recursive JSON-schema definitions needed for function parameters
 and request bodies. Builds and installs use it without network access. Refresh
 explicitly with `npm run schemas:snapshot`, or pass a saved spec with
 `npm run schemas:snapshot -- /path/spec.json`.
+
+`src/schemas/simulation-openapi.json` bundles the full simulation DTOs and their
+referenced definitions from the same public spec. The same refresh command
+updates both snapshots. Simulation validation includes names, folder paths,
+UUIDs, instructions, evaluations, nested tester assistants and structured
+outputs. Scenario/suite `additionalFields` are validated after merging, so they
+cannot override an API constraint. Large nested assistant and structured-output
+objects have compact advertised envelopes; their full API contracts are checked
+at runtime. The shared summary projection omits long documentation and recursive
+definitions from simulation discovery. The 25-tool catalog is about 28 KB.
+No runtime schema fetch or
+`get_api_schema` tool is required.
+
+Simulation aliases remain local adapters: `run_simulations` takes exactly one
+assistant/squad target and at least one simulation/suite ID, then builds the API
+request. Integer iterations and integer page sizes of 1–100 are MCP policies;
+API iteration bounds and parameter formats come from the snapshot. The item
+lookup endpoint publishes plain strings for its IDs, so those are not assigned
+UUID constraints from a different endpoint.
+
+The shared normalizer also represents empty preset enums as always-failing
+branches and preserves property names such as `oneOf` and `default` when walking
+JSON Schema definitions.
 
 When upgrading `@vapi-ai/server-sdk`, refresh and review the bundled schema in
 the same PR, then run `npm run typecheck`, `npm test`, and `npm run test:package`.
@@ -270,7 +317,8 @@ The adapter documents published contract corrections: overlapping enum/string
 delimiters are removed; the contradictory object/string-enum annotation on
 `BackoffPlan.type` is corrected. Provider variants reject undeclared fields.
 Spec defaults do not inject request fields; MCP defaults remain separate.
-Variants requiring fields outside the current interface remain excluded: custom
+For the original compact assistant tools, variants requiring fields outside
+the current interface remain excluded: custom
 voice, Neuphonic voice, custom transcriber, Speechmatics transcriber, and custom
 LLM. Adding their required fields needs an explicit interface extension.
 
@@ -293,8 +341,9 @@ the API handler. Tests exercise this correction loop through a real MCP client.
 field names, basic types, required fields, defaults, and short constraints. It
 omits provider/model catalogs, lengthy API documentation, and recursive schema
 definitions. The full OpenAPI-derived validator still runs before any API call;
-the advertised summary is intentionally broader. Catalog tests cap the current
-serialized tool list at 20 KB to prevent unexpected agent-context growth.
+the advertised summary is intentionally broader. Catalog tests cap the
+original 13-tool list at 20 KB, the 12 simulation tools at 10 KB, and the complete
+25-tool list at 30 KB to prevent unexpected agent-context growth.
 
 `npm test` includes schema contract tests, independent Ajv parity cases, and
 validation-feedback tests. The existing live compatibility

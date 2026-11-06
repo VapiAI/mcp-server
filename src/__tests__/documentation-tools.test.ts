@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, test } from '@jest/globals';
 
 const expectedToolNames = [
+  'ask_vapi_docs',
   'create_assistant',
   'create_call',
   'create_tool',
@@ -18,7 +19,7 @@ const expectedToolNames = [
 ];
 
 const toolNamePattern =
-  /`((?:create|get|list|update|buy|delete)_(?:assistant|assistants|call|calls|phone_number|phone_numbers|tool|tools))`/g;
+  /`((?:create|get|list|update|buy|delete)_(?:assistant|assistants|call|calls|phone_number|phone_numbers|tool|tools)|search_skills|load_skill|ask_vapi_docs)`/g;
 
 function documentedToolNames(relativePath: string): string[] {
   const content = readFileSync(

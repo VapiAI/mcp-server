@@ -1,5 +1,32 @@
 [
   {
+    "name": "ask_vapi_docs",
+    "description": "Ask about current Vapi documentation through the Fern docs MCP. Returns relevant documentation passages and source URLs; use them to answer the question.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "question": {
+          "description": "A specific question about Vapi configuration, APIs, SDKs or troubleshooting. Send no API keys or private customer data.",
+          "maxLength": 4000,
+          "minLength": 1,
+          "type": "string"
+        },
+        "topK": {
+          "default": 8,
+          "description": "Maximum number of relevant documentation passages.",
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "question"
+      ],
+      "type": "object"
+    }
+  },
+  {
     "name": "create_assistant",
     "description": "Creates a new Vapi assistant",
     "inputSchema": {

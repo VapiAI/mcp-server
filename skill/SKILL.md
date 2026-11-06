@@ -32,6 +32,9 @@ Use these guidelines to craft effective voice assistant prompts based on what th
 
 ## Available Tools
 
+### Documentation
+- `ask_vapi_docs` - Retrieve current documentation passages and source URLs through Fern
+
 ### Assistants
 - `list_assistants` - List all assistants
 - `get_assistant` - Get assistant details

@@ -9,6 +9,10 @@ const packageMetadata = JSON.parse(
   readFileSync(new URL('../../package.json', import.meta.url), 'utf8')
 ) as { version: string };
 
+const expectedToolNames: string[] = JSON.parse(
+  readFileSync(new URL('./fixtures/tools-list.json', import.meta.url), 'utf8')
+).map((tool: { name: string }) => tool.name).sort();
+
 type JsonRpcResponse = {
   id?: number;
   result?: Record<string, any>;
@@ -148,7 +152,7 @@ describe('stdio MCP protocol compatibility', () => {
         const catalog = await server.request('tools/list', {});
 
         expect(catalog.error).toBeUndefined();
-        expect(catalog.result?.tools).toHaveLength(13);
+        expect(catalog.result?.tools.map((tool: { name: string }) => tool.name).sort()).toEqual(expectedToolNames);
       } finally {
         await server.close();
       }

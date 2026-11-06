@@ -17,6 +17,7 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const expectedExecutableName = 'mcp-server';
 const expectedToolNames = [
+  'ask_vapi_docs',
   'create_assistant',
   'create_call',
   'create_tool',

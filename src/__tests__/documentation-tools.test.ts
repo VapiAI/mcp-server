@@ -14,6 +14,8 @@ const expectedToolNames = [
   'list_calls',
   'list_phone_numbers',
   'list_tools',
+  'load_skill',
+  'search_skills',
   'update_assistant',
   'update_tool',
 ];

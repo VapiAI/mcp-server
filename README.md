@@ -198,6 +198,32 @@ include secrets or private customer data in docs questions.
 | `create_tool` | Create tool for API integration |
 | `update_tool` | Update tool |
 
+### Public Skills
+| Tool | Description |
+|------|-------------|
+| `search_skills` | Search public Vapi skills by keywords; omit `query` to browse |
+| `load_skill` | Read a skill's `SKILL.md` or a supporting file |
+
+For example, call `search_skills({"query":"simulations"})`, then
+`load_skill({"name":"simulations"})`. The load result includes a `files` list;
+read a supporting file with `load_skill({"name":"simulations","path":"references/example.md"})`,
+using an exact path from that list. Loading returns instructions for the current
+task; it does not install skills or run scripts.
+
+Skills come directly from the public [VapiAI/skills](https://github.com/VapiAI/skills)
+repository, including experimental skills. Discovery uses its GitHub tree rather
+than the proposed skills manifest. Each server caches a commit-pinned snapshot
+for five minutes, so file reads within that snapshot use the same revision. Search
+matches names, descriptions and instruction text; it returns at most `limit`
+results (default 10, maximum 30) and the total match count. `load_skill` returns
+one text file at a time, up to 512 KB, with its source URL and revision.
+
+The skills tools need outbound HTTPS to public GitHub. They make no Vapi API
+calls and send no Vapi credentials upstream. The server still requires
+`VAPI_TOKEN` at startup. Discovery through `tools/list` makes no network requests;
+upstream failures are returned as tool errors. No GitHub token is needed for this
+public content. GitHub's unauthenticated API rate limits apply.
+
 ---
 
 ## Development

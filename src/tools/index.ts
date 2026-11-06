@@ -6,6 +6,7 @@ import { registerAssistantTools } from './assistant.js';
 import { registerCallTools } from './call.js';
 import { registerPhoneNumberTools } from './phone-number.js';
 import { registerToolTools } from './tool.js';
+import { registerSkillTools } from './skills.js';
 import { registerApiSchemaTools } from './api-schema.js';
 
 export const registerAllTools = (server: McpServer, vapiClient: VapiClient) => {
@@ -15,4 +16,5 @@ export const registerAllTools = (server: McpServer, vapiClient: VapiClient) => {
   registerPhoneNumberTools(server, vapiClient);
   registerToolTools(server, vapiClient);
   registerApiSchemaTools(server, vapiClient);
+  registerSkillTools(server);
 };

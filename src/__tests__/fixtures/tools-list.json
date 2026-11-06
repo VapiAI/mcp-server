@@ -4,6 +4,7 @@
     "description": "Creates a new Vapi assistant",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
       "properties": {
         "firstMessage": {
           "default": "Hello, how can I help you today?",
@@ -15,98 +16,33 @@
           "description": "This determines who speaks first, either assistant or user",
           "enum": [
             "assistant-speaks-first",
-            "assistant-waits-for-user",
-            "assistant-speaks-first-with-model-generated-message"
+            "assistant-speaks-first-with-model-generated-message",
+            "assistant-waits-for-user"
           ],
           "type": "string"
         },
         "instructions": {
           "default": "You are a helpful assistant.",
           "description": "Instructions for the assistant",
+          "maxLength": 100000000,
           "type": "string"
         },
         "llm": {
           "anyOf": [
             {
-              "anyOf": [
-                {
-                  "properties": {
-                    "model": {
-                      "enum": [
-                        "gpt-4o",
-                        "gpt-4o-mini"
-                      ],
-                      "type": "string"
-                    },
-                    "provider": {
-                      "const": "openai",
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "provider",
-                    "model"
-                  ],
-                  "type": "object"
+              "additionalProperties": false,
+              "properties": {
+                "model": {
+                  "type": "string"
                 },
-                {
-                  "properties": {
-                    "model": {
-                      "enum": [
-                        "claude-3-7-sonnet-20250219",
-                        "claude-3-5-haiku-20241022"
-                      ],
-                      "type": "string"
-                    },
-                    "provider": {
-                      "const": "anthropic",
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "provider",
-                    "model"
-                  ],
-                  "type": "object"
-                },
-                {
-                  "properties": {
-                    "model": {
-                      "enum": [
-                        "gemini-1.5-pro",
-                        "gemini-1.5-flash",
-                        "gemini-2.0-flash",
-                        "gemini-2.0-pro"
-                      ],
-                      "type": "string"
-                    },
-                    "provider": {
-                      "const": "google",
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "provider",
-                    "model"
-                  ],
-                  "type": "object"
-                },
-                {
-                  "properties": {
-                    "model": {
-                      "type": "string"
-                    },
-                    "provider": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "provider",
-                    "model"
-                  ],
-                  "type": "object"
+                "provider": {
+                  "type": "string"
                 }
-              ]
+              },
+              "required": [
+                "provider"
+              ],
+              "type": "object"
             },
             {
               "type": "string"
@@ -116,6 +52,7 @@
         },
         "name": {
           "description": "Name of the assistant",
+          "maxLength": 40,
           "type": "string"
         },
         "toolIds": {
@@ -126,61 +63,32 @@
           "type": "array"
         },
         "transcriber": {
-          "default": {
-            "model": "nova-3",
-            "provider": "deepgram"
-          },
+          "additionalProperties": false,
           "description": "Transcription configuration",
           "properties": {
             "model": {
-              "description": "Transcription model to use",
               "type": "string"
             },
             "provider": {
-              "description": "Provider to use for transcription",
               "type": "string"
             }
           },
           "required": [
-            "provider",
-            "model"
+            "provider"
           ],
           "type": "object"
         },
         "voice": {
-          "default": {
-            "provider": "11labs",
-            "voiceId": "sarah"
-          },
+          "additionalProperties": false,
           "description": "Voice configuration",
           "properties": {
             "model": {
-              "description": "Voice model to use",
               "type": "string"
             },
             "provider": {
-              "description": "Provider to use for voice",
-              "enum": [
-                "vapi",
-                "11labs",
-                "azure",
-                "cartesia",
-                "custom-voice",
-                "deepgram",
-                "hume",
-                "lmnt",
-                "neuphonic",
-                "openai",
-                "playht",
-                "rime-ai",
-                "smallest-ai",
-                "tavus",
-                "sesame"
-              ],
               "type": "string"
             },
             "voiceId": {
-              "description": "Voice ID to use",
               "type": "string"
             }
           },
@@ -202,6 +110,7 @@
     "description": "Creates a outbound call",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
       "properties": {
         "assistantId": {
           "description": "ID of the assistant to use for the call",
@@ -213,9 +122,7 @@
             "variableValues": {
               "additionalProperties": {},
               "description": "Key-value pairs for dynamic variables to use in the assistant's prompts (e.g. {\"name\": \"Joe\", \"age\": \"24\"})",
-              "propertyNames": {
-                "type": "string"
-              },
+              "properties": {},
               "type": "object"
             }
           },
@@ -226,6 +133,8 @@
           "properties": {
             "number": {
               "description": "Customer phone number",
+              "maxLength": 40,
+              "minLength": 3,
               "type": "string"
             }
           },
@@ -240,6 +149,8 @@
         },
         "scheduledAt": {
           "description": "ISO datetime string for when the call should be scheduled (e.g. \"2025-03-25T22:39:27.771Z\")",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
           "type": "string"
         }
       },
@@ -251,6 +162,60 @@
     "description": "Creates a new Vapi tool",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "apiRequest"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "required": [
+              "apiRequest"
+            ]
+          }
+        },
+        {
+          "if": {
+            "anyOf": [
+              {
+                "required": [
+                  "function"
+                ]
+              },
+              {
+                "properties": {
+                  "description": {
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "description"
+                ]
+              }
+            ],
+            "properties": {
+              "type": {
+                "const": "function"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "required": [
+              "name"
+            ]
+          }
+        }
+      ],
       "properties": {
         "apiRequest": {
           "description": "API Request tool configuration - for HTTP API integration",
@@ -261,15 +226,20 @@
                 "baseDelaySeconds": {
                   "default": 1,
                   "description": "Base delay between retries in seconds",
+                  "maximum": 10,
+                  "minimum": 0,
                   "type": "number"
                 },
                 "maxRetries": {
                   "default": 3,
                   "description": "Maximum number of retries",
+                  "maximum": 10,
+                  "minimum": 0,
                   "type": "number"
                 },
                 "type": {
                   "default": "fixed",
+                  "description": "This is the type of backoff plan to use. Defaults to fixed.\n\n@default fixed",
                   "enum": [
                     "fixed",
                     "exponential"
@@ -282,60 +252,59 @@
             "body": {
               "description": "Body schema for the API request in JSON Schema format",
               "properties": {
-                "properties": {
-                  "additionalProperties": {
-                    "properties": {
-                      "description": {
-                        "type": "string"
-                      },
-                      "enum": {
-                        "items": {
-                          "type": "string"
-                        },
-                        "type": "array"
-                      },
-                      "items": {},
-                      "properties": {
-                        "additionalProperties": {},
-                        "propertyNames": {
-                          "type": "string"
-                        },
-                        "type": "object"
-                      },
-                      "required": {
-                        "items": {
-                          "type": "string"
-                        },
-                        "type": "array"
-                      },
-                      "type": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "type"
-                    ],
-                    "type": "object"
-                  },
-                  "propertyNames": {
-                    "type": "string"
-                  },
-                  "type": "object"
+                "description": {
+                  "description": "This is the description to help the model understand what it needs to output.",
+                  "type": "string"
                 },
-                "required": {
+                "enum": {
+                  "description": "This array specifies the allowed values that can be used to restrict the output of the model.",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
+                "format": {
+                  "type": "string"
+                },
+                "items": {},
+                "pattern": {
+                  "type": "string"
+                },
+                "properties": {
+                  "additionalProperties": {
+                    "allOf": [
+                      {}
+                    ]
+                  },
+                  "description": "This is required if the type is \"object\". This specifies the properties of the object. This is a map of property names to JsonSchema objects.",
+                  "properties": {},
+                  "type": "object"
+                },
+                "required": {
+                  "description": "This is a list of properties that are required.\n\nThis only makes sense if the type is \"object\".",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "title": {
+                  "description": "This is the title of the schema.",
+                  "type": "string"
+                },
                 "type": {
-                  "const": "object",
+                  "enum": [
+                    "string",
+                    "number",
+                    "integer",
+                    "boolean",
+                    "array",
+                    "object"
+                  ],
                   "type": "string"
                 }
               },
               "required": [
-                "type",
-                "properties"
+                "type"
               ],
               "type": "object"
             },
@@ -344,23 +313,26 @@
                 "type": "string"
               },
               "description": "Headers to send with the request (key-value pairs)",
-              "propertyNames": {
-                "type": "string"
-              },
+              "properties": {},
               "type": "object"
             },
             "method": {
               "default": "POST",
               "description": "HTTP method for the API request",
               "enum": [
+                "POST",
                 "GET",
-                "POST"
+                "PUT",
+                "PATCH",
+                "DELETE"
               ],
               "type": "string"
             },
             "timeoutSeconds": {
               "default": 20,
               "description": "Request timeout in seconds",
+              "maximum": 300,
+              "minimum": 1,
               "type": "number"
             },
             "url": {
@@ -385,46 +357,12 @@
               "description": "JSON schema for function parameters",
               "properties": {
                 "properties": {
-                  "additionalProperties": {
-                    "properties": {
-                      "description": {
-                        "type": "string"
-                      },
-                      "enum": {
-                        "items": {
-                          "type": "string"
-                        },
-                        "type": "array"
-                      },
-                      "items": {},
-                      "properties": {
-                        "additionalProperties": {},
-                        "propertyNames": {
-                          "type": "string"
-                        },
-                        "type": "object"
-                      },
-                      "required": {
-                        "items": {
-                          "type": "string"
-                        },
-                        "type": "array"
-                      },
-                      "type": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "type"
-                    ],
-                    "type": "object"
-                  },
-                  "propertyNames": {
-                    "type": "string"
-                  },
+                  "additionalProperties": {},
+                  "properties": {},
                   "type": "object"
                 },
                 "required": {
+                  "description": "This specifies the properties that are required by the function.",
                   "items": {
                     "type": "string"
                   },
@@ -432,6 +370,7 @@
                 },
                 "type": {
                   "const": "object",
+                  "description": "This must be set to 'object'. It instructs the model to return a JSON object containing the function call properties.",
                   "type": "string"
                 }
               },
@@ -449,9 +388,7 @@
                     "type": "string"
                   },
                   "description": "Headers to send with the request",
-                  "propertyNames": {
-                    "type": "string"
-                  },
+                  "properties": {},
                   "type": "object"
                 },
                 "url": {
@@ -474,6 +411,8 @@
         },
         "name": {
           "description": "Name of the function/tool",
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
           "type": "string"
         },
         "sms": {
@@ -506,19 +445,23 @@
               "items": {
                 "properties": {
                   "callerId": {
-                    "description": "Caller ID to use for the transfer",
+                    "maxLength": 40,
                     "type": "string"
                   },
                   "description": {
-                    "description": "Description of the transfer destination",
+                    "description": "This is the description of the destination, used by the AI to choose when and how to transfer the call.",
                     "type": "string"
                   },
                   "extension": {
-                    "description": "Extension number if applicable",
+                    "description": "This is the extension to dial after transferring the call to the `number`.",
+                    "maxLength": 10,
+                    "minLength": 1,
                     "type": "string"
                   },
                   "number": {
-                    "description": "Phone number to transfer to (e.g., \"+16054440129\"). It can be any phone number in E.164 format.",
+                    "description": "This is the phone number to transfer the call to.",
+                    "maxLength": 40,
+                    "minLength": 3,
                     "type": "string"
                   },
                   "type": {
@@ -541,14 +484,28 @@
           "type": "object"
         },
         "type": {
-          "description": "Type of the tool to create",
-          "enum": [
-            "sms",
-            "transferCall",
-            "function",
-            "apiRequest"
+          "anyOf": [
+            {
+              "const": "sms",
+              "description": "The type of tool. \"sms\" for Twilio SMS sending tool.",
+              "type": "string"
+            },
+            {
+              "const": "transferCall",
+              "type": "string"
+            },
+            {
+              "const": "function",
+              "description": "The type of tool. \"function\" for Function tool.",
+              "type": "string"
+            },
+            {
+              "const": "apiRequest",
+              "description": "The type of tool. \"apiRequest\" for API request tool.",
+              "type": "string"
+            }
           ],
-          "type": "string"
+          "description": "Type of the tool to create"
         }
       },
       "required": [
@@ -562,9 +519,12 @@
     "description": "Gets a Vapi assistant by ID",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
       "properties": {
         "assistantId": {
           "description": "ID of the assistant to get",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
           "type": "string"
         }
       },
@@ -579,9 +539,12 @@
     "description": "Gets details of a specific call",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
       "properties": {
         "callId": {
           "description": "ID of the call to get",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
           "type": "string"
         }
       },
@@ -596,9 +559,12 @@
     "description": "Gets details of a specific phone number",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
       "properties": {
         "phoneNumberId": {
           "description": "ID of the phone number to get",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
           "type": "string"
         }
       },
@@ -613,9 +579,12 @@
     "description": "Gets details of a specific tool",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
       "properties": {
         "toolId": {
           "description": "ID of the tool to get",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
           "type": "string"
         }
       },
@@ -630,6 +599,7 @@
     "description": "Lists all Vapi assistants",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
       "properties": {},
       "type": "object"
     }
@@ -639,6 +609,7 @@
     "description": "Lists all Vapi calls",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
       "properties": {},
       "type": "object"
     }
@@ -648,6 +619,7 @@
     "description": "Lists all Vapi phone numbers",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
       "properties": {},
       "type": "object"
     }
@@ -657,6 +629,7 @@
     "description": "Lists all Vapi tools",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
       "properties": {},
       "type": "object"
     }
@@ -666,9 +639,12 @@
     "description": "Updates an existing Vapi assistant",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
       "properties": {
         "assistantId": {
           "description": "ID of the assistant to update",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
           "type": "string"
         },
         "firstMessage": {
@@ -679,97 +655,32 @@
           "description": "This determines who speaks first, either assistant or user",
           "enum": [
             "assistant-speaks-first",
-            "assistant-waits-for-user",
-            "assistant-speaks-first-with-model-generated-message"
+            "assistant-speaks-first-with-model-generated-message",
+            "assistant-waits-for-user"
           ],
           "type": "string"
         },
         "instructions": {
           "description": "New instructions for the assistant",
+          "maxLength": 100000000,
           "type": "string"
         },
         "llm": {
           "anyOf": [
             {
-              "anyOf": [
-                {
-                  "properties": {
-                    "model": {
-                      "enum": [
-                        "gpt-4o",
-                        "gpt-4o-mini"
-                      ],
-                      "type": "string"
-                    },
-                    "provider": {
-                      "const": "openai",
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "provider",
-                    "model"
-                  ],
-                  "type": "object"
+              "additionalProperties": false,
+              "properties": {
+                "model": {
+                  "type": "string"
                 },
-                {
-                  "properties": {
-                    "model": {
-                      "enum": [
-                        "claude-3-7-sonnet-20250219",
-                        "claude-3-5-haiku-20241022"
-                      ],
-                      "type": "string"
-                    },
-                    "provider": {
-                      "const": "anthropic",
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "provider",
-                    "model"
-                  ],
-                  "type": "object"
-                },
-                {
-                  "properties": {
-                    "model": {
-                      "enum": [
-                        "gemini-1.5-pro",
-                        "gemini-1.5-flash",
-                        "gemini-2.0-flash",
-                        "gemini-2.0-pro"
-                      ],
-                      "type": "string"
-                    },
-                    "provider": {
-                      "const": "google",
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "provider",
-                    "model"
-                  ],
-                  "type": "object"
-                },
-                {
-                  "properties": {
-                    "model": {
-                      "type": "string"
-                    },
-                    "provider": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "provider",
-                    "model"
-                  ],
-                  "type": "object"
+                "provider": {
+                  "type": "string"
                 }
-              ]
+              },
+              "required": [
+                "provider"
+              ],
+              "type": "object"
             },
             {
               "type": "string"
@@ -779,6 +690,7 @@
         },
         "name": {
           "description": "New name for the assistant",
+          "maxLength": 40,
           "type": "string"
         },
         "toolIds": {
@@ -789,53 +701,32 @@
           "type": "array"
         },
         "transcriber": {
+          "additionalProperties": false,
           "description": "New transcription configuration",
           "properties": {
             "model": {
-              "description": "Transcription model to use",
               "type": "string"
             },
             "provider": {
-              "description": "Provider to use for transcription",
               "type": "string"
             }
           },
           "required": [
-            "provider",
-            "model"
+            "provider"
           ],
           "type": "object"
         },
         "voice": {
+          "additionalProperties": false,
           "description": "New voice configuration",
           "properties": {
             "model": {
-              "description": "Voice model to use",
               "type": "string"
             },
             "provider": {
-              "description": "Provider to use for voice",
-              "enum": [
-                "vapi",
-                "11labs",
-                "azure",
-                "cartesia",
-                "custom-voice",
-                "deepgram",
-                "hume",
-                "lmnt",
-                "neuphonic",
-                "openai",
-                "playht",
-                "rime-ai",
-                "smallest-ai",
-                "tavus",
-                "sesame"
-              ],
               "type": "string"
             },
             "voiceId": {
-              "description": "Voice ID to use",
               "type": "string"
             }
           },
@@ -857,6 +748,7 @@
     "description": "Updates an existing Vapi tool",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
       "properties": {
         "apiRequest": {
           "description": "API Request tool configuration - for HTTP API integration",
@@ -867,15 +759,20 @@
                 "baseDelaySeconds": {
                   "default": 1,
                   "description": "Base delay between retries in seconds",
+                  "maximum": 10,
+                  "minimum": 0,
                   "type": "number"
                 },
                 "maxRetries": {
                   "default": 3,
                   "description": "Maximum number of retries",
+                  "maximum": 10,
+                  "minimum": 0,
                   "type": "number"
                 },
                 "type": {
                   "default": "fixed",
+                  "description": "This is the type of backoff plan to use. Defaults to fixed.\n\n@default fixed",
                   "enum": [
                     "fixed",
                     "exponential"
@@ -888,60 +785,59 @@
             "body": {
               "description": "Body schema for the API request in JSON Schema format",
               "properties": {
-                "properties": {
-                  "additionalProperties": {
-                    "properties": {
-                      "description": {
-                        "type": "string"
-                      },
-                      "enum": {
-                        "items": {
-                          "type": "string"
-                        },
-                        "type": "array"
-                      },
-                      "items": {},
-                      "properties": {
-                        "additionalProperties": {},
-                        "propertyNames": {
-                          "type": "string"
-                        },
-                        "type": "object"
-                      },
-                      "required": {
-                        "items": {
-                          "type": "string"
-                        },
-                        "type": "array"
-                      },
-                      "type": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "type"
-                    ],
-                    "type": "object"
-                  },
-                  "propertyNames": {
-                    "type": "string"
-                  },
-                  "type": "object"
+                "description": {
+                  "description": "This is the description to help the model understand what it needs to output.",
+                  "type": "string"
                 },
-                "required": {
+                "enum": {
+                  "description": "This array specifies the allowed values that can be used to restrict the output of the model.",
                   "items": {
                     "type": "string"
                   },
                   "type": "array"
                 },
+                "format": {
+                  "type": "string"
+                },
+                "items": {},
+                "pattern": {
+                  "type": "string"
+                },
+                "properties": {
+                  "additionalProperties": {
+                    "allOf": [
+                      {}
+                    ]
+                  },
+                  "description": "This is required if the type is \"object\". This specifies the properties of the object. This is a map of property names to JsonSchema objects.",
+                  "properties": {},
+                  "type": "object"
+                },
+                "required": {
+                  "description": "This is a list of properties that are required.\n\nThis only makes sense if the type is \"object\".",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "title": {
+                  "description": "This is the title of the schema.",
+                  "type": "string"
+                },
                 "type": {
-                  "const": "object",
+                  "enum": [
+                    "string",
+                    "number",
+                    "integer",
+                    "boolean",
+                    "array",
+                    "object"
+                  ],
                   "type": "string"
                 }
               },
               "required": [
-                "type",
-                "properties"
+                "type"
               ],
               "type": "object"
             },
@@ -950,23 +846,26 @@
                 "type": "string"
               },
               "description": "Headers to send with the request (key-value pairs)",
-              "propertyNames": {
-                "type": "string"
-              },
+              "properties": {},
               "type": "object"
             },
             "method": {
               "default": "POST",
               "description": "HTTP method for the API request",
               "enum": [
+                "POST",
                 "GET",
-                "POST"
+                "PUT",
+                "PATCH",
+                "DELETE"
               ],
               "type": "string"
             },
             "timeoutSeconds": {
               "default": 20,
               "description": "Request timeout in seconds",
+              "maximum": 300,
+              "minimum": 1,
               "type": "number"
             },
             "url": {
@@ -991,46 +890,12 @@
               "description": "JSON schema for function parameters",
               "properties": {
                 "properties": {
-                  "additionalProperties": {
-                    "properties": {
-                      "description": {
-                        "type": "string"
-                      },
-                      "enum": {
-                        "items": {
-                          "type": "string"
-                        },
-                        "type": "array"
-                      },
-                      "items": {},
-                      "properties": {
-                        "additionalProperties": {},
-                        "propertyNames": {
-                          "type": "string"
-                        },
-                        "type": "object"
-                      },
-                      "required": {
-                        "items": {
-                          "type": "string"
-                        },
-                        "type": "array"
-                      },
-                      "type": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "type"
-                    ],
-                    "type": "object"
-                  },
-                  "propertyNames": {
-                    "type": "string"
-                  },
+                  "additionalProperties": {},
+                  "properties": {},
                   "type": "object"
                 },
                 "required": {
+                  "description": "This specifies the properties that are required by the function.",
                   "items": {
                     "type": "string"
                   },
@@ -1038,6 +903,7 @@
                 },
                 "type": {
                   "const": "object",
+                  "description": "This must be set to 'object'. It instructs the model to return a JSON object containing the function call properties.",
                   "type": "string"
                 }
               },
@@ -1055,9 +921,7 @@
                     "type": "string"
                   },
                   "description": "Headers to send with the request",
-                  "propertyNames": {
-                    "type": "string"
-                  },
+                  "properties": {},
                   "type": "object"
                 },
                 "url": {
@@ -1080,6 +944,8 @@
         },
         "name": {
           "description": "Name of the function/tool",
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
           "type": "string"
         },
         "sms": {
@@ -1106,6 +972,8 @@
         },
         "toolId": {
           "description": "ID of the tool to update",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
           "type": "string"
         },
         "transferCall": {
@@ -1116,19 +984,23 @@
               "items": {
                 "properties": {
                   "callerId": {
-                    "description": "Caller ID to use for the transfer",
+                    "maxLength": 40,
                     "type": "string"
                   },
                   "description": {
-                    "description": "Description of the transfer destination",
+                    "description": "This is the description of the destination, used by the AI to choose when and how to transfer the call.",
                     "type": "string"
                   },
                   "extension": {
-                    "description": "Extension number if applicable",
+                    "description": "This is the extension to dial after transferring the call to the `number`.",
+                    "maxLength": 10,
+                    "minLength": 1,
                     "type": "string"
                   },
                   "number": {
-                    "description": "Phone number to transfer to (e.g., \"+16054440129\"). It can be any phone number in E.164 format.",
+                    "description": "This is the phone number to transfer the call to.",
+                    "maxLength": 40,
+                    "minLength": 3,
                     "type": "string"
                   },
                   "type": {

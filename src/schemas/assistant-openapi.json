@@ -1425,5 +1425,917 @@
         }
       }
     }
-  ]
+  ],
+  "llm": [
+    {
+      "name": "AnthropicModel",
+      "required": [
+        "model",
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "The provider identifier for Anthropic.",
+          "enum": [
+            "anthropic"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "The specific Anthropic/Claude model that will be used.",
+          "enum": [
+            "claude-3-opus-20240229",
+            "claude-3-sonnet-20240229",
+            "claude-3-haiku-20240307",
+            "claude-3-5-sonnet-20240620",
+            "claude-3-5-sonnet-20241022",
+            "claude-3-5-haiku-20241022",
+            "claude-3-7-sonnet-20250219",
+            "claude-opus-4-20250514",
+            "claude-opus-4-5-20251101",
+            "claude-opus-4-6",
+            "claude-sonnet-4-20250514",
+            "claude-sonnet-4-5-20250929",
+            "claude-sonnet-4-6",
+            "claude-sonnet-5",
+            "claude-haiku-4-5-20251001",
+            "claude-haiku-5-5"
+          ]
+        }
+      }
+    },
+    {
+      "name": "AnthropicBedrockModel",
+      "required": [
+        "provider",
+        "model"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "The provider identifier for Anthropic via AWS Bedrock.",
+          "enum": [
+            "anthropic-bedrock"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "The specific Anthropic/Claude model that will be used via Bedrock.",
+          "enum": [
+            "claude-3-opus-20240229",
+            "claude-3-sonnet-20240229",
+            "claude-3-haiku-20240307",
+            "claude-3-5-sonnet-20240620",
+            "claude-3-5-sonnet-20241022",
+            "claude-3-5-haiku-20241022",
+            "claude-3-7-sonnet-20250219",
+            "claude-opus-4-20250514",
+            "claude-opus-4-5-20251101",
+            "claude-opus-4-6",
+            "claude-sonnet-4-20250514",
+            "claude-sonnet-4-5-20250929",
+            "claude-sonnet-4-6",
+            "claude-haiku-4-5-20251001",
+            "claude-haiku-5-5",
+            "global.anthropic.claude-haiku-4-5-20251001-v1:0"
+          ]
+        }
+      }
+    },
+    {
+      "name": "AnyscaleModel",
+      "required": [
+        "provider",
+        "model"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "anyscale"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the name of the model. Ex. cognitivecomputations/dolphin-mixtral-8x7b"
+        }
+      }
+    },
+    {
+      "name": "CerebrasModel",
+      "required": [
+        "model",
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "cerebras"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the name of the model. Ex. cognitivecomputations/dolphin-mixtral-8x7b",
+          "enum": [
+            "llama3.1-8b",
+            "llama-3.3-70b"
+          ]
+        }
+      }
+    },
+    {
+      "name": "CustomLLMModel",
+      "required": [
+        "provider",
+        "url",
+        "model"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the provider that will be used for the model. Any service, including your own server, that is compatible with the OpenAI API can be used.",
+          "enum": [
+            "custom-llm"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the name of the model. Ex. cognitivecomputations/dolphin-mixtral-8x7b"
+        }
+      }
+    },
+    {
+      "name": "DeepInfraModel",
+      "required": [
+        "provider",
+        "model"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "deepinfra"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the name of the model. Ex. cognitivecomputations/dolphin-mixtral-8x7b"
+        }
+      }
+    },
+    {
+      "name": "DeepSeekModel",
+      "required": [
+        "model",
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "deep-seek"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the name of the model. Ex. cognitivecomputations/dolphin-mixtral-8x7b",
+          "enum": [
+            "deepseek-chat",
+            "deepseek-reasoner",
+            "deepseek-flash",
+            "deepseek-flash-thinking"
+          ]
+        }
+      }
+    },
+    {
+      "name": "GoogleModel",
+      "required": [
+        "model",
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "google"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the Google model that will be used.",
+          "enum": [
+            "gemini-3.8-flash",
+            "gemini-3.5-flash",
+            "gemini-3.1-flash-lite",
+            "gemini-3-flash-preview",
+            "gemini-2.5-pro",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-2.0-flash-thinking-exp",
+            "gemini-2.0-pro-exp-02-05",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
+            "gemini-2.0-flash-exp",
+            "gemini-2.0-flash-realtime-exp",
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-002",
+            "gemini-1.5-pro",
+            "gemini-1.5-pro-002",
+            "gemini-1.0-pro"
+          ]
+        }
+      }
+    },
+    {
+      "name": "GroqModel",
+      "required": [
+        "model",
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "groq"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the name of the model. Ex. cognitivecomputations/dolphin-mixtral-8x7b",
+          "enum": [
+            "openai/gpt-oss-20b",
+            "openai/gpt-oss-120b",
+            "deepseek-r1-distill-llama-70b",
+            "llama-3.3-70b-versatile",
+            "llama-3.1-405b-reasoning",
+            "llama-3.1-8b-instant",
+            "llama3-8b-8192",
+            "llama3-70b-8192",
+            "gemma2-9b-it",
+            "moonshotai/kimi-k2-instruct-0905",
+            "meta-llama/llama-4-scout-17b-16e-instruct",
+            "mistral-saba-24b",
+            "compound-beta",
+            "compound-beta-mini"
+          ]
+        }
+      }
+    },
+    {
+      "name": "InflectionAIModel",
+      "required": [
+        "model",
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "inflection-ai"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the name of the model. Ex. cognitivecomputations/dolphin-mixtral-8x7b",
+          "enum": [
+            "inflection_3_pi"
+          ]
+        }
+      }
+    },
+    {
+      "name": "MinimaxLLMModel",
+      "required": [
+        "provider",
+        "model"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "minimax"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the name of the model. Ex. cognitivecomputations/dolphin-mixtral-8x7b",
+          "enum": [
+            "MiniMax-M2.7"
+          ]
+        }
+      }
+    },
+    {
+      "name": "OpenAIModel",
+      "required": [
+        "provider",
+        "model"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the provider that will be used for the model.",
+          "enum": [
+            "openai"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the OpenAI model that will be used.\nFor GPT-Live configuration and supported settings, see https://docs.vapi.ai/gpt-live/overview.\n\nWhen using Vapi OpenAI or your own Azure Credentials, you have the option to specify the region for the selected model. This shouldn't be specified unless you have a specific reason to do so. Vapi will automatically find the fastest region that make sense.\nThis is helpful when you are required to comply with Data Residency rules. Learn more about Azure regions here https://azure.microsoft.com/en-us/explore/global-infrastructure/data-residency/.\n\n@default undefined",
+          "enum": [
+            "gpt-6-luna",
+            "gpt-5.6-sol",
+            "gpt-5.6-terra",
+            "gpt-5.6-luna",
+            "gpt-5.5",
+            "chat-latest",
+            "gpt-5.4",
+            "gpt-5.4-mini",
+            "gpt-5.4-nano",
+            "gpt-5.2",
+            "gpt-5.2-chat-latest",
+            "gpt-5.1",
+            "gpt-5.1-chat-latest",
+            "gpt-5",
+            "gpt-5-chat-latest",
+            "gpt-5-mini",
+            "gpt-5-nano",
+            "gpt-4.1-2025-04-14",
+            "gpt-4.1-mini-2025-04-14",
+            "gpt-4.1-nano-2025-04-14",
+            "gpt-4.1",
+            "gpt-4.1-mini",
+            "gpt-4.1-nano",
+            "chatgpt-4o-latest",
+            "o3",
+            "o3-mini",
+            "o4-mini",
+            "o1-mini",
+            "o1-mini-2024-09-12",
+            "gpt-4o-realtime-preview-2024-10-01",
+            "gpt-4o-realtime-preview-2024-12-17",
+            "gpt-4o-mini-realtime-preview-2024-12-17",
+            "gpt-realtime-2025-08-28",
+            "gpt-realtime-mini-2025-12-15",
+            "gpt-realtime-2",
+            "gpt-4o-mini-2024-07-18",
+            "gpt-4o-mini",
+            "gpt-4o",
+            "gpt-4o-2024-05-13",
+            "gpt-4o-2024-08-06",
+            "gpt-4o-2024-11-20",
+            "gpt-4-turbo",
+            "gpt-4-turbo-2024-04-09",
+            "gpt-4-turbo-preview",
+            "gpt-4-0125-preview",
+            "gpt-4-1106-preview",
+            "gpt-4",
+            "gpt-4-0613",
+            "gpt-3.5-turbo",
+            "gpt-3.5-turbo-0125",
+            "gpt-3.5-turbo-1106",
+            "gpt-3.5-turbo-16k",
+            "gpt-3.5-turbo-0613",
+            "gpt-5.6-luna:westus3",
+            "gpt-5.6-terra:westus3",
+            "gpt-5.6-sol:westus3",
+            "gpt-5.4:eastus2",
+            "gpt-5.4:swedencentral",
+            "gpt-5.4-mini:eastus2",
+            "gpt-5.4-mini:swedencentral",
+            "gpt-5.4-nano:eastus2",
+            "gpt-5.4-nano:swedencentral",
+            "gpt-5.2:eastus2",
+            "gpt-5.2:swedencentral",
+            "gpt-5.1:eastus2",
+            "gpt-5.1:swedencentral",
+            "gpt-5:eastus2",
+            "gpt-5:swedencentral",
+            "gpt-5:canadaeast",
+            "gpt-5:eastus",
+            "gpt-5:westeurope",
+            "gpt-5:germanywestcentral",
+            "gpt-5:polandcentral",
+            "gpt-5:spaincentral",
+            "gpt-5-mini:eastus2",
+            "gpt-5-mini:swedencentral",
+            "gpt-5-mini:westeurope",
+            "gpt-5-mini:germanywestcentral",
+            "gpt-5-mini:polandcentral",
+            "gpt-5-mini:spaincentral",
+            "gpt-5-nano:eastus2",
+            "gpt-5-nano:swedencentral",
+            "gpt-4.1-2025-04-14:westus",
+            "gpt-4.1-2025-04-14:eastus2",
+            "gpt-4.1-2025-04-14:eastus",
+            "gpt-4.1-2025-04-14:westus3",
+            "gpt-4.1-2025-04-14:northcentralus",
+            "gpt-4.1-2025-04-14:southcentralus",
+            "gpt-4.1-2025-04-14:westeurope",
+            "gpt-4.1-2025-04-14:germanywestcentral",
+            "gpt-4.1-2025-04-14:polandcentral",
+            "gpt-4.1-2025-04-14:spaincentral",
+            "gpt-4.1-mini-2025-04-14:westus",
+            "gpt-4.1-mini-2025-04-14:eastus2",
+            "gpt-4.1-mini-2025-04-14:eastus",
+            "gpt-4.1-mini-2025-04-14:westus3",
+            "gpt-4.1-mini-2025-04-14:northcentralus",
+            "gpt-4.1-mini-2025-04-14:southcentralus",
+            "gpt-4.1-mini-2025-04-14:westeurope",
+            "gpt-4.1-mini-2025-04-14:germanywestcentral",
+            "gpt-4.1-mini-2025-04-14:polandcentral",
+            "gpt-4.1-mini-2025-04-14:spaincentral",
+            "gpt-4.1-nano-2025-04-14:westus",
+            "gpt-4.1-nano-2025-04-14:eastus2",
+            "gpt-4.1-nano-2025-04-14:westus3",
+            "gpt-4.1-nano-2025-04-14:northcentralus",
+            "gpt-4.1-nano-2025-04-14:southcentralus",
+            "gpt-4o-2024-11-20:swedencentral",
+            "gpt-4o-2024-11-20:westus",
+            "gpt-4o-2024-11-20:eastus2",
+            "gpt-4o-2024-11-20:eastus",
+            "gpt-4o-2024-11-20:westus3",
+            "gpt-4o-2024-11-20:southcentralus",
+            "gpt-4o-2024-11-20:westeurope",
+            "gpt-4o-2024-11-20:germanywestcentral",
+            "gpt-4o-2024-11-20:polandcentral",
+            "gpt-4o-2024-11-20:spaincentral",
+            "gpt-4o-2024-08-06:westus",
+            "gpt-4o-2024-08-06:westus3",
+            "gpt-4o-2024-08-06:eastus",
+            "gpt-4o-2024-08-06:eastus2",
+            "gpt-4o-2024-08-06:northcentralus",
+            "gpt-4o-2024-08-06:southcentralus",
+            "gpt-4o-mini-2024-07-18:westus",
+            "gpt-4o-mini-2024-07-18:westus3",
+            "gpt-4o-mini-2024-07-18:eastus",
+            "gpt-4o-mini-2024-07-18:eastus2",
+            "gpt-4o-mini-2024-07-18:northcentralus",
+            "gpt-4o-mini-2024-07-18:southcentralus",
+            "gpt-4o-2024-05-13:eastus2",
+            "gpt-4o-2024-05-13:eastus",
+            "gpt-4o-2024-05-13:northcentralus",
+            "gpt-4o-2024-05-13:southcentralus",
+            "gpt-4o-2024-05-13:westus3",
+            "gpt-4o-2024-05-13:westus",
+            "gpt-4-turbo-2024-04-09:eastus2",
+            "gpt-4-0125-preview:eastus",
+            "gpt-4-0125-preview:northcentralus",
+            "gpt-4-0125-preview:southcentralus",
+            "gpt-4-1106-preview:australiaeast",
+            "gpt-4-1106-preview:canadaeast",
+            "gpt-4-1106-preview:france",
+            "gpt-4-1106-preview:india",
+            "gpt-4-1106-preview:norway",
+            "gpt-4-1106-preview:swedencentral",
+            "gpt-4-1106-preview:uk",
+            "gpt-4-1106-preview:westus",
+            "gpt-4-1106-preview:westus3",
+            "gpt-4-0613:canadaeast",
+            "gpt-3.5-turbo-0125:canadaeast",
+            "gpt-3.5-turbo-0125:northcentralus",
+            "gpt-3.5-turbo-0125:southcentralus",
+            "gpt-3.5-turbo-1106:canadaeast",
+            "gpt-3.5-turbo-1106:westus",
+            "gpt-4.1:australiaeast",
+            "gpt-4o:australiaeast",
+            "gpt-5.4-mini:australiaeast",
+            "gpt-live-1"
+          ]
+        }
+      }
+    },
+    {
+      "name": "OpenRouterModel",
+      "required": [
+        "provider",
+        "model"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "openrouter"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the name of the model. Ex. cognitivecomputations/dolphin-mixtral-8x7b"
+        }
+      }
+    },
+    {
+      "name": "PerplexityAIModel",
+      "required": [
+        "provider",
+        "model"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "perplexity-ai"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the name of the model. Ex. cognitivecomputations/dolphin-mixtral-8x7b"
+        }
+      }
+    },
+    {
+      "name": "TogetherAIModel",
+      "required": [
+        "provider",
+        "model"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "together-ai"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the name of the model. Ex. cognitivecomputations/dolphin-mixtral-8x7b"
+        }
+      }
+    },
+    {
+      "name": "XaiModel",
+      "required": [
+        "model",
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "xai"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the name of the model. Ex. cognitivecomputations/dolphin-mixtral-8x7b",
+          "enum": [
+            "grok-beta",
+            "grok-2",
+            "grok-3",
+            "grok-4-fast-reasoning",
+            "grok-4-fast-non-reasoning",
+            "grok-4.20-0309-reasoning",
+            "grok-4.20-0309-non-reasoning",
+            "grok-4.3"
+          ]
+        }
+      }
+    },
+    {
+      "name": "VapiModel",
+      "required": [
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "vapi"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "White-label Vapi models are selected by `version`, not a model name, so\n`model` is optional here (the runtime already accepts a version-only Vapi\npayload). Overriding the required `ModelBase.model`: the declared type stays\n`string` to match the base (avoids TS2416) and the `= undefined!` initializer\nsatisfies TS2612 for the field override, while `@IsOptional` +\n`@ApiPropertyOptional` make validation and the generated OpenAPI schema treat\nit as optional (so `VapiModel.required` is `['provider']`)."
+        }
+      }
+    }
+  ],
+  "fields": {
+    "firstMessage": {
+      "type": "string",
+      "description": "This is the first message that the assistant will say. This can also be a URL to a containerized audio file (mp3, wav, etc.).\n\nIf unspecified, assistant will wait for user to speak and use the model to respond once they speak.",
+      "example": "Hello! How can I help you today?"
+    },
+    "firstMessageMode": {
+      "type": "string",
+      "description": "This is the mode for the first message. Default is 'assistant-speaks-first'.\n\nUse:\n- 'assistant-speaks-first' to have the assistant speak first.\n- 'assistant-waits-for-user' to have the assistant wait for the user to speak first.\n- 'assistant-speaks-first-with-model-generated-message' to have the assistant speak first with a message generated by the model based on the conversation state. (`assistant.model.messages` at call start, `call.messages` at squad transfer points).\n\n@default 'assistant-speaks-first'",
+      "enum": [
+        "assistant-speaks-first",
+        "assistant-speaks-first-with-model-generated-message",
+        "assistant-waits-for-user"
+      ],
+      "example": "assistant-speaks-first"
+    },
+    "toolIds": {
+      "description": "These are the tools that the assistant can use during the call. To use transient tools, use `tools`.\n\nBoth `tools` and `toolIds` can be used together.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "instructions": {
+      "type": "string",
+      "nullable": true,
+      "maxLength": 100000000
+    },
+    "callAssistantId": {
+      "type": "string",
+      "description": "This is the assistant ID that will be used for the call. To use a transient assistant, use `assistant` instead.\n\nTo start a call with:\n- Assistant, use `assistantId` or `assistant`\n- Squad, use `squadId` or `squad`\n- Workflow, use `workflowId` or `workflow`"
+    },
+    "callPhoneNumberId": {
+      "type": "string",
+      "description": "This is the phone number that will be used for the call. To use a transient number, use `phoneNumber` instead.\n\nOnly relevant for `outboundPhoneCall` and `inboundPhoneCall` type."
+    },
+    "customerNumber": {
+      "type": "string",
+      "description": "This is the number of the customer.",
+      "minLength": 3,
+      "maxLength": 40
+    },
+    "scheduledAt": {
+      "format": "date-time",
+      "type": "string",
+      "description": "This is the ISO 8601 date-time string of the earliest time the call can be scheduled."
+    },
+    "variableValues": {
+      "type": "object",
+      "description": "These are values that will be used to replace the template variables in the assistant messages and other text-based fields.\nThis uses LiquidJS syntax. https://liquidjs.com/tutorials/intro-to-liquid.html\n\nSo for example, `{{ name }}` will be replaced with the value of `name` in `variableValues`.\n`{{\"now\" | date: \"%b %d, %Y, %I:%M %p\", \"America/New_York\"}}` will be replaced with the current date and time in New York.\n Some VAPI reserved defaults:\n - *customer* - the customer object"
+    },
+    "functionName": {
+      "type": "string",
+      "description": "This is the the name of the function to be called.\n\nMust be a-z, A-Z, 0-9, or contain underscores and dashes, with a maximum length of 64.",
+      "maxLength": 64,
+      "pattern": "/^[a-zA-Z0-9_-]{1,64}$/"
+    },
+    "functionDescription": {
+      "type": "string",
+      "description": "This is the description of what the function does, used by the AI to choose when and how to call the function."
+    },
+    "functionParameters": {
+      "description": "These are the parameters the functions accepts, described as a JSON Schema object.\n\nSee the [OpenAI guide](https://platform.openai.com/docs/guides/function-calling) for examples, and the [JSON Schema reference](https://json-schema.org/understanding-json-schema) for documentation about the format.\n\nOmitting parameters defines a function with an empty parameter list.",
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/OpenAIFunctionParameters"
+        }
+      ]
+    },
+    "serverUrl": {
+      "type": "string",
+      "description": "This is where the request will be sent."
+    },
+    "serverHeaders": {
+      "type": "object",
+      "description": "These are the headers to include in the request.\n\nEach key-value pair represents a header name and its value.\n\nNote: Specifying an Authorization header here will override the authorization provided by the `credentialId` (if provided). This is an anti-pattern and should be avoided outside of edge case scenarios."
+    },
+    "apiUrl": {
+      "type": "string",
+      "description": "This is where the request will be sent."
+    },
+    "apiMethod": {
+      "type": "string",
+      "enum": [
+        "POST",
+        "GET",
+        "PUT",
+        "PATCH",
+        "DELETE"
+      ]
+    },
+    "apiBody": {
+      "description": "This is the body of the request.",
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/JsonSchema"
+        }
+      ]
+    },
+    "apiTimeout": {
+      "type": "number",
+      "description": "This is the timeout in seconds for the request. Defaults to 20 seconds.\n\n@default 20",
+      "minimum": 1,
+      "maximum": 300,
+      "example": 20
+    },
+    "backoffType": {
+      "type": "object",
+      "description": "This is the type of backoff plan to use. Defaults to fixed.\n\n@default fixed",
+      "enum": [
+        "fixed",
+        "exponential"
+      ],
+      "example": "fixed"
+    },
+    "backoffMaxRetries": {
+      "type": "number",
+      "description": "This is the maximum number of retries to attempt if the request fails. Defaults to 0 (no retries).\n\n@default 0",
+      "minimum": 0,
+      "maximum": 10,
+      "example": 0
+    },
+    "backoffDelay": {
+      "type": "number",
+      "description": "This is the base delay in seconds. For linear backoff, this is the delay between each retry. For exponential backoff, this is the initial delay.",
+      "minimum": 0,
+      "maximum": 10,
+      "example": 1
+    },
+    "transferDestination": {
+      "type": "object",
+      "required": [
+        "type",
+        "number"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "number"
+          ]
+        },
+        "number": {
+          "type": "string",
+          "description": "This is the phone number to transfer the call to.",
+          "minLength": 3,
+          "maxLength": 40
+        },
+        "extension": {
+          "type": "string",
+          "description": "This is the extension to dial after transferring the call to the `number`.",
+          "minLength": 1,
+          "maxLength": 10
+        },
+        "callerId": {
+          "type": "string",
+          "description": "This is the caller ID to use when transferring the call to the `number`.\n\nUsage:\n- If not provided, the caller ID will be the number the call is coming **from**.\n  Example: a customer with number +14151111111 calls in to and the assistant transfers out to +16470000000. +16470000000 will see +14151111111 as the caller.\n  For inbound calls, the caller ID is the customer's number. For outbound calls, the caller ID is the phone number of the assistant.\n- To change this behavior, provide a `callerId`.\n- Set to '{{customer.number}}' to always use the customer's number as the caller ID.\n- Set to '{{phoneNumber.number}}' to always use the phone number of the assistant as the caller ID.\n- Set to any E164 number to always use that number as the caller ID. This needs to be a number that is owned or verified by your Transport provider like Twilio.\n\nNote: on Twilio, a caller who withheld their number has no caller ID the destination carrier will accept, so the assistant's phone number is presented instead and the transfer goes through. This applies when `callerId` is not provided and when it is set to '{{customer.number}}'.\n\nFor Twilio, you can read up more here: https://www.twilio.com/docs/voice/twiml/dial#callerid",
+          "maxLength": 40
+        },
+        "description": {
+          "type": "string",
+          "description": "This is the description of the destination, used by the AI to choose when and how to transfer the call."
+        }
+      }
+    },
+    "toolType": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "sms"
+          ],
+          "description": "The type of tool. \"sms\" for Twilio SMS sending tool."
+        },
+        {
+          "type": "string",
+          "enum": [
+            "transferCall"
+          ]
+        },
+        {
+          "type": "string",
+          "enum": [
+            "function"
+          ],
+          "description": "The type of tool. \"function\" for Function tool."
+        },
+        {
+          "type": "string",
+          "enum": [
+            "apiRequest"
+          ],
+          "description": "The type of tool. \"apiRequest\" for API request tool."
+        }
+      ]
+    },
+    "assistantId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "callId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "phoneNumberId": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "toolId": {
+      "format": "uuid",
+      "type": "string"
+    }
+  },
+  "definitions": {
+    "OpenAIFunctionParameters": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "This must be set to 'object'. It instructs the model to return a JSON object containing the function call properties.",
+          "enum": [
+            "object"
+          ]
+        },
+        "properties": {
+          "type": "object",
+          "description": "This provides a description of the properties required by the function.\nJSON Schema can be used to specify expectations for each property.\nRefer to [this doc](https://ajv.js.org/json-schema.html#json-data-type) for a comprehensive guide on JSON Schema.",
+          "additionalProperties": {
+            "$ref": "#/components/schemas/JsonSchema"
+          }
+        },
+        "required": {
+          "description": "This specifies the properties that are required by the function.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "properties"
+      ]
+    },
+    "JsonSchema": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "This is the type of output you'd like.\n\n`string`, `number`, `integer`, `boolean` are the primitive types and should be obvious.\n\n`array` and `object` are more interesting and quite powerful. They allow you to define nested structures.\n\nFor `array`, you can define the schema of the items in the array using the `items` property.\n\nFor `object`, you can define the properties of the object using the `properties` property.",
+          "enum": [
+            "string",
+            "number",
+            "integer",
+            "boolean",
+            "array",
+            "object"
+          ]
+        },
+        "items": {
+          "description": "This is required if the type is \"array\". This is the schema of the items in the array. This is a recursive reference to JsonSchema.",
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/JsonSchema"
+            }
+          ]
+        },
+        "properties": {
+          "type": "object",
+          "description": "This is required if the type is \"object\". This specifies the properties of the object. This is a map of property names to JsonSchema objects.",
+          "additionalProperties": {
+            "$ref": "#/components/schemas/JsonSchema"
+          }
+        },
+        "description": {
+          "type": "string",
+          "description": "This is the description to help the model understand what it needs to output."
+        },
+        "pattern": {
+          "type": "string",
+          "description": "This is the pattern of the string. This is a regex that will be used to validate the data in question. To use a common format, use the `format` property instead.\n\nOpenAI documentation: https://platform.openai.com/docs/guides/structured-outputs#supported-properties"
+        },
+        "format": {
+          "type": "string",
+          "description": "This is the format of the string. To pass a regex, use the `pattern` property instead.\n\nOpenAI documentation: https://platform.openai.com/docs/guides/structured-outputs?api-mode=chat&type-restrictions=string-restrictions",
+          "enum": [
+            "date-time",
+            "time",
+            "date",
+            "duration",
+            "email",
+            "hostname",
+            "ipv4",
+            "ipv6",
+            "uuid"
+          ]
+        },
+        "required": {
+          "description": "This is a list of properties that are required.\n\nThis only makes sense if the type is \"object\".",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "enum": {
+          "description": "This array specifies the allowed values that can be used to restrict the output of the model.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "title": {
+          "type": "string",
+          "description": "This is the title of the schema."
+        }
+      },
+      "required": [
+        "type"
+      ]
+    }
+  },
+  "requiredToolConfigurations": [
+    "apiRequest"
+  ],
+  "functionRequiresName": true
 }

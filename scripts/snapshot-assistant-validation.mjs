@@ -13,9 +13,10 @@ const spec = JSON.parse(source);
 if (spec.openapi !== '3.0.0') throw new Error(`Unexpected dialect: ${spec.openapi}`);
 const schemas = spec.components.schemas;
 const fields = {};
-for (const field of ['voice', 'transcriber']) {
+for (const field of ['voice', 'transcriber', 'llm']) {
   const keys = field === 'voice' ? ['provider', 'voiceId', 'model'] : ['provider', 'model'];
-  fields[field] = schemas.CreateAssistantDTO.properties[field].oneOf.map(({ $ref }) => {
+  const apiField = field === 'llm' ? 'model' : field;
+  fields[field] = schemas.CreateAssistantDTO.properties[apiField].oneOf.map(({ $ref }) => {
     const name = $ref.split('/').at(-1);
     const schema = schemas[name];
     return {
@@ -27,6 +28,58 @@ for (const field of ['voice', 'transcriber']) {
     };
   });
 }
+const property = (schema, key) => {
+  const result = schemas[schema]?.properties?.[key];
+  if (!result) throw new Error(`Missing published field: ${schema}.${key}`);
+  return result;
+};
+const apiFields = {
+  firstMessage: property('CreateAssistantDTO', 'firstMessage'),
+  firstMessageMode: property('CreateAssistantDTO', 'firstMessageMode'),
+  toolIds: property('OpenAIModel', 'toolIds'),
+  instructions: property('OpenAIMessage', 'content'),
+  callAssistantId: property('CreateCallDTO', 'assistantId'),
+  callPhoneNumberId: property('CreateCallDTO', 'phoneNumberId'),
+  customerNumber: property('CreateCustomerDTO', 'number'),
+  scheduledAt: property('SchedulePlan', 'earliestAt'),
+  variableValues: property('AssistantOverrides', 'variableValues'),
+  functionName: property('OpenAIFunction', 'name'),
+  functionDescription: property('OpenAIFunction', 'description'),
+  functionParameters: property('OpenAIFunction', 'parameters'),
+  serverUrl: property('Server', 'url'),
+  serverHeaders: property('Server', 'headers'),
+  apiUrl: property('CreateApiRequestToolDTO', 'url'),
+  apiMethod: property('CreateApiRequestToolDTO', 'method'),
+  apiBody: property('CreateApiRequestToolDTO', 'body'),
+  apiTimeout: property('CreateApiRequestToolDTO', 'timeoutSeconds'),
+  backoffType: property('BackoffPlan', 'type'),
+  backoffMaxRetries: property('BackoffPlan', 'maxRetries'),
+  backoffDelay: property('BackoffPlan', 'baseDelaySeconds'),
+};
+const transferProperties = ['type', 'number', 'extension', 'callerId', 'description'];
+apiFields.transferDestination = {
+  type: 'object', required: schemas.TransferDestinationNumber.required,
+  properties: Object.fromEntries(transferProperties.map(key => [key, property('TransferDestinationNumber', key)])),
+};
+apiFields.toolType = { oneOf: ['CreateSmsToolDTO', 'CreateTransferCallToolDTO', 'CreateFunctionToolDTO', 'CreateApiRequestToolDTO']
+  .map(name => property(name, 'type')) };
+for (const [key, path] of Object.entries({ assistantId: '/assistant/{id}', callId: '/call/{id}', phoneNumberId: '/phone-number/{id}', toolId: '/tool/{id}' })) {
+  apiFields[key] = spec.paths[path].get.parameters.find(parameter => parameter.in === 'path' && parameter.name === 'id').schema;
+}
+const definitions = {};
+function closeReferences(value) {
+  if (Array.isArray(value)) return value.forEach(closeReferences);
+  if (!value || typeof value !== 'object') return;
+  if (typeof value.$ref === 'string') {
+    const prefix = '#/components/schemas/';
+    if (!value.$ref.startsWith(prefix)) throw new Error(`Unsupported reference: ${value.$ref}`);
+    const name = value.$ref.slice(prefix.length);
+    if (!schemas[name]) throw new Error(`Missing reference: ${name}`);
+    if (!definitions[name]) { definitions[name] = schemas[name]; closeReferences(schemas[name]); }
+  }
+  Object.values(value).forEach(closeReferences);
+}
+closeReferences(apiFields);
 const snapshot = {
   source: { url, sha256: createHash('sha256').update(source).digest('hex') },
   name: {
@@ -34,9 +87,12 @@ const snapshot = {
     update: schemas.UpdateAssistantDTO.properties.name,
   },
   ...fields,
+  fields: apiFields,
+  definitions,
+  requiredToolConfigurations: ['CreateSmsToolDTO', 'CreateTransferCallToolDTO', 'CreateFunctionToolDTO', 'CreateApiRequestToolDTO']
+    .filter(name => (schemas[name].required ?? []).some(key => key !== 'type'))
+    .map(name => schemas[name].properties.type.enum[0]),
+  functionRequiresName: schemas.OpenAIFunction.required.includes('name'),
 };
-// This projection is deliberately small and standalone. Fail instead of
-// introducing unresolved references on an upstream schema change.
-if (JSON.stringify(snapshot).includes('"$ref"')) throw new Error('Projected fields now require reference handling');
 await writeFile(new URL('../src/schemas/assistant-openapi.json', import.meta.url), `${JSON.stringify(snapshot, null, 2)}\n`);
-console.log('Saved assistant name and provider field contracts');
+console.log('Saved compact input contracts for all current MCP tool surfaces');

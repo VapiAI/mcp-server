@@ -27,6 +27,8 @@ test.each([
   { type: 'apiRequest', apiRequest: { url: 'https://example.test', backoffPlan: { baseDelaySeconds: -1 } } },
   { type: 'transferCall', transferCall: { destinations: [{ type: 'number', number: '+15555550100', extension: '1'.repeat(11) }] } },
   { type: 'function', name: 'invalid name with spaces' },
+  { type: 'apiRequest' },
+  { type: 'function', function: { parameters: { type: 'object', properties: {} }, server: { url: 'https://example.test' } } },
 ])('tool inputs enforce published constraints: %j', input => {
   expect(CreateToolInputSchema.safeParse(input).success).toBe(false);
 });

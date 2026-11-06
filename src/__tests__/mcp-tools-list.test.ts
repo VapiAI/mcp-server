@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, jest, test } from '@jest/globals';
+import { Ajv } from 'ajv';
+import addFormats from 'ajv-formats';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -113,6 +115,26 @@ describe('MCP tools/list compatibility baseline', () => {
 
       expect(normalizedCatalog).toHaveLength(13);
       expect(normalizedCatalog).toEqual(expectedCatalog);
+
+      // The advertised contract must remain a usable JSON Schema after the
+      // validation/feedback boundary adds transport metadata.
+      const ajv = new Ajv({ strict: false });
+      addFormats.default(ajv);
+      const id = '00000000-0000-4000-8000-000000000001';
+      const validArguments: Record<string, object> = {
+        create_assistant: { name: 'Catalog contract' }, update_assistant: { assistantId: id },
+        get_assistant: { assistantId: id }, get_call: { callId: id },
+        get_phone_number: { phoneNumberId: id }, get_tool: { toolId: id },
+        create_call: {}, create_tool: { type: 'apiRequest', apiRequest: { url: 'https://example.test' } },
+        update_tool: { toolId: id },
+      };
+      for (const tool of response.tools) {
+        expect({ name: tool.name, valid: ajv.compile(tool.inputSchema)(validArguments[tool.name] ?? {}) }).toEqual({ name: tool.name, valid: true });
+      }
+      const createTool = ajv.compile(response.tools.find(tool => tool.name === 'create_tool')!.inputSchema);
+      expect(createTool({ type: 'apiRequest' })).toBe(false);
+      expect(createTool({ type: 'function', description: 'A definition without a name' })).toBe(false);
+      expect(createTool({ type: 'function', description: '' })).toBe(true);
 
       const invocationCount = Object.values(vapiOperations).reduce(
         (total, operations) =>

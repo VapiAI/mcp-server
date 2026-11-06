@@ -241,33 +241,53 @@ export VAPI_TOKEN=your_test_org_token_here
 npm run test:live:mutating
 ```
 
-### Assistant validation from OpenAPI
+### Input validation from OpenAPI
 
-Assistant names and the existing voice (`provider`, `voiceId`, `model`) and
-transcriber (`provider`, `model`) inputs use Zod's experimental
-`z.fromJSONSchema()`, pinned to Zod 4.6.7. The checked-in
-`src/schemas/assistant-openapi.json` projects those fields from the public
-[Vapi OpenAPI spec](https://api.vapi.ai/api-json) and records the source SHA-256.
-Builds and installs use this snapshot without fetching the API.
+All nine parameterized MCP tools use imported OpenAPI constraints through
+Zod's experimental `z.fromJSONSchema()`, pinned to Zod 4.6.7. This covers
+assistant names/LLMs/voices/transcribers, call schedules and customer numbers,
+lookup/update IDs, function parameters, transfer destinations, HTTP methods,
+timeouts and retry plans. The four list tools have local empty input schemas.
 
-The adapter makes explicit corrections for published contract gaps: overlapping
-`oneOf: [enum, string]` alternatives become `anyOf`, duplicate enum values are
-removed, and undeclared provider fields are rejected. OpenAPI default annotations
-do not inject request fields; MCP create defaults remain separate. Providers
-requiring fields outside the compact MCP interface are excluded rather than
-having their required fields dropped: custom voice, Neuphonic voice, custom
-transcriber, and Speechmatics transcriber. Adding those configurations needs an
-explicit interface extension.
+`src/schemas/assistant-openapi.json` is the shared compact projection for these
+surfaces (the filename is retained from the initial assistant cutover). It
+records the [public API spec](https://api.vapi.ai/api-json) source SHA-256 and
+includes the recursive JSON-schema definitions needed for function parameters
+and request bodies. Builds and installs use it without network access. Refresh
+explicitly with `npm run schemas:snapshot`, or pass a saved spec with
+`npm run schemas:snapshot -- /path/spec.json`.
 
-Run `npm run schemas:snapshot` to refresh deliberately, or pass a saved spec as
-`npm run schemas:snapshot -- /path/spec.json`. `npm test` includes the unchanged
-contract baseline, stricter cutover regressions, and independent Ajv parity tests.
+The adapter documents published contract corrections: overlapping enum/string
+`oneOf` alternatives become `anyOf`; duplicate enum values and JavaScript regex
+delimiters are removed; the contradictory object/string-enum annotation on
+`BackoffPlan.type` is corrected. Provider variants reject undeclared fields.
+Spec defaults do not inject request fields; MCP defaults remain separate.
+Variants requiring fields outside the current interface remain excluded: custom
+voice, Neuphonic voice, custom transcriber, Speechmatics transcriber, and custom
+LLM. Adding their required fields needs an explicit interface extension.
 
-For an API backstop, set `VAPI_TOKEN` to a test-organization token and run
-`npm run test:schemas:api`. It compares provider acceptance with the API using
-disposable assistant configurations, deletes the records, and never initiates
-calls. Response-loss recovery and cleanup failures are tested offline with
-`npm run test:schemas:cleanup`; the authenticated command is not run in CI.
+MCP wrappers preserve field aliases and sparse updates. URL checks and
+string-valued header maps remain explicit transport rules because the spec only
+describes a string/object. API-request header maps and SMS metadata retain legacy MCP representations;
+they are explicit compatibility adapters, not claimed to be full API DTO
+validation. SMS metadata is not described in the published DTO. Response summaries also remain
+local: they are transformed MCP representations, not raw API DTOs.
+
+Validation failures return `isError: true`, concise text and structured
+`validationError` details: tool name, issue code, field path, message and allowed
+choices where relevant. Errors select the supplied provider's union branch,
+include at most 12 issues and 8 allowed choices per issue, and indicate
+truncation. Submitted values and credential contents are not echoed. Agents
+should correct the listed fields and retry; a validation failure never invokes
+the API handler. Tests exercise this correction loop through a real MCP client.
+
+`npm test` includes the unchanged baseline, stricter cutover tests, independent
+Ajv parity cases, and validation-feedback tests. With a test-organization
+`VAPI_TOKEN`, `npm run test:schemas:api` provides the opt-in assistant-provider
+API backstop using disposable configuration records with cleanup; it never
+initiates calls. That live check is not run in CI. Cleanup is tested offline
+with `npm run test:schemas:cleanup`. The existing live compatibility suites also
+cover read-only resources and disposable custom tools.
 
 ---
 

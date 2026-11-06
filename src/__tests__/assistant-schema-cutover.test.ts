@@ -5,7 +5,7 @@ import { transformAssistantOutput, transformAssistantInput, transformUpdateAssis
 
 describe.each([
   { schema: CreateAssistantInputSchema, base: { name: 'Cutover' }, operation: 'create' },
-  { schema: UpdateAssistantInputSchema, base: { assistantId: 'assistant-1' }, operation: 'update' },
+  { schema: UpdateAssistantInputSchema, base: { assistantId: '00000000-0000-4000-8000-000000000001' }, operation: 'update' },
 ])('$operation assistant provider rules', ({ schema, base }) => {
   test('rejects a 41-character name', () => {
     expect(schema.safeParse({ ...base, name: 'x'.repeat(41) }).success).toBe(false);
@@ -30,7 +30,7 @@ describe.each([
     expect(parsed.voice).toEqual(configuration.voice);
     expect(parsed.transcriber).toEqual(configuration.transcriber);
     const create = transformAssistantInput(CreateAssistantInputSchema.parse({ name: 'Cutover', ...configuration }));
-    const update = transformUpdateAssistantInput(UpdateAssistantInputSchema.parse({ assistantId: 'assistant-1', ...configuration }));
+    const update = transformUpdateAssistantInput(UpdateAssistantInputSchema.parse({ assistantId: '00000000-0000-4000-8000-000000000001', ...configuration }));
     expect(create.voice).toEqual(configuration.voice);
     expect(update.voice).toEqual(configuration.voice);
     expect(create.transcriber).toEqual({ provider });
@@ -43,7 +43,7 @@ test.each([
   [{ provider: '11labs', voiceId: 'sarah' }, { provider: 'deepgram' }],
 ])('assistant output does not invent absent provider models', (voice, transcriber) => {
   const output = transformAssistantOutput({
-    id: 'assistant-1', name: 'Cutover', createdAt: '', updatedAt: '', voice, transcriber,
+    id: '00000000-0000-4000-8000-000000000001', name: 'Cutover', createdAt: '', updatedAt: '', voice, transcriber,
   } as Vapi.Assistant);
   expect(output.voice).toEqual(voice);
   expect(output.transcriber).toEqual(transcriber);

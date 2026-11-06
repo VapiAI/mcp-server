@@ -11,9 +11,16 @@ type Snapshot = {
   name: { create: JsonSchema; update: JsonSchema };
   voice: ProviderDefinition[];
   transcriber: ProviderDefinition[];
+  llm: ProviderDefinition[];
+  fields: Record<string, JsonSchema>;
+  definitions: Record<string, JsonSchema>;
+  requiredToolConfigurations: string[];
+  functionRequiresName: boolean;
 };
 
 const snapshot: Snapshot = JSON.parse(readFileSync(new URL('./assistant-openapi.json', import.meta.url), 'utf8'));
+export const requiredToolConfigurations = snapshot.requiredToolConfigurations;
+export const functionRequiresName = snapshot.functionRequiresName;
 
 // The published spec uses overlapping oneOf [enum, string] branches for preset
 // IDs and model names. The API accepts both. Change only this recognizable
@@ -34,11 +41,18 @@ function inputContract(value: unknown): unknown {
       key === 'oneOf' && overlap ? 'anyOf' : key,
       // Some published voice IDs repeat in enum arrays. Deduplication changes
       // no accepted values and keeps the result valid JSON Schema for Ajv.
-      key === 'enum' && Array.isArray(nested) ? [...new Set(nested)] : inputContract(nested),
+      key === 'enum' && Array.isArray(nested) ? [...new Set(nested)]
+        // Published name patterns include JavaScript /.../ delimiters, while
+        // JSON Schema pattern expects the regex source without delimiters.
+        : key === 'pattern' && typeof nested === 'string' && nested.startsWith('/') && nested.endsWith('/') ? nested.slice(1, -1)
+        // BackoffPlan.type is published as object with a string enum. Keep the
+        // enum's actual value type; the incompatible type annotation is a spec defect.
+        : key === 'type' && nested === 'object' && Array.isArray(schema.enum) && schema.enum.every(v => typeof v === 'string') ? 'string'
+        : inputContract(nested),
     ]));
 }
 
-export function providerContract(field: 'voice' | 'transcriber'): JsonSchema {
+export function providerContract(field: 'voice' | 'transcriber' | 'llm'): JsonSchema {
   const supported = snapshot[field].filter(definition =>
     definition.required.every(key => key in definition.properties));
   return {
@@ -56,7 +70,7 @@ export function providerContract(field: 'voice' | 'transcriber'): JsonSchema {
 // Providers requiring fields outside the existing compact MCP surface stay
 // unsupported, rather than having those API-required fields silently dropped.
 export const providersRequiringExpandedInputs = Object.fromEntries(
-  (['voice', 'transcriber'] as const).map(field => [field, snapshot[field]
+  (['voice', 'transcriber', 'llm'] as const).map(field => [field, snapshot[field]
     .filter(definition => definition.required.some(key => !(key in definition.properties)))
     .map(definition => definition.name)])
 );
@@ -70,3 +84,23 @@ export const VoiceInputSchema = z.fromJSONSchema(providerContract('voice'), { de
 export const TranscriberInputSchema = z.fromJSONSchema(providerContract('transcriber'), { defaultTarget: 'openapi-3.0' }) as z.ZodType<TranscriberConfiguration>;
 export const CreateAssistantNameSchema = z.fromJSONSchema(snapshot.name.create, { defaultTarget: 'openapi-3.0' }) as z.ZodType<string>;
 export const UpdateAssistantNameSchema = z.fromJSONSchema(snapshot.name.update, { defaultTarget: 'openapi-3.0' }) as z.ZodType<string>;
+
+export const LLMInputSchema = z.fromJSONSchema(providerContract('llm'), { defaultTarget: 'openapi-3.0' }) as z.ZodType<{ provider: string; model?: string }>;
+
+export function fieldContract(name: string): JsonSchema {
+  const field = snapshot.fields[name];
+  if (!field) throw new Error(`Unknown API input field: ${name}`);
+  return JSON.parse(JSON.stringify(inputContract({ ...field, definitions: snapshot.definitions }), (key, value) =>
+    key === '$ref' && typeof value === 'string' ? value.replace('#/components/schemas/', '#/definitions/') : value));
+}
+
+export function apiField<T = unknown>(name: string, overrides: Partial<JsonSchema> = {}): z.ZodType<T> {
+  return z.fromJSONSchema({ ...fieldContract(name), ...overrides }, { defaultTarget: 'openapi-3.0' }) as z.ZodType<T>;
+}
+
+export function apiObjectField<T = Record<string, unknown>>(name: string): z.ZodType<T> {
+  const schema = apiField(name);
+  if (!(schema instanceof z.ZodObject)) throw new Error(`${name} is no longer an object schema`);
+  // Preserve the existing MCP policy of stripping unknown envelope fields.
+  return schema.strip() as z.ZodType<T>;
+}

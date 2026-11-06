@@ -33,7 +33,7 @@ test.each([
   expect(response.isError).toBe(true);
   expect(response.structuredContent).toEqual({ validationError: expect.objectContaining({
     code: 'INVALID_ARGUMENTS', tool: name,
-    issues: expect.arrayContaining([expect.objectContaining({ path })]),
+    issues: expect.arrayContaining([expect.objectContaining({ path, ...(path === 'apiRequest.timeoutSeconds' ? { maximum: 300 } : {}) })]),
   }) });
   expect(operation).not.toHaveBeenCalled();
 });
@@ -55,8 +55,64 @@ test('malformed LLM JSON errors do not echo submitted secret values', async () =
   const response = await client.callTool({ name: 'create_assistant', arguments: { name: 'Test', llm: `{ "token": "${secret}"` } });
   expect(response.isError).toBe(true);
   expect(JSON.stringify(response)).not.toContain(secret);
+  expect(JSON.stringify(response.content)).toContain('Invalid JSON');
   expect(response.structuredContent).toEqual({ validationError: expect.objectContaining({
     issues: expect.arrayContaining([expect.objectContaining({ path: 'llm' })]),
   }) });
+  expect(operation).not.toHaveBeenCalled();
+});
+
+test.each([{ provider: 'unknown-provider', voiceId: 'Elliot' }, { voiceId: 'Elliot' }])('provider errors are bounded and locate missing or unknown discriminators: %j', async voice => {
+  const response = await client.callTool({ name: 'create_assistant', arguments: {
+    name: 'Test', voice,
+  } });
+  expect(response.isError).toBe(true);
+  expect(response.structuredContent).toEqual({ validationError: expect.objectContaining({
+    issues: [expect.objectContaining({ path: 'voice.provider', code: 'invalid_value', allowedValues: expect.any(Array), allowedValuesTruncated: true })],
+  }) });
+  expect(JSON.stringify(response).length).toBeLessThan(3000);
+  expect(operation).not.toHaveBeenCalled();
+});
+
+test('invalid header values do not leak credential contents', async () => {
+  const secret = 'private-header-value-never-echo';
+  const response = await client.callTool({ name: 'create_tool', arguments: {
+    type: 'apiRequest', apiRequest: { url: 'https://example.test', headers: { Authorization: { token: secret } } },
+  } });
+  expect(response.isError).toBe(true);
+  expect(JSON.stringify(response)).not.toContain(secret);
+  expect(response.structuredContent).toEqual({ validationError: expect.objectContaining({
+    issues: expect.arrayContaining([expect.objectContaining({ path: 'apiRequest.headers.Authorization' })]),
+  }) });
+  expect(operation).not.toHaveBeenCalled();
+});
+
+test('large failures report at most twelve issues and indicate truncation', async () => {
+  const response = await client.callTool({ name: 'create_tool', arguments: {
+    type: 'transferCall', transferCall: { destinations: Array.from({ length: 30 }, () => ({ type: 'number', number: 42 })) },
+  } });
+  const details = response.structuredContent as { validationError: { issues: unknown[]; truncated: boolean } };
+  expect(response.isError).toBe(true);
+  expect(details.validationError.issues).toHaveLength(12);
+  expect(details.validationError.truncated).toBe(true);
+  expect(operation).not.toHaveBeenCalled();
+});
+
+test('unsupported tool types report the supported choices', async () => {
+  const response = await client.callTool({ name: 'create_tool', arguments: { type: 'unknown' } });
+  expect(response.structuredContent).toEqual({ validationError: expect.objectContaining({
+    issues: [expect.objectContaining({ path: 'type', allowedValues: expect.arrayContaining(['sms', 'transferCall', 'function', 'apiRequest']) })],
+  }) });
+  expect(operation).not.toHaveBeenCalled();
+});
+
+test('JSON-string provider errors identify the nested provider field', async () => {
+  const response = await client.callTool({ name: 'create_assistant', arguments: {
+    name: 'Test', llm: JSON.stringify({ provider: 'unknown-provider', model: 'private-input-value' }),
+  } });
+  expect(response.structuredContent).toEqual({ validationError: expect.objectContaining({
+    issues: [expect.objectContaining({ path: 'llm.provider', code: 'invalid_value' })],
+  }) });
+  expect(JSON.stringify(response)).not.toContain('private-input-value');
   expect(operation).not.toHaveBeenCalled();
 });

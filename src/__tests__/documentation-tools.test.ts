@@ -13,12 +13,14 @@ const expectedToolNames = [
   'list_calls',
   'list_phone_numbers',
   'list_tools',
+  'load_skill',
+  'search_skills',
   'update_assistant',
   'update_tool',
 ];
 
 const toolNamePattern =
-  /`((?:create|get|list|update|buy|delete)_(?:assistant|assistants|call|calls|phone_number|phone_numbers|tool|tools))`/g;
+  /`((?:create|get|list|update|buy|delete)_(?:assistant|assistants|call|calls|phone_number|phone_numbers|tool|tools)|search_skills|load_skill|ask_vapi_docs)`/g;
 
 function documentedToolNames(relativePath: string): string[] {
   const content = readFileSync(

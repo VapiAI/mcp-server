@@ -637,6 +637,56 @@
     }
   },
   {
+    "name": "load_skill",
+    "description": "Read a public Vapi skill or one of its supporting files. Start with SKILL.md, then load relevant files from the returned file list as needed. Returns instructions for this task; does not install skills or execute scripts.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Exact skill name from search_skills.",
+          "maxLength": 100,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "type": "string"
+        },
+        "path": {
+          "default": "SKILL.md",
+          "description": "File path relative to the skill directory, such as SKILL.md or references/hooks.md.",
+          "maxLength": 300,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "search_skills",
+    "description": "Find Vapi agent skills in the public VapiAI/skills repository by name, description or content. Omit query to browse. Use load_skill to read a result.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "default": 10,
+          "maximum": 30,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "query": {
+          "default": "",
+          "description": "Keywords describing the Vapi task, or empty to browse all skills.",
+          "maxLength": 500,
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
     "name": "update_assistant",
     "description": "Updates an existing Vapi assistant",
     "inputSchema": {

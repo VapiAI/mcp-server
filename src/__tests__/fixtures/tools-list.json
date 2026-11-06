@@ -166,7 +166,6 @@
       "properties": {
         "name": {
           "description": "This is an optional friendly name for the simulation.",
-          "example": "Eligible Path with Confused User",
           "maxLength": 80,
           "type": "string"
         },
@@ -247,7 +246,6 @@
           "items": {
             "properties": {
               "comparator": {
-                "description": "This is the comparison operator to use when evaluating the extracted value against the expected value.\nAvailable operators depend on the structured output's schema type:\n- boolean: '=', '!='\n- string: '=', '!='\n- number/integer: '=', '!=', '>', '<', '>=', '<='",
                 "enum": [
                   "=",
                   "!=",
@@ -256,12 +254,10 @@
                   ">=",
                   "<="
                 ],
-                "example": "=",
                 "type": "string"
               },
               "path": {
                 "description": "Optional dot-notation path to a primitive leaf when evaluating an object structured output.",
-                "example": "contact.auth_started",
                 "type": "string"
               },
               "required": {
@@ -279,8 +275,7 @@
                 "type": "string"
               },
               "value": {
-                "description": "This is the expected value to compare against the extracted structured output result.\nType should match the structured output's schema type.",
-                "oneOf": [
+                "anyOf": [
                   {
                     "type": "number"
                   },
@@ -290,7 +285,8 @@
                   {
                     "type": "boolean"
                   }
-                ]
+                ],
+                "description": "This is the expected value to compare against the extracted structured output result.\nType should match the structured output's schema type."
               }
             },
             "required": [
@@ -303,13 +299,11 @@
         },
         "instructions": {
           "description": "This is the script/instructions for the tester to follow during the simulation.",
-          "example": "You are calling to enroll in the Twin Health program. Confirm your identity when asked.",
           "maxLength": 10000,
           "type": "string"
         },
         "name": {
           "description": "This is the name of the scenario.",
-          "example": "Health Enrollment - Eligible Path",
           "maxLength": 80,
           "type": "string"
         },
@@ -346,7 +340,6 @@
         },
         "name": {
           "description": "This is the name of the simulation suite.",
-          "example": "Checkout Flow Tests",
           "maxLength": 80,
           "type": "string"
         },
@@ -996,7 +989,7 @@
       "additionalProperties": {},
       "allOf": [
         {
-          "oneOf": [
+          "anyOf": [
             {
               "required": [
                 "assistantId"

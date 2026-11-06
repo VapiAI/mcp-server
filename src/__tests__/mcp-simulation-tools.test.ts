@@ -1,4 +1,6 @@
 import { afterAll, beforeAll, describe, expect, jest, test } from '@jest/globals';
+import { Ajv } from 'ajv';
+import addFormats from 'ajv-formats';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -327,6 +329,26 @@ describe('simulation OpenAPI validation feedback', () => {
     expect(response.structuredContent).toEqual({ validationError: expect.objectContaining({
       code: 'INVALID_ARGUMENTS', tool: name,
       issues: expect.arrayContaining([expect.objectContaining({ path })]),
+    }) });
+    expect(invocationCount()).toBe(before);
+  });
+
+  test.each([
+    ['create_simulation_personality', { name: 'Test', assistant: { maxDurationSeconds: 1 } }, 'assistant.maxDurationSeconds'],
+    ['create_simulation_scenario', { name: 'Test', instructions: 'Help', evaluations: [
+      { comparator: '=', value: true, structuredOutput: { name: 'Extract' } },
+    ] }, 'evaluations[0].structuredOutput.schema'],
+  ] as Array<[string, Record<string, unknown>, string]>)('%s keeps full validation behind compact discovery', async (name, args, path) => {
+    const tool = (await client.listTools()).tools.find(tool => tool.name === name)!;
+    const ajv = new Ajv({ strict: false });
+    addFormats.default(ajv);
+    const discovery = ajv.compile(tool.inputSchema);
+    expect(discovery(args)).toBe(true);
+    const before = invocationCount();
+    const response = await client.callTool({ name, arguments: args });
+    expect(response.isError).toBe(true);
+    expect(response.structuredContent).toEqual({ validationError: expect.objectContaining({
+      code: 'INVALID_ARGUMENTS', issues: expect.arrayContaining([expect.objectContaining({ path })]),
     }) });
     expect(invocationCount()).toBe(before);
   });

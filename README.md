@@ -284,7 +284,9 @@ UUIDs, instructions, evaluations, nested tester assistants and structured
 outputs. Scenario/suite `additionalFields` are validated after merging, so they
 cannot override an API constraint. Large nested assistant and structured-output
 objects have compact advertised envelopes; their full API contracts are checked
-at runtime. This keeps the catalog about 103 KB. No runtime schema fetch or
+at runtime. The shared summary projection omits long documentation and recursive
+definitions from simulation discovery. The 25-tool catalog is about 28 KB.
+No runtime schema fetch or
 `get_api_schema` tool is required.
 
 Simulation aliases remain local adapters: `run_simulations` takes exactly one
@@ -335,8 +337,9 @@ the API handler. Tests exercise this correction loop through a real MCP client.
 field names, basic types, required fields, defaults, and short constraints. It
 omits provider/model catalogs, lengthy API documentation, and recursive schema
 definitions. The full OpenAPI-derived validator still runs before any API call;
-the advertised summary is intentionally broader. Catalog tests cap the current
-serialized tool list at 20 KB to prevent unexpected agent-context growth.
+the advertised summary is intentionally broader. Catalog tests cap the
+original 13-tool list at 20 KB, the 12 simulation tools at 10 KB, and the complete
+25-tool list at 30 KB to prevent unexpected agent-context growth.
 
 `npm test` includes schema contract tests, independent Ajv parity cases, and
 validation-feedback tests. The existing live compatibility

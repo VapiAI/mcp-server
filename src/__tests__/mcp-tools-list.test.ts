@@ -117,7 +117,22 @@ describe('MCP tools/list compatibility baseline', () => {
       expect(normalizedCatalog).toEqual(expectedCatalog);
 
       // This is the agent-visible payload, not just the pretty-printed fixture.
-      expect(Buffer.byteLength(JSON.stringify(normalizedCatalog))).toBeLessThan(20_000);
+      const simulationTools = normalizedCatalog.filter(tool => tool.name.includes('simulation'));
+      const originalTools = normalizedCatalog.filter(tool => !tool.name.includes('simulation'));
+      expect(originalTools).toHaveLength(13);
+      expect(simulationTools).toHaveLength(12);
+      // Keep #47's original budget; the 12 simulation tools add at most 10 KB.
+      expect(Buffer.byteLength(JSON.stringify(originalTools))).toBeLessThan(20_000);
+      expect(Buffer.byteLength(JSON.stringify(simulationTools))).toBeLessThan(10_000);
+      expect(Buffer.byteLength(JSON.stringify(normalizedCatalog))).toBeLessThan(30_000);
+      for (const tool of simulationTools) {
+        expect(Buffer.byteLength(JSON.stringify(tool))).toBeLessThan(3_000);
+        JSON.stringify(tool.inputSchema, (key, value) => {
+          if (key === 'description') expect(value.length).toBeLessThanOrEqual(180);
+          if (key === 'enum') expect(value.length).toBeLessThanOrEqual(8);
+          return value;
+        });
+      }
       for (const name of ['create_assistant', 'update_assistant']) {
         const tool = response.tools.find(tool => tool.name === name)!;
         expect(Buffer.byteLength(JSON.stringify(tool))).toBeLessThan(4_000);

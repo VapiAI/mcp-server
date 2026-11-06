@@ -60,6 +60,9 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Test schema API backstop cleanup
+        run: npm run test:schemas:cleanup
+
       - name: Test packed package as a clean consumer
         run: npm run test:package
 

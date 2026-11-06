@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CreateAssistantNameSchema, UpdateAssistantNameSchema, VoiceInputSchema, TranscriberInputSchema } from './assistant-openapi.js';
 
 // ===== Model Provider and Models =====
 
@@ -72,26 +73,7 @@ export const DEFAULT_LLM = {
   model: OpenAIModels.GPT4o,
 };
 
-const VoiceProviderSchema = z.enum([
-  'vapi',
-  '11labs',
-  'azure',
-  'cartesia',
-  'custom-voice',
-  'deepgram',
-  '11labs',
-  'hume',
-  'lmnt',
-  'neuphonic',
-  'openai',
-  'playht',
-  'rime-ai',
-  'smallest-ai',
-  'tavus',
-  'sesame',
-]);
-
-export type VoiceProviderType = z.infer<typeof VoiceProviderSchema>;
+export type VoiceProviderType = z.infer<typeof VoiceInputSchema>['provider'];
 
 export const DEFAULT_VOICE = {
   provider: '11labs' as VoiceProviderType,
@@ -122,7 +104,7 @@ export const BaseResponseSchema = z.object({
 // ===== Assistant Schemas =====
 
 export const CreateAssistantInputSchema = z.object({
-  name: z.string().describe('Name of the assistant'),
+  name: CreateAssistantNameSchema.describe('Name of the assistant'),
   instructions: z
     .string()
     .optional()
@@ -145,19 +127,10 @@ export const CreateAssistantInputSchema = z.object({
     .array(z.string())
     .optional()
     .describe('IDs of tools to use with this assistant'),
-  transcriber: z
-    .object({
-      provider: z.string().describe('Provider to use for transcription'),
-      model: z.string().describe('Transcription model to use'),
-    })
+  transcriber: TranscriberInputSchema
     .default(DEFAULT_TRANSCRIBER)
     .describe('Transcription configuration'),
-  voice: z
-    .object({
-      provider: VoiceProviderSchema.describe('Provider to use for voice'),
-      voiceId: z.string().describe('Voice ID to use'),
-      model: z.string().optional().describe('Voice model to use'),
-    })
+  voice: VoiceInputSchema
     .default(DEFAULT_VOICE)
     .describe('Voice configuration'),
   firstMessage: z
@@ -190,7 +163,7 @@ export const AssistantOutputSchema = BaseResponseSchema.extend({
   }),
   transcriber: z.object({
     provider: z.string(),
-    model: z.string(),
+    model: z.string().optional(),
   }),
   toolIds: z.array(z.string()).optional(),
 });
@@ -201,7 +174,7 @@ export const GetAssistantInputSchema = z.object({
 
 export const UpdateAssistantInputSchema = z.object({
   assistantId: z.string().describe('ID of the assistant to update'),
-  name: z.string().optional().describe('New name for the assistant'),
+  name: UpdateAssistantNameSchema.optional().describe('New name for the assistant'),
   instructions: z
     .string()
     .optional()
@@ -223,19 +196,10 @@ export const UpdateAssistantInputSchema = z.object({
     .array(z.string())
     .optional()
     .describe('New IDs of tools to use with this assistant'),
-  transcriber: z
-    .object({
-      provider: z.string().describe('Provider to use for transcription'),
-      model: z.string().describe('Transcription model to use'),
-    })
+  transcriber: TranscriberInputSchema
     .optional()
     .describe('New transcription configuration'),
-  voice: z
-    .object({
-      provider: VoiceProviderSchema.describe('Provider to use for voice'),
-      voiceId: z.string().describe('Voice ID to use'),
-      model: z.string().optional().describe('Voice model to use'),
-    })
+  voice: VoiceInputSchema
     .optional()
     .describe('New voice configuration'),
   firstMessage: z

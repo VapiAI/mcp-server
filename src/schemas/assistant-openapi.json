@@ -1,0 +1,1429 @@
+{
+  "source": {
+    "url": "https://api.vapi.ai/api-json",
+    "sha256": "730da91ebf706ed12994351fb9e7cbdb2d9211e0646366ecc508c50248500bac"
+  },
+  "name": {
+    "create": {
+      "type": "string",
+      "description": "This is the name of the assistant.\n\nThis is required when you want to transfer between assistants in a call.",
+      "maxLength": 40
+    },
+    "update": {
+      "type": "string",
+      "description": "This is the name of the assistant.\n\nThis is required when you want to transfer between assistants in a call.",
+      "maxLength": 40
+    }
+  },
+  "voice": [
+    {
+      "name": "AzureVoice",
+      "required": [
+        "provider",
+        "voiceId"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the voice provider that will be used.",
+          "enum": [
+            "azure"
+          ]
+        },
+        "voiceId": {
+          "description": "This is the provider-specific ID that will be used.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "andrew",
+                "brian",
+                "emma"
+              ],
+              "title": "Preset Voice Options"
+            },
+            {
+              "type": "string",
+              "title": "Azure Voice ID"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "CartesiaVoice",
+      "required": [
+        "provider",
+        "voiceId"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the voice provider that will be used.",
+          "enum": [
+            "cartesia"
+          ]
+        },
+        "voiceId": {
+          "type": "string",
+          "description": "The ID of the particular voice you want to use."
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the model that will be used. This is optional and will default to the correct model for the voiceId.",
+          "enum": [
+            "sonic-3.5",
+            "sonic-3.5-2026-05-04",
+            "sonic-3.6",
+            "sonic-3.6-2026-08-27",
+            "sonic-3",
+            "sonic-3-2026-01-12",
+            "sonic-3-2025-10-27",
+            "sonic-2",
+            "sonic-2-2025-06-11",
+            "sonic-english",
+            "sonic-multilingual",
+            "sonic-preview",
+            "sonic"
+          ],
+          "example": "sonic-3.5"
+        }
+      }
+    },
+    {
+      "name": "CustomVoice",
+      "required": [
+        "provider",
+        "server"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the voice provider that will be used. Use `custom-voice` for providers that are not natively supported.",
+          "enum": [
+            "custom-voice"
+          ]
+        },
+        "voiceId": {
+          "type": "string",
+          "description": "This is the provider-specific ID that will be used. This is passed in the voice request payload to identify the voice to use."
+        }
+      }
+    },
+    {
+      "name": "DeepgramVoice",
+      "required": [
+        "provider",
+        "voiceId"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the voice provider that will be used.",
+          "enum": [
+            "deepgram"
+          ]
+        },
+        "voiceId": {
+          "type": "string",
+          "description": "This is the provider-specific ID that will be used.",
+          "enum": [
+            "asteria",
+            "luna",
+            "stella",
+            "athena",
+            "hera",
+            "orion",
+            "arcas",
+            "perseus",
+            "angus",
+            "orpheus",
+            "helios",
+            "zeus",
+            "thalia",
+            "andromeda",
+            "helena",
+            "apollo",
+            "arcas",
+            "aries",
+            "amalthea",
+            "asteria",
+            "athena",
+            "atlas",
+            "aurora",
+            "callista",
+            "cora",
+            "cordelia",
+            "delia",
+            "draco",
+            "electra",
+            "harmonia",
+            "hera",
+            "hermes",
+            "hyperion",
+            "iris",
+            "janus",
+            "juno",
+            "jupiter",
+            "luna",
+            "mars",
+            "minerva",
+            "neptune",
+            "odysseus",
+            "ophelia",
+            "orion",
+            "orpheus",
+            "pandora",
+            "phoebe",
+            "pluto",
+            "saturn",
+            "selene",
+            "theia",
+            "vesta",
+            "zeus",
+            "celeste",
+            "estrella",
+            "nestor",
+            "sirio",
+            "carina",
+            "alvaro",
+            "diana",
+            "aquila",
+            "selena",
+            "javier",
+            "viktoria",
+            "kara",
+            "fabian",
+            "julius",
+            "lara",
+            "elara",
+            "aurelia",
+            "hannah",
+            "kit",
+            "alexis",
+            "cliff",
+            "sienna",
+            "cole",
+            "brooke",
+            "colin",
+            "gemma",
+            "haley",
+            "heather",
+            "miles",
+            "sean",
+            "bree",
+            "brittany",
+            "bruce",
+            "conor",
+            "donovan",
+            "drew",
+            "elise",
+            "jack",
+            "kai",
+            "kelsey",
+            "maeve",
+            "marcelo",
+            "marcus",
+            "meena",
+            "meghan",
+            "naveen",
+            "paige",
+            "priya",
+            "rufus",
+            "sharon",
+            "tanner",
+            "wade",
+            "wes"
+          ],
+          "title": "This is the Deepgram Voice ID"
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the model that will be used. Defaults to 'aura' when not specified.",
+          "enum": [
+            "aura",
+            "aura-2",
+            "flux"
+          ],
+          "example": "aura-2"
+        }
+      }
+    },
+    {
+      "name": "ElevenLabsVoice",
+      "required": [
+        "provider",
+        "voiceId"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the voice provider that will be used.",
+          "enum": [
+            "11labs"
+          ]
+        },
+        "voiceId": {
+          "description": "This is the provider-specific ID that will be used. Ensure the Voice is present in your 11Labs Voice Library.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "burt",
+                "marissa",
+                "andrea",
+                "sarah",
+                "phillip",
+                "steve",
+                "joseph",
+                "myra",
+                "paula",
+                "ryan",
+                "drew",
+                "paul",
+                "mrb",
+                "matilda",
+                "mark"
+              ],
+              "title": "Preset Voice Options"
+            },
+            {
+              "type": "string",
+              "title": "11Labs Voice ID"
+            }
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the model that will be used. Defaults to 'eleven_turbo_v2' if not specified.",
+          "enum": [
+            "eleven_multilingual_v2",
+            "eleven_turbo_v2",
+            "eleven_turbo_v2_5",
+            "eleven_flash_v2",
+            "eleven_flash_v2_5",
+            "eleven_monolingual_v1",
+            "eleven_v3",
+            "eleven_v4_turbo",
+            "eleven_v3_conversational"
+          ],
+          "example": "eleven_turbo_v2_5"
+        }
+      }
+    },
+    {
+      "name": "HumeVoice",
+      "required": [
+        "provider",
+        "voiceId"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the voice provider that will be used.",
+          "enum": [
+            "hume"
+          ]
+        },
+        "voiceId": {
+          "type": "string",
+          "description": "The ID of the particular voice you want to use."
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the model that will be used.",
+          "enum": [
+            "octave",
+            "octave2"
+          ],
+          "example": "octave2"
+        }
+      }
+    },
+    {
+      "name": "LMNTVoice",
+      "required": [
+        "provider",
+        "voiceId"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the voice provider that will be used.",
+          "enum": [
+            "lmnt"
+          ]
+        },
+        "voiceId": {
+          "description": "This is the provider-specific ID that will be used.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "amy",
+                "ansel",
+                "autumn",
+                "ava",
+                "brandon",
+                "caleb",
+                "cassian",
+                "chloe",
+                "dalton",
+                "daniel",
+                "dustin",
+                "elowen",
+                "evander",
+                "huxley",
+                "james",
+                "juniper",
+                "kennedy",
+                "lauren",
+                "leah",
+                "lily",
+                "lucas",
+                "magnus",
+                "miles",
+                "morgan",
+                "natalie",
+                "nathan",
+                "noah",
+                "nyssa",
+                "oliver",
+                "paige",
+                "ryan",
+                "sadie",
+                "sophie",
+                "stella",
+                "terrence",
+                "tyler",
+                "vesper",
+                "violet",
+                "warrick",
+                "zain",
+                "zeke",
+                "zoe"
+              ],
+              "title": "Preset Voice Options"
+            },
+            {
+              "type": "string",
+              "title": "LMNT Voice ID"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "NeuphonicVoice",
+      "required": [
+        "provider",
+        "voiceId",
+        "language"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the voice provider that will be used.",
+          "enum": [
+            "neuphonic"
+          ]
+        },
+        "voiceId": {
+          "description": "This is the provider-specific ID that will be used.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [],
+              "title": "Preset Voice Options"
+            },
+            {
+              "type": "string",
+              "title": "Neuphonic Voice ID"
+            }
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the model that will be used. Defaults to 'neu_fast' if not specified.",
+          "enum": [
+            "neu_hq",
+            "neu_fast"
+          ],
+          "example": "neu_fast"
+        }
+      }
+    },
+    {
+      "name": "OpenAIVoice",
+      "required": [
+        "provider",
+        "voiceId"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the voice provider that will be used.",
+          "enum": [
+            "openai"
+          ]
+        },
+        "voiceId": {
+          "description": "This is the provider-specific ID that will be used.\nVoice availability depends on the selected model: voices offered only by GPT-Live are rejected for other models.",
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "alloy",
+                "echo",
+                "fable",
+                "onyx",
+                "nova",
+                "shimmer",
+                "marin",
+                "cedar",
+                "ash",
+                "ballad",
+                "beacon",
+                "bossa",
+                "brise",
+                "cinder",
+                "coral",
+                "delta",
+                "flitz",
+                "gleam",
+                "harema",
+                "juni",
+                "meridian",
+                "nira",
+                "noeul",
+                "nuri",
+                "quartz",
+                "ripple",
+                "sage",
+                "shida",
+                "sillage",
+                "stone",
+                "tempo",
+                "verse",
+                "vesper",
+                "willow"
+              ],
+              "title": "Preset Voice Options"
+            },
+            {
+              "type": "string",
+              "title": "OpenAI Voice ID"
+            }
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the model that will be used for text-to-speech.",
+          "enum": [
+            "tts-1",
+            "tts-1-hd",
+            "gpt-4o-mini-tts"
+          ]
+        }
+      }
+    },
+    {
+      "name": "PlayHTVoice",
+      "required": [
+        "provider",
+        "voiceId"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the voice provider that will be used.",
+          "enum": [
+            "playht"
+          ]
+        },
+        "voiceId": {
+          "description": "This is the provider-specific ID that will be used.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "jennifer",
+                "melissa",
+                "will",
+                "chris",
+                "matt",
+                "jack",
+                "ruby",
+                "davis",
+                "donna",
+                "michael"
+              ],
+              "title": "Preset Voice Options"
+            },
+            {
+              "type": "string",
+              "title": "PlayHT Voice ID"
+            }
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "Playht voice model/engine to use.",
+          "enum": [
+            "PlayHT2.0",
+            "PlayHT2.0-turbo",
+            "Play3.0-mini",
+            "PlayDialog"
+          ]
+        }
+      }
+    },
+    {
+      "name": "WellSaidVoice",
+      "required": [
+        "provider",
+        "voiceId"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the voice provider that will be used.",
+          "enum": [
+            "wellsaid"
+          ]
+        },
+        "voiceId": {
+          "type": "string",
+          "description": "The WellSaid speaker ID to synthesize."
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the model that will be used.",
+          "enum": [
+            "caruso",
+            "legacy"
+          ]
+        }
+      }
+    },
+    {
+      "name": "RimeAIVoice",
+      "required": [
+        "provider",
+        "voiceId"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the voice provider that will be used.",
+          "enum": [
+            "rime-ai"
+          ]
+        },
+        "voiceId": {
+          "description": "This is the provider-specific ID that will be used.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "cove",
+                "moon",
+                "wildflower",
+                "eva",
+                "amber",
+                "maya",
+                "lagoon",
+                "breeze",
+                "helen",
+                "joy",
+                "marsh",
+                "creek",
+                "cedar",
+                "alpine",
+                "summit",
+                "nicholas",
+                "tyler",
+                "colin",
+                "hank",
+                "thunder",
+                "astra",
+                "eucalyptus",
+                "moraine",
+                "peak",
+                "tundra",
+                "mesa_extra",
+                "talon",
+                "marlu",
+                "glacier",
+                "falcon",
+                "luna",
+                "celeste",
+                "estelle",
+                "andromeda",
+                "esther",
+                "lyra",
+                "lintel",
+                "oculus",
+                "vespera",
+                "transom",
+                "bond",
+                "arcade",
+                "atrium",
+                "cupola",
+                "fern",
+                "sirius",
+                "orion",
+                "masonry",
+                "albion",
+                "parapet",
+                "clementine",
+                "walnut",
+                "eyre",
+                "bancroft",
+                "hesse",
+                "beatty",
+                "godfrey"
+              ],
+              "title": "Suggested Voice Options",
+              "description": "Popular Rime AI voices across mist, mistv2, mistv3, arcana, and coda models. Any valid Rime AI voice ID is accepted, not just these suggestions."
+            },
+            {
+              "type": "string",
+              "title": "Any Rime AI Voice ID",
+              "description": "Any valid Rime AI voice ID. See https://docs.rime.ai/docs/voices for the full catalog."
+            }
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the model that will be used. Defaults to 'arcana' when not specified.",
+          "enum": [
+            "arcana",
+            "coda",
+            "mistv2",
+            "mistv3",
+            "mist"
+          ],
+          "example": "arcana"
+        }
+      }
+    },
+    {
+      "name": "SmallestAIVoice",
+      "required": [
+        "provider",
+        "voiceId"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the voice provider that will be used.",
+          "enum": [
+            "smallest-ai"
+          ]
+        },
+        "voiceId": {
+          "description": "This is the provider-specific ID that will be used.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "emily",
+                "jasmine",
+                "arman",
+                "james",
+                "mithali",
+                "aravind",
+                "raj",
+                "diya",
+                "raman",
+                "ananya",
+                "isha",
+                "william",
+                "aarav",
+                "monika",
+                "niharika",
+                "deepika",
+                "raghav",
+                "kajal",
+                "radhika",
+                "mansi",
+                "nisha",
+                "saurabh",
+                "pooja",
+                "saina",
+                "sanya"
+              ],
+              "title": "Preset Voice Options"
+            },
+            {
+              "type": "string",
+              "title": "Smallest AI Voice ID"
+            }
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "Smallest AI voice model to use. Defaults to 'lightning' when not specified.",
+          "enum": [
+            "lightning"
+          ]
+        }
+      }
+    },
+    {
+      "name": "VapiVoice",
+      "required": [
+        "provider",
+        "voiceId"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the voice provider that will be used.",
+          "enum": [
+            "vapi"
+          ]
+        },
+        "voiceId": {
+          "type": "string",
+          "description": "The voice to use: a built-in Vapi voice name, or a cloned voice id (used with version 2).",
+          "example": "Clara"
+        }
+      }
+    },
+    {
+      "name": "SesameVoice",
+      "required": [
+        "provider",
+        "voiceId",
+        "model"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the voice provider that will be used.",
+          "enum": [
+            "sesame"
+          ]
+        },
+        "voiceId": {
+          "type": "string",
+          "description": "This is the provider-specific ID that will be used.",
+          "title": "Sesame Voice ID. This should be either a name (a built-in voice) or a UUID (a custom voice)."
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the model that will be used.",
+          "enum": [
+            "csm-1b"
+          ]
+        }
+      }
+    },
+    {
+      "name": "InworldVoice",
+      "required": [
+        "provider",
+        "voiceId"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the voice provider that will be used.",
+          "enum": [
+            "inworld"
+          ]
+        },
+        "voiceId": {
+          "type": "string",
+          "description": "Available voices by language:\n• en: Alex, Ashley, Craig, Deborah, Dennis, Edward, Elizabeth, Hades, Julia, Pixie, Mark, Olivia, Priya, Ronald, Sarah, Shaun, Theodore, Timothy, Wendy, Dominus, Hana, Clive, Carter, Blake, Luna\n• zh: Yichen, Xiaoyin, Xinyi, Jing\n• nl: Erik, Katrien, Lennart, Lore\n• fr: Alain, Hélène, Mathieu, Étienne\n• de: Johanna, Josef\n• it: Gianni, Orietta\n• ja: Asuka, Satoshi\n• ko: Hyunwoo, Minji, Seojun, Yoona\n• pl: Szymon, Wojciech\n• pt: Heitor, Maitê\n• es: Diego, Lupita, Miguel, Rafael\n• ru: Svetlana, Elena, Dmitry, Nikolai\n• hi: Riya, Manoj\n• he: Yael, Oren\n• ar: Nour, Omar",
+          "maxLength": 120,
+          "title": "Inworld Voice ID",
+          "enum": [
+            "Alex",
+            "Ashley",
+            "Craig",
+            "Deborah",
+            "Dennis",
+            "Edward",
+            "Elizabeth",
+            "Hades",
+            "Julia",
+            "Pixie",
+            "Mark",
+            "Olivia",
+            "Priya",
+            "Ronald",
+            "Sarah",
+            "Shaun",
+            "Theodore",
+            "Timothy",
+            "Wendy",
+            "Dominus",
+            "Hana",
+            "Clive",
+            "Carter",
+            "Blake",
+            "Luna",
+            "Yichen",
+            "Xiaoyin",
+            "Xinyi",
+            "Jing",
+            "Erik",
+            "Katrien",
+            "Lennart",
+            "Lore",
+            "Alain",
+            "Hélène",
+            "Mathieu",
+            "Étienne",
+            "Johanna",
+            "Josef",
+            "Gianni",
+            "Orietta",
+            "Asuka",
+            "Satoshi",
+            "Hyunwoo",
+            "Minji",
+            "Seojun",
+            "Yoona",
+            "Szymon",
+            "Wojciech",
+            "Heitor",
+            "Maitê",
+            "Diego",
+            "Lupita",
+            "Miguel",
+            "Rafael",
+            "Svetlana",
+            "Elena",
+            "Dmitry",
+            "Nikolai",
+            "Riya",
+            "Manoj",
+            "Yael",
+            "Oren",
+            "Nour",
+            "Omar"
+          ],
+          "example": "Alex"
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the model that will be used.",
+          "enum": [
+            "inworld-tts-1"
+          ],
+          "default": "inworld-tts-1"
+        }
+      }
+    },
+    {
+      "name": "MinimaxVoice",
+      "required": [
+        "provider",
+        "voiceId"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the voice provider that will be used.",
+          "enum": [
+            "minimax"
+          ]
+        },
+        "voiceId": {
+          "type": "string",
+          "description": "This is the provider-specific ID that will be used. Use a voice from MINIMAX_PREDEFINED_VOICES or a custom cloned voice ID.",
+          "title": "This is the Minimax Voice ID"
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the model that will be used. Options are 'speech-02-hd' and 'speech-02-turbo'.\nspeech-02-hd is optimized for high-fidelity applications like voiceovers and audiobooks.\nspeech-02-turbo is designed for real-time applications with low latency.\n\n@default \"speech-02-turbo\"",
+          "enum": [
+            "speech-02-hd",
+            "speech-02-turbo",
+            "speech-2.5-turbo-preview"
+          ],
+          "example": "speech-02-turbo",
+          "default": "speech-02-turbo"
+        }
+      }
+    },
+    {
+      "name": "XaiVoice",
+      "required": [
+        "provider",
+        "voiceId"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the voice provider that will be used.",
+          "enum": [
+            "xai"
+          ]
+        },
+        "voiceId": {
+          "type": "string",
+          "description": "Built-in voices: eve, ara, rex, sal, leo. Cloned voice IDs are also accepted.",
+          "maxLength": 120,
+          "title": "xAI Voice ID",
+          "enum": [
+            "eve",
+            "ara",
+            "rex",
+            "sal",
+            "leo"
+          ],
+          "example": "eve"
+        }
+      }
+    },
+    {
+      "name": "MicrosoftVoice",
+      "required": [
+        "provider",
+        "voiceId"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the voice provider that will be used.",
+          "enum": [
+            "microsoft"
+          ]
+        },
+        "voiceId": {
+          "type": "string",
+          "description": "MAI-Voice-2 voice ID. Built-in voices listed in enum.",
+          "enum": [
+            "de-DE-Klaus:MAI-Voice-2",
+            "de-DE-Mia:MAI-Voice-2",
+            "en-AU-Lisa:MAI-Voice-2",
+            "en-US-Ethan:MAI-Voice-2",
+            "en-US-Grant:MAI-Voice-2",
+            "en-US-Harper:MAI-Voice-2",
+            "en-US-Iris:MAI-Voice-2",
+            "en-US-Jasper:MAI-Voice-2",
+            "en-US-Olivia:MAI-Voice-2",
+            "es-ES-Marta:MAI-Voice-2",
+            "es-MX-Alejo:MAI-Voice-2",
+            "es-MX-Valeria:MAI-Voice-2",
+            "fr-FR-Marc:MAI-Voice-2",
+            "fr-FR-Soleil:MAI-Voice-2",
+            "hi-IN-Arjun:MAI-Voice-2",
+            "hi-IN-Dhruv:MAI-Voice-2",
+            "hi-IN-Kavya:MAI-Voice-2",
+            "hi-IN-Priya:MAI-Voice-2",
+            "hu-HU-Bence:MAI-Voice-2",
+            "hu-HU-Levente:MAI-Voice-2",
+            "hu-HU-Lilla:MAI-Voice-2",
+            "hu-HU-Réka:MAI-Voice-2",
+            "it-IT-Luca:MAI-Voice-2",
+            "it-IT-Rosa:MAI-Voice-2",
+            "ko-KR-Hana:MAI-Voice-2",
+            "ko-KR-Junho:MAI-Voice-2",
+            "nl-NL-Fleur:MAI-Voice-2",
+            "nl-NL-Sander:MAI-Voice-2",
+            "pt-BR-Caio:MAI-Voice-2",
+            "pt-BR-Luana:MAI-Voice-2",
+            "pt-BR-Pedro:MAI-Voice-2",
+            "pt-BR-Rafael:MAI-Voice-2",
+            "pt-PT-Rui:MAI-Voice-2",
+            "ro-RO-Andrei:MAI-Voice-2",
+            "ro-RO-Elena:MAI-Voice-2",
+            "ro-RO-Ioana:MAI-Voice-2",
+            "ro-RO-Radu:MAI-Voice-2",
+            "ru-RU-Lev:MAI-Voice-2",
+            "ru-RU-Masha:MAI-Voice-2",
+            "th-TH-Krit:MAI-Voice-2",
+            "th-TH-Nattapong:MAI-Voice-2",
+            "tr-TR-Aydin:MAI-Voice-2",
+            "tr-TR-Elif:MAI-Voice-2",
+            "zh-CN-Bo:MAI-Voice-2",
+            "zh-CN-Lan:MAI-Voice-2",
+            "zh-CN-Mei:MAI-Voice-2"
+          ],
+          "example": "en-US-Ethan:MAI-Voice-2"
+        }
+      }
+    }
+  ],
+  "transcriber": [
+    {
+      "name": "AssemblyAITranscriber",
+      "required": [
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the transcription provider that will be used.",
+          "enum": [
+            "assembly-ai"
+          ]
+        }
+      }
+    },
+    {
+      "name": "AzureSpeechTranscriber",
+      "required": [
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the transcription provider that will be used.",
+          "enum": [
+            "azure"
+          ]
+        }
+      }
+    },
+    {
+      "name": "CustomTranscriber",
+      "required": [
+        "provider",
+        "server"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the transcription provider that will be used. Use `custom-transcriber` for providers that are not natively supported.",
+          "enum": [
+            "custom-transcriber"
+          ]
+        }
+      }
+    },
+    {
+      "name": "DeepgramTranscriber",
+      "required": [
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the transcription provider that will be used.",
+          "enum": [
+            "deepgram"
+          ]
+        },
+        "model": {
+          "description": "This is the Deepgram model that will be used. A list of models can be found here: https://developers.deepgram.com/docs/models-languages-overview",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "nova-3",
+                "nova-3-general",
+                "nova-3-medical",
+                "nova-3-pharma",
+                "nova-2",
+                "nova-2-general",
+                "nova-2-meeting",
+                "nova-2-phonecall",
+                "nova-2-finance",
+                "nova-2-conversationalai",
+                "nova-2-voicemail",
+                "nova-2-video",
+                "nova-2-medical",
+                "nova-2-drivethru",
+                "nova-2-automotive",
+                "nova",
+                "nova-general",
+                "nova-phonecall",
+                "nova-medical",
+                "enhanced",
+                "enhanced-general",
+                "enhanced-meeting",
+                "enhanced-phonecall",
+                "enhanced-finance",
+                "base",
+                "base-general",
+                "base-meeting",
+                "base-phonecall",
+                "base-finance",
+                "base-conversationalai",
+                "base-voicemail",
+                "base-video",
+                "whisper",
+                "flux-general-en",
+                "flux-general-multi"
+              ]
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "ElevenLabsTranscriber",
+      "required": [
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the transcription provider that will be used.",
+          "enum": [
+            "11labs"
+          ]
+        },
+        "model": {
+          "description": "This is the model that will be used for the transcription.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "scribe_v1",
+                "scribe_v2",
+                "scribe_v2_realtime"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "GladiaTranscriber",
+      "required": [
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the transcription provider that will be used.",
+          "enum": [
+            "gladia"
+          ]
+        },
+        "model": {
+          "description": "This is the Gladia model that will be used. Default is 'fast'",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fast",
+                "accurate",
+                "solaria-1"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "GoogleTranscriber",
+      "required": [
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the transcription provider that will be used.",
+          "enum": [
+            "google"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the model that will be used for the transcription.",
+          "enum": [
+            "gemini-3.8-flash",
+            "gemini-3.5-flash",
+            "gemini-3.1-flash-lite",
+            "gemini-3-flash-preview",
+            "gemini-2.5-pro",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-2.0-flash-thinking-exp",
+            "gemini-2.0-pro-exp-02-05",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
+            "gemini-2.0-flash-exp",
+            "gemini-2.0-flash-realtime-exp",
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-002",
+            "gemini-1.5-pro",
+            "gemini-1.5-pro-002",
+            "gemini-1.0-pro"
+          ]
+        }
+      }
+    },
+    {
+      "name": "SpeechmaticsTranscriber",
+      "required": [
+        "provider",
+        "customVocabulary"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the transcription provider that will be used.",
+          "enum": [
+            "speechmatics"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the model that will be used for the transcription.",
+          "enum": [
+            "default"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TalkscriberTranscriber",
+      "required": [
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the transcription provider that will be used.",
+          "enum": [
+            "talkscriber"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the model that will be used for the transcription.",
+          "enum": [
+            "whisper"
+          ]
+        }
+      }
+    },
+    {
+      "name": "OpenAITranscriber",
+      "required": [
+        "provider",
+        "model"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "This is the transcription provider that will be used.",
+          "enum": [
+            "openai"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "This is the model that will be used for the transcription.\nDigit formatting can differ by model: `gpt-transcribe` may write spoken digit strings as words (for example, \"four seven two\"), where `gpt-4o-transcribe` and `gpt-4o-mini-transcribe` may write them as digits (\"472\"). Do not rely on either format.",
+          "enum": [
+            "gpt-4o-transcribe",
+            "gpt-4o-mini-transcribe",
+            "gpt-transcribe"
+          ]
+        }
+      }
+    },
+    {
+      "name": "CartesiaTranscriber",
+      "required": [
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "cartesia"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "enum": [
+            "ink-whisper",
+            "ink-2"
+          ]
+        }
+      }
+    },
+    {
+      "name": "SonioxTranscriber",
+      "required": [
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "soniox"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "enum": [
+            "stt-rt-v4",
+            "stt-rt-v5"
+          ],
+          "description": "The Soniox model to use for transcription."
+        }
+      }
+    },
+    {
+      "name": "XaiTranscriber",
+      "required": [
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "xai"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "The xAI speech-to-text model to use. xAI currently exposes a single STT model — placeholder for future model selection.",
+          "enum": [
+            "default"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Reson8Transcriber",
+      "required": [
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "reson8"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "The Reson8 speech-to-text endpoint to use. `turns` is Reson8's turn-detection endpoint.",
+          "enum": [
+            "turns"
+          ]
+        }
+      }
+    },
+    {
+      "name": "VapiTranscriber",
+      "required": [
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "vapi"
+          ]
+        }
+      }
+    }
+  ]
+}

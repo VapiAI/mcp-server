@@ -241,6 +241,34 @@ export VAPI_TOKEN=your_test_org_token_here
 npm run test:live:mutating
 ```
 
+### Assistant validation from OpenAPI
+
+Assistant names and the existing voice (`provider`, `voiceId`, `model`) and
+transcriber (`provider`, `model`) inputs use Zod's experimental
+`z.fromJSONSchema()`, pinned to Zod 4.6.7. The checked-in
+`src/schemas/assistant-openapi.json` projects those fields from the public
+[Vapi OpenAPI spec](https://api.vapi.ai/api-json) and records the source SHA-256.
+Builds and installs use this snapshot without fetching the API.
+
+The adapter makes explicit corrections for published contract gaps: overlapping
+`oneOf: [enum, string]` alternatives become `anyOf`, duplicate enum values are
+removed, and undeclared provider fields are rejected. OpenAPI default annotations
+do not inject request fields; MCP create defaults remain separate. Providers
+requiring fields outside the compact MCP interface are excluded rather than
+having their required fields dropped: custom voice, Neuphonic voice, custom
+transcriber, and Speechmatics transcriber. Adding those configurations needs an
+explicit interface extension.
+
+Run `npm run schemas:snapshot` to refresh deliberately, or pass a saved spec as
+`npm run schemas:snapshot -- /path/spec.json`. `npm test` includes the unchanged
+contract baseline, stricter cutover regressions, and independent Ajv parity tests.
+
+For an API backstop, set `VAPI_TOKEN` to a test-organization token and run
+`npm run test:schemas:api`. It compares provider acceptance with the API using
+disposable assistant configurations, deletes the records, and never initiates
+calls. Response-loss recovery and cleanup failures are tested offline with
+`npm run test:schemas:cleanup`; the authenticated command is not run in CI.
+
 ---
 
 ## References

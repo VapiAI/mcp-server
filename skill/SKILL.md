@@ -36,6 +36,9 @@ for voice assistant prompting guidance.
 
 ## Available Tools
 
+### Documentation
+- `ask_vapi_docs` - Retrieve current documentation passages and source URLs through Fern
+
 ### Assistants
 - `list_assistants` - List all assistants
 - `get_assistant` - Get assistant details

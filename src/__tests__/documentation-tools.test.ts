@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, test } from '@jest/globals';
 
 const expectedToolNames = [
+  'ask_vapi_docs',
   'create_assistant',
   'create_call',
   'create_tool',

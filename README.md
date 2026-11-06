@@ -151,6 +151,24 @@ Connect to Vapi's hosted MCP server from any MCP client:
 
 ## Available Tools
 
+### Documentation
+| Tool | Description |
+|------|-------------|
+| `ask_vapi_docs` | Query the Fern docs MCP for current documentation passages and source URLs |
+
+`ask_vapi_docs({"question":"How do assistant hooks work?","topK":8})` forwards to
+`searchDocs` at `https://docs.vapi.ai/_mcp/server`. The result preserves Fern's
+content, source links and error flag. This endpoint currently returns passages
+for the calling agent to synthesize, rather than a generated answer. `topK`
+defaults to 8 (maximum 20). Each request owns its MCP connection, supports caller
+cancellation, times out after 30 seconds and closes the connection afterwards.
+
+This tool needs outbound HTTPS to the Fern endpoint. It makes no Vapi API calls
+and sends no Vapi credentials upstream. The server still requires `VAPI_TOKEN`
+at startup. Discovery through `tools/list` makes no network requests; upstream
+failures are returned as tool errors. No extra MCP connection is needed. Do not
+include secrets or private customer data in docs questions.
+
 ### Assistants
 | Tool | Description |
 |------|-------------|

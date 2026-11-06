@@ -117,10 +117,12 @@ describe('MCP tools/list compatibility baseline', () => {
       expect(normalizedCatalog).toEqual(expectedCatalog);
 
       // This is the agent-visible payload, not just the pretty-printed fixture.
-      // Preserve the existing API-tool budget and allow 2 KB for the new skill tools.
-      const apiCatalog = normalizedCatalog.filter(({ name }) => !['search_skills', 'load_skill'].includes(name));
+      // Preserve the API and skill-tool budgets, with 1 KB for the docs proxy.
+      const apiCatalog = normalizedCatalog.filter(({ name }) => !['search_skills', 'load_skill', 'ask_vapi_docs'].includes(name));
       expect(Buffer.byteLength(JSON.stringify(apiCatalog))).toBeLessThan(20_000);
-      expect(Buffer.byteLength(JSON.stringify(normalizedCatalog))).toBeLessThan(22_000);
+      const existingCatalog = normalizedCatalog.filter(tool => tool.name !== 'ask_vapi_docs');
+      expect(Buffer.byteLength(JSON.stringify(existingCatalog))).toBeLessThan(22_000);
+      expect(Buffer.byteLength(JSON.stringify(normalizedCatalog))).toBeLessThan(23_000);
       for (const name of ['create_assistant', 'update_assistant']) {
         const tool = response.tools.find(tool => tool.name === name)!;
         expect(Buffer.byteLength(JSON.stringify(tool))).toBeLessThan(4_000);
@@ -142,6 +144,7 @@ describe('MCP tools/list compatibility baseline', () => {
         get_phone_number: { phoneNumberId: id }, get_tool: { toolId: id },
         create_call: {}, create_tool: { type: 'apiRequest', apiRequest: { url: 'https://example.test' } },
         update_tool: { toolId: id }, load_skill: { name: 'create-assistant' },
+        ask_vapi_docs: { question: 'How do assistant hooks work?' },
       };
       for (const tool of response.tools) {
         expect({ name: tool.name, valid: ajv.compile(tool.inputSchema)(validArguments[tool.name] ?? {}) }).toEqual({ name: tool.name, valid: true });

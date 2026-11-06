@@ -113,7 +113,7 @@ describe('MCP tools/list compatibility baseline', () => {
           compareStrings(left, right)
         );
 
-      expect(normalizedCatalog).toHaveLength(13);
+      expect(normalizedCatalog).toHaveLength(14);
       expect(normalizedCatalog).toEqual(expectedCatalog);
 
       // This is the agent-visible payload, not just the pretty-printed fixture.

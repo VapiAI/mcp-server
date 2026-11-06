@@ -20,6 +20,7 @@ const expectedToolNames = [
   'create_assistant',
   'create_call',
   'create_tool',
+  'get_api_schema',
   'get_assistant',
   'get_call',
   'get_phone_number',

@@ -231,7 +231,10 @@ export const GetToolInputSchema = z.object({
   toolId: apiField<string>('toolId').describe('ID of the tool to get'),
 });
 
-const TransferCallDestinationSchema = apiObjectField<{ type: 'number'; number: string; extension?: string; callerId?: string; description?: string }>('transferDestination');
+const TransferCallDestinationSchema = apiField<{ type: 'number'; number: string; extension?: string; callerId?: string; description?: string }>('transferDestination', { additionalProperties: true })
+  .describe(
+    'Transfer destination. Other TransferDestinationNumber fields, such as transferPlan and message, are sent as given (see get_api_schema).'
+  );
 const FunctionParametersSchema = apiObjectField('functionParameters');
 const ApiBodySchema = apiObjectField('apiBody');
 // URLs and string-valued headers are retained MCP transport constraints where
@@ -283,6 +286,16 @@ const BaseToolConfigSchema = z.object({
     backoffPlan: BackoffPlanSchema.optional().describe('Retry configuration for failed API requests'),
     timeoutSeconds: apiField<number>('apiTimeout').default(20).describe('Request timeout in seconds'),
   }).optional().describe('API Request tool configuration - for HTTP API integration'),
+
+  // Documented fields the options above don't cover
+  additionalFields: z
+    .record(z.string(), z.any())
+    .optional()
+    .describe(
+      'Other top-level fields from the Vapi API for this tool type, such as messages or rejectionPlan, sent as given. ' +
+        'Look them up with get_api_schema, e.g. CreateTransferCallToolDTO. ' +
+        'On update_tool, each field given here replaces that whole field.'
+    ),
 });
 
 export const CreateToolInputSchema = BaseToolConfigSchema.extend({
@@ -312,4 +325,21 @@ export const ToolOutputSchema = BaseResponseSchema.extend({
   description: z.string().describe('Description of the tool'),
   parameters: z.record(z.string(), z.any()).describe('Parameters of the tool'),
   server: ServerSchema.describe('Server of the tool'),
+});
+
+// ===== API Schema Lookup =====
+
+export const GetApiSchemaInputSchema = z.object({
+  name: z
+    .string()
+    .optional()
+    .describe(
+      'Exact schema name to return, e.g. "CreateTransferCallToolDTO" or "TransferPlan"'
+    ),
+  search: z
+    .string()
+    .optional()
+    .describe(
+      'Case-insensitive text to find schema names, e.g. "transfer". Used when name is not given.'
+    ),
 });

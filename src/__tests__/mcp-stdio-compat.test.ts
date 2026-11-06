@@ -148,7 +148,7 @@ describe('stdio MCP protocol compatibility', () => {
         const catalog = await server.request('tools/list', {});
 
         expect(catalog.error).toBeUndefined();
-        expect(catalog.result?.tools).toHaveLength(13);
+        expect(catalog.result?.tools).toHaveLength(14);
 
         const invalid = await server.request('tools/call', {
           name: 'get_tool', arguments: { toolId: 'not-a-uuid' },

@@ -334,7 +334,12 @@ const TransferCallDestinationSchema = z.object({
   extension: z.string().optional().describe('Extension number if applicable'),
   callerId: z.string().optional().describe('Caller ID to use for the transfer'),
   description: z.string().optional().describe('Description of the transfer destination'),
-});
+})
+  // Keep documented fields this schema doesn't list, such as transferPlan.
+  .passthrough()
+  .describe(
+    'Transfer destination. Other TransferDestinationNumber fields, such as transferPlan and message, are sent as given (see get_api_schema).'
+  );
 
 // Generic custom tool schemas
 const JsonSchemaProperty = z.object({
@@ -396,6 +401,16 @@ const BaseToolConfigSchema = z.object({
     backoffPlan: BackoffPlanSchema.optional().describe('Retry configuration for failed API requests'),
     timeoutSeconds: z.number().default(20).describe('Request timeout in seconds'),
   }).optional().describe('API Request tool configuration - for HTTP API integration'),
+
+  // Documented fields the options above don't cover
+  additionalFields: z
+    .record(z.any())
+    .optional()
+    .describe(
+      'Other top-level fields from the Vapi API for this tool type, such as messages or rejectionPlan, sent as given. ' +
+        'Look them up with get_api_schema, e.g. CreateTransferCallToolDTO. ' +
+        'On update_tool, each field given here replaces that whole field.'
+    ),
 });
 
 export const CreateToolInputSchema = BaseToolConfigSchema.extend({
@@ -415,4 +430,21 @@ export const ToolOutputSchema = BaseResponseSchema.extend({
   description: z.string().describe('Description of the tool'),
   parameters: z.record(z.any()).describe('Parameters of the tool'),
   server: ServerSchema.describe('Server of the tool'),
+});
+
+// ===== API Schema Lookup =====
+
+export const GetApiSchemaInputSchema = z.object({
+  name: z
+    .string()
+    .optional()
+    .describe(
+      'Exact schema name to return, e.g. "CreateTransferCallToolDTO" or "TransferPlan"'
+    ),
+  search: z
+    .string()
+    .optional()
+    .describe(
+      'Case-insensitive text to find schema names, e.g. "transfer". Used when name is not given.'
+    ),
 });

@@ -308,6 +308,10 @@ export function transformToolInput(
       throw new Error(`Unsupported tool type: ${(input as any).type}`);
   }
 
+  if (input.additionalFields) {
+    Object.assign(toolDto, input.additionalFields);
+  }
+
   return toolDto;
 }
 
@@ -359,6 +363,10 @@ export function transformUpdateToolInput(
     if (input.apiRequest.body) updateDto.body = input.apiRequest.body;
     if (input.apiRequest.backoffPlan) updateDto.backoffPlan = input.apiRequest.backoffPlan;
     if (input.apiRequest.timeoutSeconds) updateDto.timeoutSeconds = input.apiRequest.timeoutSeconds;
+  }
+
+  if (input.additionalFields) {
+    Object.assign(updateDto, input.additionalFields);
   }
 
   return updateDto;

@@ -265,6 +265,11 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": false,
       "properties": {
+        "additionalFields": {
+          "additionalProperties": {},
+          "description": "Other top-level fields from the Vapi API for this tool type, such as messages or rejectionPlan, sent as given. Look them up with get_api_schema, e.g. CreateTransferCallToolDTO. On update_tool, each field given here replaces that whole field.",
+          "type": "object"
+        },
         "apiRequest": {
           "additionalProperties": false,
           "description": "API Request tool configuration - for HTTP API integration",
@@ -474,7 +479,8 @@
             "destinations": {
               "description": "Array of possible transfer destinations",
               "items": {
-                "additionalProperties": false,
+                "additionalProperties": true,
+                "description": "Transfer destination. Other TransferDestinationNumber fields, such as transferPlan and message, are sent as given (see get_api_schema).",
                 "properties": {
                   "callerId": {
                     "description": "Caller ID to use for the transfer",
@@ -525,6 +531,25 @@
       "required": [
         "type"
       ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "get_api_schema",
+    "description": "Looks up a schema in the Vapi API reference (the OpenAPI spec the Vapi SDKs are generated from). Pass `search` to find schema names, then `name` to get one schema. References to other schemas are left as \"#/components/schemas/<Name>\" and listed in referencedSchemas, so look those up next if you need them. Use it to find fields that other tools accept through additionalFields.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Exact schema name to return, e.g. \"CreateTransferCallToolDTO\" or \"TransferPlan\"",
+          "type": "string"
+        },
+        "search": {
+          "description": "Case-insensitive text to find schema names, e.g. \"transfer\". Used when name is not given.",
+          "type": "string"
+        }
+      },
       "type": "object"
     }
   },
@@ -842,6 +867,11 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": false,
       "properties": {
+        "additionalFields": {
+          "additionalProperties": {},
+          "description": "Other top-level fields from the Vapi API for this tool type, such as messages or rejectionPlan, sent as given. Look them up with get_api_schema, e.g. CreateTransferCallToolDTO. On update_tool, each field given here replaces that whole field.",
+          "type": "object"
+        },
         "apiRequest": {
           "additionalProperties": false,
           "description": "API Request tool configuration - for HTTP API integration",
@@ -1055,7 +1085,8 @@
             "destinations": {
               "description": "Array of possible transfer destinations",
               "items": {
-                "additionalProperties": false,
+                "additionalProperties": true,
+                "description": "Transfer destination. Other TransferDestinationNumber fields, such as transferPlan and message, are sent as given (see get_api_schema).",
                 "properties": {
                   "callerId": {
                     "description": "Caller ID to use for the transfer",

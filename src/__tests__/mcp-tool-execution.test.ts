@@ -65,7 +65,25 @@ const tool = {
   },
 };
 
+const apiSpec = {
+  paths: {},
+  components: {
+    schemas: {
+      CreateTransferCallToolDTO: { type: 'object' },
+      TransferPlan: {
+        type: 'object',
+        properties: {
+          mode: { type: 'string' },
+          fallbackPlan: { $ref: '#/components/schemas/TransferFallbackPlan' },
+        },
+      },
+      TransferFallbackPlan: { type: 'object' },
+    },
+  },
+};
+
 const vapiOperations = {
+  fetch: jest.fn(async () => new Response(JSON.stringify(apiSpec))),
   assistants: {
     list: jest.fn(async () => [assistant]),
     get: jest.fn(async () => assistant),
@@ -321,4 +339,85 @@ describe('MCP tool execution compatibility', () => {
       error: 'Error: simulated Vapi failure',
     });
   });
+
+  test('get_api_schema searches names and returns one schema with its references', async () => {
+    const found = await invoke('get_api_schema', { search: 'transfer' });
+    expect(found).toEqual({
+      matches: [
+        'CreateTransferCallToolDTO',
+        'TransferFallbackPlan',
+        'TransferPlan',
+      ],
+      total: 3,
+    });
+
+    const result = await invoke('get_api_schema', { name: 'TransferPlan' });
+    expect(result).toEqual({
+      name: 'TransferPlan',
+      schema: apiSpec.components.schemas.TransferPlan,
+      referencedSchemas: ['TransferFallbackPlan'],
+    });
+
+    expect(vapiOperations.fetch).toHaveBeenCalledTimes(1);
+    expect(vapiOperations.fetch).toHaveBeenCalledWith(
+      'https://api.vapi.ai/api-json'
+    );
+  });
+
+  test('get_api_schema suggests similar names for an unknown schema', async () => {
+    const response = await client.callTool({
+      name: 'get_api_schema',
+      arguments: { name: 'Fallback' },
+    });
+
+    expect(parseToolResponse(response)).toEqual({
+      error:
+        'Error: No schema named Fallback. Similar names: TransferFallbackPlan',
+    });
+  });
+
+  test('create_tool sends destination and additional fields it does not model', async () => {
+    await invoke('create_tool', {
+      type: 'transferCall',
+      name: 'transfer_to_sales',
+      transferCall: {
+        destinations: [
+          {
+            type: 'number',
+            number: '+15555550102',
+            transferPlan: { mode: 'warm-transfer-say-summary' },
+          },
+        ],
+      },
+      additionalFields: {
+        messages: [{ type: 'request-start', content: 'Transferring you now' }],
+      },
+    });
+
+    expect(vapiOperations.tools.create).toHaveBeenLastCalledWith({
+      type: 'transferCall',
+      function: { name: 'transfer_to_sales' },
+      destinations: [
+        {
+          type: 'number',
+          number: '+15555550102',
+          transferPlan: { mode: 'warm-transfer-say-summary' },
+        },
+      ],
+      messages: [{ type: 'request-start', content: 'Transferring you now' }],
+    });
+  });
+
+  test('update_tool sends additional fields as given', async () => {
+    await invoke('update_tool', {
+      toolId: tool.id,
+      additionalFields: { rejectionPlan: { conditions: [] } },
+    });
+
+    expect(vapiOperations.tools.update).toHaveBeenLastCalledWith({
+      id: tool.id,
+      body: { rejectionPlan: { conditions: [] } },
+    });
+  });
+
 });

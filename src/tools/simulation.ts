@@ -18,6 +18,13 @@ import { createToolHandler } from './utils.js';
 
 const DEFAULT_LIMIT = 50;
 
+// SDK 3.0 declares only the legacy array response, but pagination query
+// parameters make this endpoint return an envelope instead.
+type RunItemsResponse = Vapi.SimulationRunItem[] | {
+  results: Vapi.SimulationRunItem[];
+  metadata: Vapi.PaginationMeta;
+};
+
 // Run items carry call snapshots and transcripts in these fields, which can
 // be large. get_simulation_run leaves them out; get_simulation_run_item
 // returns them.
@@ -217,12 +224,13 @@ export const registerSimulationTools = (
     'get_simulation_run',
     {
       description:
-        'Gets a simulation run with its status, item counts, and each item’s status and evaluation results. ' +
+        'Gets a simulation run with its status, item counts, and the first 100 item summaries. ' +
+        'itemsTruncated indicates omitted items; itemsMetadata preserves API pagination metadata. ' +
         'Use get_simulation_run_item for an item’s transcript and call details.',
       inputSchema: GetSimulationRunInputSchema,
     },
     createToolHandler(async (data) => {
-      const [run, items] = await Promise.all([
+      const [run, response] = await Promise.all([
         vapiClient.simulationRuns.simulationRunControllerFindOne({
           id: data.runId,
         }),
@@ -231,7 +239,14 @@ export const registerSimulationTools = (
           limit: 100,
         }),
       ]);
-      return { ...run, items: items.map(summarizeRunItem) };
+      const page = response as RunItemsResponse;
+      const items = Array.isArray(page) ? page : page.results;
+      return {
+        ...run,
+        items: items.map(summarizeRunItem),
+        itemsTruncated: !Array.isArray(page) && page.metadata.totalItems > items.length,
+        ...(!Array.isArray(page) && { itemsMetadata: page.metadata }),
+      };
     })
   );
 

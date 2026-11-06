@@ -4,7 +4,7 @@ import addFormats from 'ajv-formats';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { VapiClient } from '@vapi-ai/server-sdk';
+import { VapiClient } from '@vapi-ai/server-sdk';
 import { registerAllTools } from '../tools/index.js';
 import { parseToolResponse } from '../utils/response.js';
 
@@ -260,6 +260,7 @@ describe('simulation tools', () => {
     ).toHaveBeenLastCalledWith({ id: '00000000-0000-4000-8000-000000000008', limit: 100 });
     expect(result).toEqual({
       ...run,
+      itemsTruncated: false,
       items: [
         {
           id: '00000000-0000-4000-8000-000000000009',
@@ -282,6 +283,50 @@ describe('simulation tools', () => {
       vapiOperations.simulationRuns.simulationRunControllerFindItem
     ).toHaveBeenLastCalledWith({ id: '00000000-0000-4000-8000-000000000008', itemId: '00000000-0000-4000-8000-000000000009' });
     expect(result).toEqual(runItem);
+  });
+});
+
+describe('simulation run pagination through the real SDK', () => {
+  test.each([0, 1, 100, 101])('summarizes the first page of a %i-item run', async (totalItems) => {
+    const items = Array.from({ length: Math.min(totalItems, 100) }, (_, index) => ({
+      ...runItem, id: `item-${index}`,
+    }));
+    const metadata = { currentPage: 1, itemsPerPage: 100, totalItems };
+    const requests: URL[] = [];
+    const vapiClient = new VapiClient({
+      token: 'test-token',
+      fetch: async (input) => {
+        const url = new URL(input instanceof Request ? input.url : input.toString());
+        requests.push(url);
+        return new Response(JSON.stringify(url.pathname.endsWith('/item')
+          ? { results: items, metadata } : run), {
+          status: 200, headers: { 'Content-Type': 'application/json' },
+        });
+      },
+    });
+    const server = new McpServer({ name: 'simulation-sdk-test', version: '0' });
+    registerAllTools(server, vapiClient);
+    const client = new Client({ name: 'simulation-sdk-client', version: '0' });
+    const [ct, st] = InMemoryTransport.createLinkedPair();
+    await server.connect(st);
+    await client.connect(ct);
+    try {
+      const response = await client.callTool({ name: 'get_simulation_run', arguments: { runId: run.id } });
+      expect(response.isError).not.toBe(true);
+      expect(parseToolResponse(response)).toEqual({
+        ...run,
+        items: items.map(({ metadata, configurations, improvementSuggestions, ...summary }) => summary),
+        itemsMetadata: metadata,
+        itemsTruncated: totalItems > 100,
+      });
+      expect(requests.map((url) => url.pathname).sort()).toEqual([
+        `/eval/simulation/run/${run.id}`, `/eval/simulation/run/${run.id}/item`,
+      ]);
+      expect(requests.find((url) => url.pathname.endsWith('/item'))?.searchParams.get('limit')).toBe('100');
+    } finally {
+      await client.close();
+      await server.close();
+    }
   });
 });
 

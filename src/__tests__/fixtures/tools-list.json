@@ -784,7 +784,7 @@
   },
   {
     "name": "get_simulation_run",
-    "description": "Gets a simulation run with its status, item counts, and each item’s status and evaluation results. Use get_simulation_run_item for an item’s transcript and call details.",
+    "description": "Gets a simulation run with its status, item counts, and the first 100 item summaries. itemsTruncated indicates omitted items; itemsMetadata preserves API pagination metadata. Use get_simulation_run_item for an item’s transcript and call details.",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},

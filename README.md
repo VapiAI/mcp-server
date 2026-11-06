@@ -198,6 +198,10 @@ Connect to Vapi's hosted MCP server from any MCP client:
 | `get_simulation_run_item` | Get a full item including transcript and results |
 
 The catalog contains 25 tools. Simulation lists default to 50 results.
+`get_simulation_run` returns the first 100 item summaries, with API pagination
+metadata in `itemsMetadata` and `itemsTruncated: true` when more items exist.
+Legacy array responses are also supported. Use `get_simulation_run_item` for
+the full details of a known item.
 
 ---
 

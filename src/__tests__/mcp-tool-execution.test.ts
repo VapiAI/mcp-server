@@ -9,14 +9,16 @@ import { parseToolResponse } from '../utils/response.js';
 const timestamp = '2026-01-01T00:00:00.000Z';
 
 const assistant = {
-  id: 'assistant-1',
+  id: '00000000-0000-4000-8000-000000000001',
   createdAt: timestamp,
   updatedAt: timestamp,
   name: 'Compatibility Assistant',
   model: {
     provider: 'openai',
     model: 'gpt-4o',
-    toolIds: ['tool-1'],
+    toolIds: ['00000000-0000-4000-8000-000000000004'],
+    temperature: 0.3,
+    messages: [{ role: 'system', content: 'Existing prompt' }],
   },
   voice: {
     provider: '11labs',
@@ -30,18 +32,18 @@ const assistant = {
 };
 
 const call = {
-  id: 'call-1',
+  id: '00000000-0000-4000-8000-000000000002',
   createdAt: timestamp,
   updatedAt: timestamp,
   status: 'ended',
   endedReason: 'customer-ended-call',
   assistantId: assistant.id,
-  phoneNumberId: 'phone-number-1',
+  phoneNumberId: '00000000-0000-4000-8000-000000000003',
   customer: { number: '+15555550100' },
 };
 
 const phoneNumber = {
-  id: 'phone-number-1',
+  id: '00000000-0000-4000-8000-000000000003',
   createdAt: timestamp,
   updatedAt: timestamp,
   name: 'Compatibility Number',
@@ -50,7 +52,7 @@ const phoneNumber = {
 };
 
 const tool = {
-  id: 'tool-1',
+  id: '00000000-0000-4000-8000-000000000004',
   createdAt: timestamp,
   updatedAt: timestamp,
   type: 'function',
@@ -148,7 +150,7 @@ describe('MCP tool execution compatibility', () => {
         id: assistant.id,
         name: assistant.name,
         llm: { provider: 'openai', model: 'gpt-4o' },
-        toolIds: ['tool-1'],
+        toolIds: ['00000000-0000-4000-8000-000000000004'],
       }),
     ],
     [
@@ -227,22 +229,81 @@ describe('MCP tool execution compatibility', () => {
 
     expect(result.id).toBe(assistant.id);
     expect(vapiOperations.assistants.create).toHaveBeenLastCalledWith(
-      expect.objectContaining({
+      {
         name: 'Compatibility Assistant',
-        model: expect.objectContaining({
+        model: {
           provider: 'openai',
           model: 'gpt-4o',
-        }),
-        voice: expect.objectContaining({
+          messages: [{ role: 'system', content: 'You are a helpful assistant.' }],
+        },
+        voice: {
           provider: '11labs',
           voiceId: 'sarah',
-        }),
-        transcriber: expect.objectContaining({
+        },
+        transcriber: {
           provider: 'deepgram',
           model: 'nova-3',
-        }),
+        },
+        firstMessage: 'Hello, how can I help you today?',
+      }
+    );
+  });
+
+  test('create_assistant accepts a JSON-string LLM and an explicit first message mode', async () => {
+    await invoke('create_assistant', {
+      name: 'JSON LLM Assistant',
+      llm: JSON.stringify({ provider: 'openai', model: 'gpt-4o-mini' }),
+      firstMessageMode: 'assistant-waits-for-user',
+    });
+
+    expect(vapiOperations.assistants.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        model: expect.objectContaining({ provider: 'openai', model: 'gpt-4o-mini' }),
+        firstMessageMode: 'assistant-waits-for-user',
       })
     );
+  });
+
+  test('create_tool validates records, preserves defaults and strips unknown fields', async () => {
+    const parameters = {
+      type: 'object',
+      properties: {
+        city: { type: 'string', description: 'Destination city' },
+        options: { type: 'object', properties: { units: { type: 'string' } } },
+      },
+      required: ['city'],
+    };
+    await invoke('create_tool', {
+      type: 'apiRequest',
+      apiRequest: {
+        url: 'https://example.test/weather',
+        headers: { 'X-Region': 'us' },
+        body: { ...parameters, unknownField: 'stripped' },
+        backoffPlan: {},
+        unknownField: 'stripped',
+      },
+    });
+
+    expect(vapiOperations.tools.create).toHaveBeenLastCalledWith({
+      type: 'apiRequest',
+      url: 'https://example.test/weather',
+      method: 'POST',
+      timeoutSeconds: 20,
+      headers: { 'X-Region': 'us' },
+      body: parameters,
+      backoffPlan: { type: 'fixed', maxRetries: 3, baseDelaySeconds: 1 },
+    });
+
+    const callsBefore = vapiOperations.tools.create.mock.calls.length;
+    const response = await client.callTool({
+      name: 'create_tool',
+      arguments: {
+        type: 'apiRequest',
+        apiRequest: { url: 'https://example.test/weather', headers: { 'X-Region': 42 } },
+      },
+    });
+    expect(response.isError).toBe(true);
+    expect(vapiOperations.tools.create).toHaveBeenCalledTimes(callsBefore);
   });
 
   test('update_assistant preserves the identifier and update payload', async () => {
@@ -255,6 +316,59 @@ describe('MCP tool execution compatibility', () => {
     expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith({
       id: assistant.id,
       name: 'Updated Assistant',
+    });
+  });
+
+  test('update_assistant with only toolIds keeps the existing model', async () => {
+    await invoke('update_assistant', {
+      assistantId: assistant.id,
+      toolIds: ['00000000-0000-4000-8000-000000000005'],
+    });
+
+    expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith({
+      id: assistant.id,
+      model: {
+        provider: 'openai',
+        model: 'gpt-4o',
+        toolIds: ['00000000-0000-4000-8000-000000000005'],
+        temperature: 0.3,
+        messages: [{ role: 'system', content: 'Existing prompt' }],
+      },
+    });
+  });
+
+  test('update_assistant with only instructions replaces just the system prompt', async () => {
+    await invoke('update_assistant', {
+      assistantId: assistant.id,
+      instructions: 'New prompt',
+    });
+
+    expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith({
+      id: assistant.id,
+      model: {
+        provider: 'openai',
+        model: 'gpt-4o',
+        toolIds: ['00000000-0000-4000-8000-000000000004'],
+        temperature: 0.3,
+        messages: [{ role: 'system', content: 'New prompt' }],
+      },
+    });
+  });
+
+  test('update_assistant changing provider keeps only the prompt and tools', async () => {
+    await invoke('update_assistant', {
+      assistantId: assistant.id,
+      llm: { provider: 'anthropic', model: 'claude-3-5-haiku-20241022' },
+    });
+
+    expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith({
+      id: assistant.id,
+      model: {
+        provider: 'anthropic',
+        model: 'claude-3-5-haiku-20241022',
+        toolIds: ['00000000-0000-4000-8000-000000000004'],
+        messages: [{ role: 'system', content: 'Existing prompt' }],
+      },
     });
   });
 
@@ -303,7 +417,45 @@ describe('MCP tool execution compatibility', () => {
     expect(result.id).toBe(tool.id);
     expect(vapiOperations.tools.update).toHaveBeenLastCalledWith({
       id: tool.id,
-      body: { function: { name: 'updated_compatibility_tool' } },
+      body: {
+        function: { ...tool.function, name: 'updated_compatibility_tool' },
+      },
+    });
+  });
+
+  test('update_tool with only a description keeps the function name', async () => {
+    await invoke('update_tool', {
+      toolId: tool.id,
+      description: 'Updated description',
+    });
+
+    expect(vapiOperations.tools.get).toHaveBeenLastCalledWith({ id: tool.id });
+    expect(vapiOperations.tools.update).toHaveBeenLastCalledWith({
+      id: tool.id,
+      body: {
+        function: { ...tool.function, description: 'Updated description' },
+      },
+    });
+  });
+
+  test('update_tool with new parameters keeps the existing server headers', async () => {
+    await invoke('update_tool', {
+      toolId: tool.id,
+      function: {
+        parameters: { type: 'object', properties: { a: { type: 'string' } } },
+        server: { url: 'https://example.test/v2' },
+      },
+    });
+
+    expect(vapiOperations.tools.update).toHaveBeenLastCalledWith({
+      id: tool.id,
+      body: {
+        function: {
+          ...tool.function,
+          parameters: { type: 'object', properties: { a: { type: 'string' } } },
+        },
+        server: { ...tool.server, url: 'https://example.test/v2' },
+      },
     });
   });
 

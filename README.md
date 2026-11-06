@@ -289,8 +289,8 @@ truncation. Submitted values and credential contents are not echoed. Agents
 should correct the listed fields and retry; a validation failure never invokes
 the API handler. Tests exercise this correction loop through a real MCP client.
 
-`npm test` includes the unchanged baseline, stricter cutover tests, independent
-Ajv parity cases, and validation-feedback tests. The existing live compatibility
+`npm test` includes schema contract tests, independent Ajv parity cases, and
+validation-feedback tests. The existing live compatibility
 suites cover read-only resources and disposable assistants/custom tools.
 
 ---

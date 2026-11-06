@@ -20,6 +20,7 @@ const expectedToolNames = [
   'create_assistant',
   'create_call',
   'create_tool',
+  'get_api_schema',
   'get_assistant',
   'get_call',
   'get_phone_number',
@@ -284,6 +285,15 @@ try {
     throw new Error(
       `Installed tool catalog did not match: ${JSON.stringify(actualToolNames)}`
     );
+  }
+
+  const invalidInput = await server.request('tools/call', {
+    name: 'get_tool', arguments: { toolId: 'not-a-uuid' },
+  });
+  const validation = invalidInput.result?.structuredContent?.validationError;
+  if (invalidInput.error || invalidInput.result?.isError !== true ||
+      validation?.code !== 'INVALID_ARGUMENTS' || validation.issues?.[0]?.path !== 'toolId') {
+    throw new Error('Packed consumer did not return the expected field-level validation error');
   }
 
   console.log(

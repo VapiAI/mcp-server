@@ -267,6 +267,65 @@ export VAPI_TOKEN=your_test_org_token_here
 npm run test:live:mutating
 ```
 
+### Input validation from OpenAPI
+
+All nine parameterized MCP tools use imported OpenAPI constraints through
+Zod's experimental `z.fromJSONSchema()`, pinned to Zod 4.6.7. This covers
+assistant names/LLMs/voices/transcribers, call schedules and customer numbers,
+lookup/update IDs, function parameters, transfer destinations, HTTP methods,
+timeouts and retry plans. The four list tools have local empty input schemas.
+
+`src/schemas/assistant-openapi.json` is the shared compact projection for these
+surfaces (the filename is retained from the initial assistant cutover). It
+records the [public API spec](https://api.vapi.ai/api-json) source SHA-256 and
+includes the recursive JSON-schema definitions needed for function parameters
+and request bodies. Builds and installs use it without network access. Refresh
+explicitly with `npm run schemas:snapshot`, or pass a saved spec with
+`npm run schemas:snapshot -- /path/spec.json`.
+
+When upgrading `@vapi-ai/server-sdk`, refresh and review the bundled schema in
+the same PR, then run `npm run typecheck`, `npm test`, and `npm run test:package`.
+Check changes against the SDK's request types and the MCP adapters below. The
+public endpoint serves the current API spec, not a spec version tied to the SDK
+release, so refreshing does not by itself guarantee compatibility. Keep the
+reviewed schema bundled with the release; do not refresh it during installation
+or startup.
+
+The adapter documents published contract corrections: overlapping enum/string
+`oneOf` alternatives become `anyOf`; duplicate enum values and JavaScript regex
+delimiters are removed; the contradictory object/string-enum annotation on
+`BackoffPlan.type` is corrected. Provider variants reject undeclared fields.
+Spec defaults do not inject request fields; MCP defaults remain separate.
+Variants requiring fields outside the current interface remain excluded: custom
+voice, Neuphonic voice, custom transcriber, Speechmatics transcriber, and custom
+LLM. Adding their required fields needs an explicit interface extension.
+
+MCP wrappers preserve field aliases and sparse updates. URL checks and
+string-valued header maps remain explicit transport rules because the spec only
+describes a string/object. API-request header maps and SMS metadata retain legacy MCP representations;
+they are explicit compatibility adapters, not claimed to be full API DTO
+validation. SMS metadata is not described in the published DTO. Response summaries also remain
+local: they are transformed MCP representations, not raw API DTOs.
+
+Validation failures return `isError: true`, concise text and structured
+`validationError` details: tool name, issue code, field path, message and allowed
+choices where relevant. Errors select the supplied provider's union branch,
+include at most 12 issues and 8 allowed choices per issue, and indicate
+truncation. Submitted values and credential contents are not echoed. Agents
+should correct the listed fields and retry; a validation failure never invokes
+the API handler. Tests exercise this correction loop through a real MCP client.
+
+`tools/list` advertises a compact input summary derived from the same validators:
+field names, basic types, required fields, defaults, and short constraints. It
+omits provider/model catalogs, lengthy API documentation, and recursive schema
+definitions. The full OpenAPI-derived validator still runs before any API call;
+the advertised summary is intentionally broader. Catalog tests cap the current
+serialized tool list at 20 KB to prevent unexpected agent-context growth.
+
+`npm test` includes schema contract tests, independent Ajv parity cases, and
+validation-feedback tests. The existing live compatibility
+suites cover read-only resources and disposable assistants/custom tools.
+
 ---
 
 ## References

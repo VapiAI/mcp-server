@@ -1,6 +1,8 @@
+import { registerValidatedTool } from './validation.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient, Vapi } from '@vapi-ai/server-sdk';
 import {
+  EmptyInputSchema,
   CreateAssistantInputSchema,
   GetAssistantInputSchema,
   UpdateAssistantInputSchema,
@@ -16,11 +18,12 @@ export const registerAssistantTools = (
   server: McpServer,
   vapiClient: VapiClient
 ) => {
-  server.registerTool(
+  registerValidatedTool(
+    server,
     'list_assistants',
     {
       description: 'Lists all Vapi assistants',
-      inputSchema: {},
+      inputSchema: EmptyInputSchema,
     },
     createToolHandler(async () => {
       //   console.log('list_assistants');
@@ -30,11 +33,12 @@ export const registerAssistantTools = (
     })
   );
 
-  server.registerTool(
+  registerValidatedTool(
+    server,
     'create_assistant',
     {
       description: 'Creates a new Vapi assistant',
-      inputSchema: CreateAssistantInputSchema.shape,
+      inputSchema: CreateAssistantInputSchema,
     },
     createToolHandler(async (data) => {
       //   console.log('create_assistant', data);
@@ -44,11 +48,12 @@ export const registerAssistantTools = (
     })
   );
 
-  server.registerTool(
+  registerValidatedTool(
+    server,
     'get_assistant',
     {
       description: 'Gets a Vapi assistant by ID',
-      inputSchema: GetAssistantInputSchema.shape,
+      inputSchema: GetAssistantInputSchema,
     },
     createToolHandler(async (data) => {
       //   console.log('get_assistant', data);
@@ -66,11 +71,12 @@ export const registerAssistantTools = (
     })
   );
 
-  server.registerTool(
+  registerValidatedTool(
+    server,
     'update_assistant',
     {
       description: 'Updates an existing Vapi assistant',
-      inputSchema: UpdateAssistantInputSchema.shape,
+      inputSchema: UpdateAssistantInputSchema,
     },
     createToolHandler(async (data) => {
       const assistantId = data.assistantId;

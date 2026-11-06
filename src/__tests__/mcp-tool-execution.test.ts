@@ -9,14 +9,14 @@ import { parseToolResponse } from '../utils/response.js';
 const timestamp = '2026-01-01T00:00:00.000Z';
 
 const assistant = {
-  id: 'assistant-1',
+  id: '00000000-0000-4000-8000-000000000001',
   createdAt: timestamp,
   updatedAt: timestamp,
   name: 'Compatibility Assistant',
   model: {
     provider: 'openai',
     model: 'gpt-4o',
-    toolIds: ['tool-1'],
+    toolIds: ['00000000-0000-4000-8000-000000000004'],
     temperature: 0.3,
     messages: [{ role: 'system', content: 'Existing prompt' }],
   },
@@ -32,18 +32,18 @@ const assistant = {
 };
 
 const call = {
-  id: 'call-1',
+  id: '00000000-0000-4000-8000-000000000002',
   createdAt: timestamp,
   updatedAt: timestamp,
   status: 'ended',
   endedReason: 'customer-ended-call',
   assistantId: assistant.id,
-  phoneNumberId: 'phone-number-1',
+  phoneNumberId: '00000000-0000-4000-8000-000000000003',
   customer: { number: '+15555550100' },
 };
 
 const phoneNumber = {
-  id: 'phone-number-1',
+  id: '00000000-0000-4000-8000-000000000003',
   createdAt: timestamp,
   updatedAt: timestamp,
   name: 'Compatibility Number',
@@ -52,7 +52,7 @@ const phoneNumber = {
 };
 
 const tool = {
-  id: 'tool-1',
+  id: '00000000-0000-4000-8000-000000000004',
   createdAt: timestamp,
   updatedAt: timestamp,
   type: 'function',
@@ -67,7 +67,25 @@ const tool = {
   },
 };
 
+const apiSpec = {
+  paths: {},
+  components: {
+    schemas: {
+      CreateTransferCallToolDTO: { type: 'object' },
+      TransferPlan: {
+        type: 'object',
+        properties: {
+          mode: { type: 'string' },
+          fallbackPlan: { $ref: '#/components/schemas/TransferFallbackPlan' },
+        },
+      },
+      TransferFallbackPlan: { type: 'object' },
+    },
+  },
+};
+
 const vapiOperations = {
+  fetch: jest.fn(async () => new Response(JSON.stringify(apiSpec))),
   assistants: {
     list: jest.fn(async () => [assistant]),
     get: jest.fn(async () => assistant),
@@ -132,7 +150,7 @@ describe('MCP tool execution compatibility', () => {
         id: assistant.id,
         name: assistant.name,
         llm: { provider: 'openai', model: 'gpt-4o' },
-        toolIds: ['tool-1'],
+        toolIds: ['00000000-0000-4000-8000-000000000004'],
       }),
     ],
     [
@@ -211,22 +229,81 @@ describe('MCP tool execution compatibility', () => {
 
     expect(result.id).toBe(assistant.id);
     expect(vapiOperations.assistants.create).toHaveBeenLastCalledWith(
-      expect.objectContaining({
+      {
         name: 'Compatibility Assistant',
-        model: expect.objectContaining({
+        model: {
           provider: 'openai',
           model: 'gpt-4o',
-        }),
-        voice: expect.objectContaining({
+          messages: [{ role: 'system', content: 'You are a helpful assistant.' }],
+        },
+        voice: {
           provider: '11labs',
           voiceId: 'sarah',
-        }),
-        transcriber: expect.objectContaining({
+        },
+        transcriber: {
           provider: 'deepgram',
           model: 'nova-3',
-        }),
+        },
+        firstMessage: 'Hello, how can I help you today?',
+      }
+    );
+  });
+
+  test('create_assistant accepts a JSON-string LLM and an explicit first message mode', async () => {
+    await invoke('create_assistant', {
+      name: 'JSON LLM Assistant',
+      llm: JSON.stringify({ provider: 'openai', model: 'gpt-4o-mini' }),
+      firstMessageMode: 'assistant-waits-for-user',
+    });
+
+    expect(vapiOperations.assistants.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        model: expect.objectContaining({ provider: 'openai', model: 'gpt-4o-mini' }),
+        firstMessageMode: 'assistant-waits-for-user',
       })
     );
+  });
+
+  test('create_tool validates records, preserves defaults and strips unknown fields', async () => {
+    const parameters = {
+      type: 'object',
+      properties: {
+        city: { type: 'string', description: 'Destination city' },
+        options: { type: 'object', properties: { units: { type: 'string' } } },
+      },
+      required: ['city'],
+    };
+    await invoke('create_tool', {
+      type: 'apiRequest',
+      apiRequest: {
+        url: 'https://example.test/weather',
+        headers: { 'X-Region': 'us' },
+        body: { ...parameters, unknownField: 'stripped' },
+        backoffPlan: {},
+        unknownField: 'stripped',
+      },
+    });
+
+    expect(vapiOperations.tools.create).toHaveBeenLastCalledWith({
+      type: 'apiRequest',
+      url: 'https://example.test/weather',
+      method: 'POST',
+      timeoutSeconds: 20,
+      headers: { 'X-Region': 'us' },
+      body: parameters,
+      backoffPlan: { type: 'fixed', maxRetries: 3, baseDelaySeconds: 1 },
+    });
+
+    const callsBefore = vapiOperations.tools.create.mock.calls.length;
+    const response = await client.callTool({
+      name: 'create_tool',
+      arguments: {
+        type: 'apiRequest',
+        apiRequest: { url: 'https://example.test/weather', headers: { 'X-Region': 42 } },
+      },
+    });
+    expect(response.isError).toBe(true);
+    expect(vapiOperations.tools.create).toHaveBeenCalledTimes(callsBefore);
   });
 
   test('update_assistant preserves the identifier and update payload', async () => {
@@ -245,7 +322,7 @@ describe('MCP tool execution compatibility', () => {
   test('update_assistant with only toolIds keeps the existing model', async () => {
     await invoke('update_assistant', {
       assistantId: assistant.id,
-      toolIds: ['tool-2'],
+      toolIds: ['00000000-0000-4000-8000-000000000005'],
     });
 
     expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith({
@@ -253,7 +330,7 @@ describe('MCP tool execution compatibility', () => {
       model: {
         provider: 'openai',
         model: 'gpt-4o',
-        toolIds: ['tool-2'],
+        toolIds: ['00000000-0000-4000-8000-000000000005'],
         temperature: 0.3,
         messages: [{ role: 'system', content: 'Existing prompt' }],
       },
@@ -271,7 +348,7 @@ describe('MCP tool execution compatibility', () => {
       model: {
         provider: 'openai',
         model: 'gpt-4o',
-        toolIds: ['tool-1'],
+        toolIds: ['00000000-0000-4000-8000-000000000004'],
         temperature: 0.3,
         messages: [{ role: 'system', content: 'New prompt' }],
       },
@@ -289,7 +366,7 @@ describe('MCP tool execution compatibility', () => {
       model: {
         provider: 'anthropic',
         model: 'claude-3-5-haiku-20241022',
-        toolIds: ['tool-1'],
+        toolIds: ['00000000-0000-4000-8000-000000000004'],
         messages: [{ role: 'system', content: 'Existing prompt' }],
       },
     });
@@ -382,6 +459,56 @@ describe('MCP tool execution compatibility', () => {
     });
   });
 
+  test.each(['create_assistant', 'update_assistant'])('%s rejects a long name before any API call', async name => {
+    const createCalls = vapiOperations.assistants.create.mock.calls.length;
+    const getCalls = vapiOperations.assistants.get.mock.calls.length;
+    const updateCalls = vapiOperations.assistants.update.mock.calls.length;
+    const response = await client.callTool({
+      name,
+      arguments: { name: 'x'.repeat(41), ...(name === 'update_assistant' ? { assistantId: assistant.id } : {}) },
+    });
+    expect(response.isError).toBe(true);
+    expect(vapiOperations.assistants.create).toHaveBeenCalledTimes(createCalls);
+    expect(vapiOperations.assistants.get).toHaveBeenCalledTimes(getCalls);
+    expect(vapiOperations.assistants.update).toHaveBeenCalledTimes(updateCalls);
+  });
+
+  test('create_assistant accepts provider configurations without models', async () => {
+    await invoke('create_assistant', {
+      name: 'No invented models',
+      voice: { provider: 'vapi', voiceId: 'Elliot' },
+      transcriber: { provider: 'assembly-ai' },
+    });
+    expect(vapiOperations.assistants.create).toHaveBeenLastCalledWith(expect.objectContaining({
+      voice: { provider: 'vapi', voiceId: 'Elliot' },
+      transcriber: { provider: 'assembly-ai' },
+    }));
+  });
+
+  test('update_assistant accepts provider configurations without models', async () => {
+    await invoke('update_assistant', {
+      assistantId: assistant.id,
+      voice: { provider: 'vapi', voiceId: 'Elliot' },
+      transcriber: { provider: 'assembly-ai' },
+    });
+    expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith({
+      id: assistant.id,
+      voice: { provider: 'vapi', voiceId: 'Elliot' },
+      transcriber: { provider: 'assembly-ai' },
+    });
+  });
+
+  test('get_assistant returns absent models without inventing values', async () => {
+    vapiOperations.assistants.get.mockResolvedValueOnce({
+      ...assistant,
+      voice: { provider: 'vapi', voiceId: 'Elliot' },
+      transcriber: { provider: 'assembly-ai' },
+    } as never);
+    const result = await invoke('get_assistant', { assistantId: assistant.id });
+    expect(result.voice).toEqual({ provider: 'vapi', voiceId: 'Elliot' });
+    expect(result.transcriber).toEqual({ provider: 'assembly-ai' });
+  });
+
   test('rejects invalid tool input before calling Vapi', async () => {
     const callsBefore = vapiOperations.assistants.create.mock.calls.length;
 
@@ -414,4 +541,85 @@ describe('MCP tool execution compatibility', () => {
       error: 'Error: simulated Vapi failure',
     });
   });
+
+  test('get_api_schema searches names and returns one schema with its references', async () => {
+    const found = await invoke('get_api_schema', { search: 'transfer' });
+    expect(found).toEqual({
+      matches: [
+        'CreateTransferCallToolDTO',
+        'TransferFallbackPlan',
+        'TransferPlan',
+      ],
+      total: 3,
+    });
+
+    const result = await invoke('get_api_schema', { name: 'TransferPlan' });
+    expect(result).toEqual({
+      name: 'TransferPlan',
+      schema: apiSpec.components.schemas.TransferPlan,
+      referencedSchemas: ['TransferFallbackPlan'],
+    });
+
+    expect(vapiOperations.fetch).toHaveBeenCalledTimes(1);
+    expect(vapiOperations.fetch).toHaveBeenCalledWith(
+      'https://api.vapi.ai/api-json'
+    );
+  });
+
+  test('get_api_schema suggests similar names for an unknown schema', async () => {
+    const response = await client.callTool({
+      name: 'get_api_schema',
+      arguments: { name: 'Fallback' },
+    });
+
+    expect(parseToolResponse(response)).toEqual({
+      error:
+        'Error: No schema named Fallback. Similar names: TransferFallbackPlan',
+    });
+  });
+
+  test('create_tool sends destination and additional fields it does not model', async () => {
+    await invoke('create_tool', {
+      type: 'transferCall',
+      name: 'transfer_to_sales',
+      transferCall: {
+        destinations: [
+          {
+            type: 'number',
+            number: '+15555550102',
+            transferPlan: { mode: 'warm-transfer-say-summary' },
+          },
+        ],
+      },
+      additionalFields: {
+        messages: [{ type: 'request-start', content: 'Transferring you now' }],
+      },
+    });
+
+    expect(vapiOperations.tools.create).toHaveBeenLastCalledWith({
+      type: 'transferCall',
+      function: { name: 'transfer_to_sales' },
+      destinations: [
+        {
+          type: 'number',
+          number: '+15555550102',
+          transferPlan: { mode: 'warm-transfer-say-summary' },
+        },
+      ],
+      messages: [{ type: 'request-start', content: 'Transferring you now' }],
+    });
+  });
+
+  test('update_tool sends additional fields as given', async () => {
+    await invoke('update_tool', {
+      toolId: tool.id,
+      additionalFields: { rejectionPlan: { conditions: [] } },
+    });
+
+    expect(vapiOperations.tools.update).toHaveBeenLastCalledWith({
+      id: tool.id,
+      body: { rejectionPlan: { conditions: [] } },
+    });
+  });
+
 });

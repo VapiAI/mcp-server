@@ -1,7 +1,8 @@
+import { registerValidatedTool } from './validation.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient, Vapi } from '@vapi-ai/server-sdk';
 
-import { GetToolInputSchema, CreateToolInputSchema, UpdateToolInputSchema } from '../schemas/index.js';
+import { EmptyInputSchema, GetToolInputSchema, CreateToolInputSchema, UpdateToolInputSchema } from '../schemas/index.js';
 import { transformToolInput, transformUpdateToolInput, transformToolOutput } from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
 
@@ -9,11 +10,12 @@ export const registerToolTools = (
   server: McpServer,
   vapiClient: VapiClient
 ) => {
-  server.registerTool(
+  registerValidatedTool(
+    server,
     'list_tools',
     {
       description: 'Lists all Vapi tools',
-      inputSchema: {},
+      inputSchema: EmptyInputSchema,
     },
     createToolHandler(async () => {
       const tools = await vapiClient.tools.list({ limit: 10 });
@@ -21,11 +23,12 @@ export const registerToolTools = (
     })
   );
 
-  server.registerTool(
+  registerValidatedTool(
+    server,
     'get_tool',
     {
       description: 'Gets details of a specific tool',
-      inputSchema: GetToolInputSchema.shape,
+      inputSchema: GetToolInputSchema,
     },
     createToolHandler(async (data) => {
       const tool = await vapiClient.tools.get({ id: data.toolId });
@@ -33,11 +36,12 @@ export const registerToolTools = (
     })
   );
 
-  server.registerTool(
+  registerValidatedTool(
+    server,
     'create_tool',
     {
       description: 'Creates a new Vapi tool',
-      inputSchema: CreateToolInputSchema.shape,
+      inputSchema: CreateToolInputSchema,
     },
     createToolHandler(async (data) => {
       const createToolDto = transformToolInput(data);
@@ -46,11 +50,12 @@ export const registerToolTools = (
     })
   );
 
-  server.registerTool(
+  registerValidatedTool(
+    server,
     'update_tool',
     {
       description: 'Updates an existing Vapi tool',
-      inputSchema: UpdateToolInputSchema.shape,
+      inputSchema: UpdateToolInputSchema,
     },
     createToolHandler(async (data) => {
       const existingTool = await vapiClient.tools.get({ id: data.toolId });

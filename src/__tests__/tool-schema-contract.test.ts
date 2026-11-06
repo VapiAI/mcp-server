@@ -32,6 +32,14 @@ test.each([
   expect(CallInputSchema.safeParse(input).success).toBe(false);
 });
 
+test.each([
+  { scheduledAt: 'tomorrow' },
+  { customer: { number: '12' } },
+  { customer: { number: '1'.repeat(41) } },
+])('call inputs enforce published constraints: %j', input => {
+  expect(CallInputSchema.safeParse(input).success).toBe(false);
+});
+
 describe.each([
   { schema: GetAssistantInputSchema, key: 'assistantId', id: assistantId },
   { schema: GetCallInputSchema, key: 'callId', id: callId },
@@ -43,6 +51,9 @@ describe.each([
   });
   test.each([{}, { [key]: null }, { [key]: 42 }])('rejects a missing or malformed identifier: %j', input => {
     expect(schema.safeParse(input).success).toBe(false);
+  });
+  test('rejects an identifier outside the API UUID format', () => {
+    expect(schema.safeParse({ [key]: 'not-a-uuid' }).success).toBe(false);
   });
 });
 
@@ -76,6 +87,14 @@ test('sparse tool updates do not inject create configuration defaults', () => {
   expect(transformUpdateToolInput(UpdateToolInputSchema.parse(input))).toEqual({ function: { name: 'renamed_tool' } });
 });
 
+test('update tool identifiers use the API UUID format', () => {
+  expect(UpdateToolInputSchema.safeParse({ toolId: 'not-a-uuid' }).success).toBe(false);
+});
+
+test.each(['PUT', 'PATCH', 'DELETE'])('API request tools accept the published %s method', method => {
+  expect(CreateToolInputSchema.safeParse({ type: 'apiRequest', apiRequest: { url: 'https://example.test', method } }).success).toBe(true);
+});
+
 test.each([
   { type: 'unknown' },
   { type: 'apiRequest', apiRequest: { url: 42 } },
@@ -83,5 +102,18 @@ test.each([
   { type: 'function', function: { parameters, server: { url: 'not-a-url' } } },
   { type: 'transferCall', transferCall: { destinations: [{ type: 'number', number: 42 }] } },
 ])('custom-tool schema rejects malformed configuration: %j', input => {
+  expect(CreateToolInputSchema.safeParse(input).success).toBe(false);
+});
+
+test.each([
+  { type: 'apiRequest', apiRequest: { url: 'https://example.test', timeoutSeconds: 301 } },
+  { type: 'apiRequest', apiRequest: { url: 'https://example.test', timeoutSeconds: 0 } },
+  { type: 'apiRequest', apiRequest: { url: 'https://example.test', backoffPlan: { maxRetries: 11 } } },
+  { type: 'apiRequest', apiRequest: { url: 'https://example.test', backoffPlan: { baseDelaySeconds: -1 } } },
+  { type: 'transferCall', transferCall: { destinations: [{ type: 'number', number: '+15555550100', extension: '1'.repeat(11) }] } },
+  { type: 'function', name: 'invalid name with spaces' },
+  { type: 'apiRequest' },
+  { type: 'function', function: { parameters: { type: 'object', properties: {} }, server: { url: 'https://example.test' } } },
+])('tool inputs enforce published constraints: %j', input => {
   expect(CreateToolInputSchema.safeParse(input).success).toBe(false);
 });

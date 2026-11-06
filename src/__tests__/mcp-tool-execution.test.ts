@@ -459,6 +459,56 @@ describe('MCP tool execution compatibility', () => {
     });
   });
 
+  test.each(['create_assistant', 'update_assistant'])('%s rejects a long name before any API call', async name => {
+    const createCalls = vapiOperations.assistants.create.mock.calls.length;
+    const getCalls = vapiOperations.assistants.get.mock.calls.length;
+    const updateCalls = vapiOperations.assistants.update.mock.calls.length;
+    const response = await client.callTool({
+      name,
+      arguments: { name: 'x'.repeat(41), ...(name === 'update_assistant' ? { assistantId: assistant.id } : {}) },
+    });
+    expect(response.isError).toBe(true);
+    expect(vapiOperations.assistants.create).toHaveBeenCalledTimes(createCalls);
+    expect(vapiOperations.assistants.get).toHaveBeenCalledTimes(getCalls);
+    expect(vapiOperations.assistants.update).toHaveBeenCalledTimes(updateCalls);
+  });
+
+  test('create_assistant accepts provider configurations without models', async () => {
+    await invoke('create_assistant', {
+      name: 'No invented models',
+      voice: { provider: 'vapi', voiceId: 'Elliot' },
+      transcriber: { provider: 'assembly-ai' },
+    });
+    expect(vapiOperations.assistants.create).toHaveBeenLastCalledWith(expect.objectContaining({
+      voice: { provider: 'vapi', voiceId: 'Elliot' },
+      transcriber: { provider: 'assembly-ai' },
+    }));
+  });
+
+  test('update_assistant accepts provider configurations without models', async () => {
+    await invoke('update_assistant', {
+      assistantId: assistant.id,
+      voice: { provider: 'vapi', voiceId: 'Elliot' },
+      transcriber: { provider: 'assembly-ai' },
+    });
+    expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith({
+      id: assistant.id,
+      voice: { provider: 'vapi', voiceId: 'Elliot' },
+      transcriber: { provider: 'assembly-ai' },
+    });
+  });
+
+  test('get_assistant returns absent models without inventing values', async () => {
+    vapiOperations.assistants.get.mockResolvedValueOnce({
+      ...assistant,
+      voice: { provider: 'vapi', voiceId: 'Elliot' },
+      transcriber: { provider: 'assembly-ai' },
+    } as never);
+    const result = await invoke('get_assistant', { assistantId: assistant.id });
+    expect(result.voice).toEqual({ provider: 'vapi', voiceId: 'Elliot' });
+    expect(result.transcriber).toEqual({ provider: 'assembly-ai' });
+  });
+
   test('rejects invalid tool input before calling Vapi', async () => {
     const callsBefore = vapiOperations.assistants.create.mock.calls.length;
 

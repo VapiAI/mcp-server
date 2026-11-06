@@ -285,6 +285,15 @@ try {
     );
   }
 
+  const invalidInput = await server.request('tools/call', {
+    name: 'get_tool', arguments: { toolId: 'not-a-uuid' },
+  });
+  const validation = invalidInput.result?.structuredContent?.validationError;
+  if (invalidInput.error || invalidInput.result?.isError !== true ||
+      validation?.code !== 'INVALID_ARGUMENTS' || validation.issues?.[0]?.path !== 'toolId') {
+    throw new Error('Packed consumer did not return the expected field-level validation error');
+  }
+
   console.log(
     `Packed consumer smoke passed for ${packageMetadata.name}@${packageMetadata.version} ` +
       `with ${actualToolNames.length} tools`

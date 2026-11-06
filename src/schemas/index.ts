@@ -450,3 +450,4 @@ export const GetApiSchemaInputSchema = z.object({
 });
 
 export * from './simulation.js';
+export * from './squad.js';

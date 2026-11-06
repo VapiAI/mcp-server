@@ -65,7 +65,7 @@ liveDescribe('live Vapi read-only compatibility', () => {
     );
 
     const catalog = await client!.listTools();
-    expect(catalog.tools).toHaveLength(26);
+    expect(catalog.tools).toHaveLength(30);
   });
 
   test.each([

@@ -158,6 +158,221 @@
     }
   },
   {
+    "name": "create_simulation",
+    "description": "Creates a simulation that pairs a scenario with a personality. Run it with run_simulations.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
+      "properties": {
+        "name": {
+          "description": "This is an optional friendly name for the simulation.",
+          "example": "Eligible Path with Confused User",
+          "maxLength": 80,
+          "type": "string"
+        },
+        "path": {
+          "description": "Optional folder path for organizing simulations.\nSupports up to 3 levels (e.g., \"dept/feature/variant\").\nMaps to GitOps resource folder structure.",
+          "maxLength": 255,
+          "nullable": true,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*(?:\\/[a-zA-Z0-9][a-zA-Z0-9._-]*){0,2}$",
+          "type": "string"
+        },
+        "personalityId": {
+          "description": "This is the ID of the personality to use for this simulation.",
+          "format": "uuid",
+          "type": "string"
+        },
+        "scenarioId": {
+          "description": "This is the ID of the scenario to use for this simulation.",
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scenarioId",
+        "personalityId"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "create_simulation_personality",
+    "description": "Creates a simulation personality: the simulated caller that talks to the assistant under test",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
+      "properties": {
+        "assistant": {
+          "additionalProperties": true,
+          "description": "Full tester assistant configuration, validated against the bundled Vapi OpenAPI schema. See https://api.vapi.ai/api-json (TransientAssistantDTO).",
+          "type": "object"
+        },
+        "name": {
+          "description": "This is the name of the personality (e.g., \"Confused Carl\", \"Rude Rob\").",
+          "maxLength": 80,
+          "type": "string"
+        },
+        "path": {
+          "description": "Optional folder path for organizing personalities.\nSupports up to 3 levels (e.g., \"dept/feature/variant\").\nMaps to GitOps resource folder structure.",
+          "maxLength": 255,
+          "nullable": true,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*(?:\\/[a-zA-Z0-9][a-zA-Z0-9._-]*){0,2}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "assistant"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "create_simulation_scenario",
+    "description": "Creates a simulation scenario: instructions for the tester plus evaluations that decide whether the assistant passed",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
+      "properties": {
+        "additionalFields": {
+          "additionalProperties": {},
+          "description": "Additional documented API fields. The merged request is validated against the bundled Vapi OpenAPI schema.",
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "evaluations": {
+          "description": "This is the structured output-based evaluation plan for the simulation.\nEach item defines a structured output to extract and evaluate against an expected value.",
+          "items": {
+            "properties": {
+              "comparator": {
+                "description": "This is the comparison operator to use when evaluating the extracted value against the expected value.\nAvailable operators depend on the structured output's schema type:\n- boolean: '=', '!='\n- string: '=', '!='\n- number/integer: '=', '!=', '>', '<', '>=', '<='",
+                "enum": [
+                  "=",
+                  "!=",
+                  ">",
+                  "<",
+                  ">=",
+                  "<="
+                ],
+                "example": "=",
+                "type": "string"
+              },
+              "path": {
+                "description": "Optional dot-notation path to a primitive leaf when evaluating an object structured output.",
+                "example": "contact.auth_started",
+                "type": "string"
+              },
+              "required": {
+                "description": "This is whether this evaluation must pass for the simulation to pass.\nDefaults to true. If false, the result is informational only.",
+                "type": "boolean"
+              },
+              "structuredOutput": {
+                "additionalProperties": true,
+                "description": "Full structuredOutput configuration, validated against the bundled Vapi OpenAPI schema. See https://api.vapi.ai/api-json.",
+                "type": "object"
+              },
+              "structuredOutputId": {
+                "description": "This is the ID of an existing structured output to use for evaluation.\nMutually exclusive with structuredOutput.",
+                "format": "uuid",
+                "type": "string"
+              },
+              "value": {
+                "description": "This is the expected value to compare against the extracted structured output result.\nType should match the structured output's schema type.",
+                "oneOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "boolean"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "comparator",
+              "value"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "instructions": {
+          "description": "This is the script/instructions for the tester to follow during the simulation.",
+          "example": "You are calling to enroll in the Twin Health program. Confirm your identity when asked.",
+          "maxLength": 10000,
+          "type": "string"
+        },
+        "name": {
+          "description": "This is the name of the scenario.",
+          "example": "Health Enrollment - Eligible Path",
+          "maxLength": 80,
+          "type": "string"
+        },
+        "path": {
+          "description": "Optional folder path for organizing scenarios.\nSupports up to 3 levels (e.g., \"dept/feature/variant\").\nMaps to GitOps resource folder structure.",
+          "maxLength": 255,
+          "nullable": true,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*(?:\\/[a-zA-Z0-9][a-zA-Z0-9._-]*){0,2}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "instructions",
+        "evaluations"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "create_simulation_suite",
+    "description": "Creates a simulation suite that groups simulations so they can be run together",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
+      "properties": {
+        "additionalFields": {
+          "additionalProperties": {},
+          "description": "Additional documented API fields. The merged request is validated against the bundled Vapi OpenAPI schema.",
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "name": {
+          "description": "This is the name of the simulation suite.",
+          "example": "Checkout Flow Tests",
+          "maxLength": 80,
+          "type": "string"
+        },
+        "path": {
+          "description": "Optional folder path for organizing simulation suites.\nSupports up to 3 levels (e.g., \"dept/feature/variant\").\nMaps to GitOps resource folder structure.",
+          "maxLength": 255,
+          "nullable": true,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*(?:\\/[a-zA-Z0-9][a-zA-Z0-9._-]*){0,2}$",
+          "type": "string"
+        },
+        "simulationIds": {
+          "description": "This is the list of simulation IDs to include in the suite.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "simulationIds"
+      ],
+      "type": "object"
+    }
+  },
+  {
     "name": "create_tool",
     "description": "Creates a new Vapi tool",
     "inputSchema": {
@@ -575,6 +790,45 @@
     }
   },
   {
+    "name": "get_simulation_run",
+    "description": "Gets a simulation run with its status, item counts, and each item’s status and evaluation results. Use get_simulation_run_item for an item’s transcript and call details.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
+      "properties": {
+        "runId": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "runId"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "get_simulation_run_item",
+    "description": "Gets one simulation run item in full, including results, call snapshots, transcript, and improvement suggestions",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
+      "properties": {
+        "itemId": {
+          "type": "string"
+        },
+        "runId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "runId",
+        "itemId"
+      ],
+      "type": "object"
+    }
+  },
+  {
     "name": "get_tool",
     "description": "Gets details of a specific tool",
     "inputSchema": {
@@ -625,12 +879,206 @@
     }
   },
   {
+    "name": "list_simulation_personalities",
+    "description": "Lists simulation personalities: the simulated callers (testers) used in Vapi simulations",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
+      "properties": {
+        "limit": {
+          "description": "Maximum number of results to return (default 50)",
+          "maximum": 1000,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "list_simulation_runs",
+    "description": "Lists simulation runs, newest first",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
+      "properties": {
+        "limit": {
+          "description": "Maximum number of results to return (default 50)",
+          "maximum": 1000,
+          "minimum": 0,
+          "type": "number"
+        },
+        "status": {
+          "enum": [
+            "queued",
+            "running",
+            "ended"
+          ],
+          "type": "string"
+        },
+        "targetId": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "list_simulation_scenarios",
+    "description": "Lists simulation scenarios: the scripts testers follow and the checks that decide pass or fail",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
+      "properties": {
+        "limit": {
+          "description": "Maximum number of results to return (default 50)",
+          "maximum": 1000,
+          "minimum": 0,
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "list_simulation_suites",
+    "description": "Lists simulation suites: named groups of simulations",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
+      "properties": {
+        "limit": {
+          "description": "Maximum number of results to return (default 50)",
+          "maximum": 1000,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "list_simulations",
+    "description": "Lists simulations. Each simulation pairs one scenario with one personality.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
+      "properties": {
+        "limit": {
+          "description": "Maximum number of results to return (default 50)",
+          "maximum": 1000,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
     "name": "list_tools",
     "description": "Lists all Vapi tools",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
       "properties": {},
+      "type": "object"
+    }
+  },
+  {
+    "name": "run_simulations",
+    "description": "Starts a simulation run of simulations and/or suites against an assistant or squad. Returns the run with its ID and a dashboard URL to share with the user. Check progress with get_simulation_run.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": {},
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "required": [
+                "assistantId"
+              ]
+            },
+            {
+              "required": [
+                "squadId"
+              ]
+            }
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "simulationIds": {
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "simulationIds"
+              ]
+            },
+            {
+              "properties": {
+                "suiteIds": {
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "suiteIds"
+              ]
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "assistantId": {
+          "description": "ID of an existing assistant to test against. Cannot be combined with inline assistant.",
+          "format": "uuid",
+          "type": "string"
+        },
+        "idempotencyKey": {
+          "type": "string"
+        },
+        "iterations": {
+          "description": "Number of times to run each simulation (default: 1)",
+          "maximum": 10,
+          "minimum": 1,
+          "type": "number"
+        },
+        "simulationIds": {
+          "items": {
+            "description": "ID of an existing simulation to run. When provided, scenarioId/personalityId/inline fields are ignored.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "squadId": {
+          "description": "ID of an existing squad to test against. Cannot be combined with inline squad.",
+          "format": "uuid",
+          "type": "string"
+        },
+        "suiteIds": {
+          "items": {
+            "description": "ID of the simulation suite to run",
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "transport": {
+          "description": "Transport provider for the simulation run",
+          "enum": [
+            "vapi.websocket",
+            "vapi.webchat"
+          ],
+          "type": "string"
+        }
+      },
       "type": "object"
     }
   },

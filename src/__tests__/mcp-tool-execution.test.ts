@@ -17,6 +17,8 @@ const assistant = {
     provider: 'openai',
     model: 'gpt-4o',
     toolIds: ['tool-1'],
+    temperature: 0.3,
+    messages: [{ role: 'system', content: 'Existing prompt' }],
   },
   voice: {
     provider: '11labs',
@@ -237,6 +239,59 @@ describe('MCP tool execution compatibility', () => {
     expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith({
       id: assistant.id,
       name: 'Updated Assistant',
+    });
+  });
+
+  test('update_assistant with only toolIds keeps the existing model', async () => {
+    await invoke('update_assistant', {
+      assistantId: assistant.id,
+      toolIds: ['tool-2'],
+    });
+
+    expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith({
+      id: assistant.id,
+      model: {
+        provider: 'openai',
+        model: 'gpt-4o',
+        toolIds: ['tool-2'],
+        temperature: 0.3,
+        messages: [{ role: 'system', content: 'Existing prompt' }],
+      },
+    });
+  });
+
+  test('update_assistant with only instructions replaces just the system prompt', async () => {
+    await invoke('update_assistant', {
+      assistantId: assistant.id,
+      instructions: 'New prompt',
+    });
+
+    expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith({
+      id: assistant.id,
+      model: {
+        provider: 'openai',
+        model: 'gpt-4o',
+        toolIds: ['tool-1'],
+        temperature: 0.3,
+        messages: [{ role: 'system', content: 'New prompt' }],
+      },
+    });
+  });
+
+  test('update_assistant changing provider keeps only the prompt and tools', async () => {
+    await invoke('update_assistant', {
+      assistantId: assistant.id,
+      llm: { provider: 'anthropic', model: 'claude-3-5-haiku-20241022' },
+    });
+
+    expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith({
+      id: assistant.id,
+      model: {
+        provider: 'anthropic',
+        model: 'claude-3-5-haiku-20241022',
+        toolIds: ['tool-1'],
+        messages: [{ role: 'system', content: 'Existing prompt' }],
+      },
     });
   });
 

@@ -142,6 +142,8 @@ export function transformUpdateAssistantInput(
 export function transformAssistantOutput(
   assistant: Vapi.Assistant
 ): z.infer<typeof AssistantOutputSchema> {
+  const voiceModel = getAssistantVoiceModel(assistant.voice);
+  const transcriberModel = getAssistantTranscriberModel(assistant.transcriber);
   return {
     id: assistant.id,
     createdAt: assistant.createdAt,
@@ -154,11 +156,11 @@ export function transformAssistantOutput(
     voice: {
       provider: assistant.voice?.provider || '11labs',
       voiceId: getAssistantVoiceId(assistant.voice),
-      model: getAssistantVoiceModel(assistant.voice) || 'eleven_turbo_v2_5',
+      ...(voiceModel ? { model: voiceModel } : {}),
     },
     transcriber: {
       provider: assistant.transcriber?.provider || 'deepgram',
-      model: getAssistantTranscriberModel(assistant.transcriber) || 'nova-3',
+      ...(transcriberModel ? { model: transcriberModel } : {}),
     },
     toolIds: assistant.model?.toolIds || [],
   };
@@ -317,6 +319,10 @@ export function transformToolInput(
       throw new Error(`Unsupported tool type: ${(input as any).type}`);
   }
 
+  if (input.additionalFields) {
+    Object.assign(toolDto, input.additionalFields);
+  }
+
   return toolDto;
 }
 
@@ -379,6 +385,10 @@ export function transformUpdateToolInput(
     if (input.apiRequest.body) updateDto.body = input.apiRequest.body;
     if (input.apiRequest.backoffPlan) updateDto.backoffPlan = input.apiRequest.backoffPlan;
     if (input.apiRequest.timeoutSeconds) updateDto.timeoutSeconds = input.apiRequest.timeoutSeconds;
+  }
+
+  if (input.additionalFields) {
+    Object.assign(updateDto, input.additionalFields);
   }
 
   return updateDto;

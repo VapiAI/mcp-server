@@ -122,7 +122,10 @@ export const BaseResponseSchema = z.object({
 // ===== Assistant Schemas =====
 
 export const CreateAssistantInputSchema = z.object({
-  name: z.string().describe('Name of the assistant'),
+  name: z
+    .string()
+    .max(40)
+    .describe('Name of the assistant (at most 40 characters)'),
   instructions: z
     .string()
     .optional()
@@ -200,7 +203,11 @@ export const GetAssistantInputSchema = z.object({
 
 export const UpdateAssistantInputSchema = z.object({
   assistantId: z.string().describe('ID of the assistant to update'),
-  name: z.string().optional().describe('New name for the assistant'),
+  name: z
+    .string()
+    .max(40)
+    .optional()
+    .describe('New name for the assistant (at most 40 characters)'),
   instructions: z
     .string()
     .optional()

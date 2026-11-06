@@ -124,7 +124,8 @@
           "description": "LLM configuration"
         },
         "name": {
-          "description": "Name of the assistant",
+          "description": "Name of the assistant (at most 40 characters)",
+          "maxLength": 40,
           "type": "string"
         },
         "toolIds": {
@@ -758,7 +759,8 @@
           "description": "New LLM configuration"
         },
         "name": {
-          "description": "New name for the assistant",
+          "description": "New name for the assistant (at most 40 characters)",
+          "maxLength": 40,
           "type": "string"
         },
         "toolIds": {

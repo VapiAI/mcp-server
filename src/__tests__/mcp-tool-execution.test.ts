@@ -307,6 +307,24 @@ describe('MCP tool execution compatibility', () => {
     expect(vapiOperations.assistants.create).toHaveBeenCalledTimes(callsBefore);
   });
 
+  test('rejects an assistant name over 40 characters before calling Vapi', async () => {
+    const callsBefore = vapiOperations.assistants.create.mock.calls.length;
+
+    const response = await client.callTool({
+      name: 'create_assistant',
+      arguments: { name: 'x'.repeat(41) },
+    });
+
+    expect(response.isError).toBe(true);
+    expect(response.content).toEqual([
+      expect.objectContaining({
+        type: 'text',
+        text: expect.stringContaining('Input validation error'),
+      }),
+    ]);
+    expect(vapiOperations.assistants.create).toHaveBeenCalledTimes(callsBefore);
+  });
+
   test('returns a visible error response when Vapi rejects an operation', async () => {
     vapiOperations.calls.list.mockRejectedValueOnce(
       new Error('simulated Vapi failure') as never

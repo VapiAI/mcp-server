@@ -282,12 +282,8 @@ should correct the listed fields and retry; a validation failure never invokes
 the API handler. Tests exercise this correction loop through a real MCP client.
 
 `npm test` includes the unchanged baseline, stricter cutover tests, independent
-Ajv parity cases, and validation-feedback tests. With a test-organization
-`VAPI_TOKEN`, `npm run test:schemas:api` provides the opt-in assistant-provider
-API backstop using disposable configuration records with cleanup; it never
-initiates calls. That live check is not run in CI. Cleanup is tested offline
-with `npm run test:schemas:cleanup`. The existing live compatibility suites also
-cover read-only resources and disposable custom tools.
+Ajv parity cases, and validation-feedback tests. The existing live compatibility
+suites cover read-only resources and disposable assistants/custom tools.
 
 ---
 

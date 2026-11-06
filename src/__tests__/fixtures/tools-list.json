@@ -851,17 +851,14 @@
               "description": "Retry configuration for failed API requests",
               "properties": {
                 "baseDelaySeconds": {
-                  "default": 1,
                   "description": "Base delay between retries in seconds",
                   "type": "number"
                 },
                 "maxRetries": {
-                  "default": 3,
                   "description": "Maximum number of retries",
                   "type": "number"
                 },
                 "type": {
-                  "default": "fixed",
                   "enum": [
                     "fixed",
                     "exponential"
@@ -899,7 +896,6 @@
               "type": "object"
             },
             "method": {
-              "default": "POST",
               "description": "HTTP method for the API request",
               "enum": [
                 "GET",
@@ -908,7 +904,6 @@
               "type": "string"
             },
             "timeoutSeconds": {
-              "default": 20,
               "description": "Request timeout in seconds",
               "type": "number"
             },

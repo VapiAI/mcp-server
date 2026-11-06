@@ -171,8 +171,9 @@ export const CreateAssistantInputSchema = z.object({
       'assistant-waits-for-user',
       'assistant-speaks-first-with-model-generated-message',
     ])
-    .default('assistant-speaks-first')
     .optional()
+    // Keep the advertised default without applying it to omitted input (Zod 3 behavior).
+    .meta({ default: 'assistant-speaks-first' })
     .describe('This determines who speaks first, either assistant or user'),
 });
 
@@ -342,19 +343,19 @@ const JsonSchemaProperty = z.object({
   description: z.string().optional(),
   enum: z.array(z.string()).optional(),
   items: z.any().optional(),
-  properties: z.record(z.any()).optional(),
+  properties: z.record(z.string(), z.any()).optional(),
   required: z.array(z.string()).optional(),
 });
 
 const JsonSchema = z.object({
   type: z.literal('object'),
-  properties: z.record(JsonSchemaProperty),
+  properties: z.record(z.string(), JsonSchemaProperty),
   required: z.array(z.string()).optional(),
 });
 
 const ServerSchema = z.object({
   url: z.string().url().describe('Server URL where the function will be called'),
-  headers: z.record(z.string()).optional().describe('Headers to send with the request'),
+  headers: z.record(z.string(), z.string()).optional().describe('Headers to send with the request'),
 });
 
 const BackoffPlanSchema = z.object({
@@ -391,7 +392,7 @@ const BaseToolConfigSchema = z.object({
   apiRequest: z.object({
     url: z.string().url().describe('URL to make the API request to'),
     method: z.enum(['GET', 'POST']).default('POST').describe('HTTP method for the API request'),
-    headers: z.record(z.string()).optional().describe('Headers to send with the request (key-value pairs)'),
+    headers: z.record(z.string(), z.string()).optional().describe('Headers to send with the request (key-value pairs)'),
     body: JsonSchema.optional().describe('Body schema for the API request in JSON Schema format'),
     backoffPlan: BackoffPlanSchema.optional().describe('Retry configuration for failed API requests'),
     timeoutSeconds: z.number().default(20).describe('Request timeout in seconds'),
@@ -413,6 +414,6 @@ export const ToolOutputSchema = BaseResponseSchema.extend({
     .describe('Type of the tool (dtmf, function, mcp, query, etc.)'),
   name: z.string().describe('Name of the tool'),
   description: z.string().describe('Description of the tool'),
-  parameters: z.record(z.any()).describe('Parameters of the tool'),
+  parameters: z.record(z.string(), z.any()).describe('Parameters of the tool'),
   server: ServerSchema.describe('Server of the tool'),
 });

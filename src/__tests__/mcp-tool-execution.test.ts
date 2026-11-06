@@ -209,22 +209,81 @@ describe('MCP tool execution compatibility', () => {
 
     expect(result.id).toBe(assistant.id);
     expect(vapiOperations.assistants.create).toHaveBeenLastCalledWith(
-      expect.objectContaining({
+      {
         name: 'Compatibility Assistant',
-        model: expect.objectContaining({
+        model: {
           provider: 'openai',
           model: 'gpt-4o',
-        }),
-        voice: expect.objectContaining({
+          messages: [{ role: 'system', content: 'You are a helpful assistant.' }],
+        },
+        voice: {
           provider: '11labs',
           voiceId: 'sarah',
-        }),
-        transcriber: expect.objectContaining({
+        },
+        transcriber: {
           provider: 'deepgram',
           model: 'nova-3',
-        }),
+        },
+        firstMessage: 'Hello, how can I help you today?',
+      }
+    );
+  });
+
+  test('create_assistant accepts a JSON-string LLM and an explicit first message mode', async () => {
+    await invoke('create_assistant', {
+      name: 'JSON LLM Assistant',
+      llm: JSON.stringify({ provider: 'openai', model: 'gpt-4o-mini' }),
+      firstMessageMode: 'assistant-waits-for-user',
+    });
+
+    expect(vapiOperations.assistants.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        model: expect.objectContaining({ provider: 'openai', model: 'gpt-4o-mini' }),
+        firstMessageMode: 'assistant-waits-for-user',
       })
     );
+  });
+
+  test('create_tool validates records, preserves defaults and strips unknown fields', async () => {
+    const parameters = {
+      type: 'object',
+      properties: {
+        city: { type: 'string', description: 'Destination city' },
+        options: { type: 'object', properties: { units: { type: 'string' } } },
+      },
+      required: ['city'],
+    };
+    await invoke('create_tool', {
+      type: 'apiRequest',
+      apiRequest: {
+        url: 'https://example.test/weather',
+        headers: { 'X-Region': 'us' },
+        body: { ...parameters, unknownField: 'stripped' },
+        backoffPlan: {},
+        unknownField: 'stripped',
+      },
+    });
+
+    expect(vapiOperations.tools.create).toHaveBeenLastCalledWith({
+      type: 'apiRequest',
+      url: 'https://example.test/weather',
+      method: 'POST',
+      timeoutSeconds: 20,
+      headers: { 'X-Region': 'us' },
+      body: parameters,
+      backoffPlan: { type: 'fixed', maxRetries: 3, baseDelaySeconds: 1 },
+    });
+
+    const callsBefore = vapiOperations.tools.create.mock.calls.length;
+    const response = await client.callTool({
+      name: 'create_tool',
+      arguments: {
+        type: 'apiRequest',
+        apiRequest: { url: 'https://example.test/weather', headers: { 'X-Region': 42 } },
+      },
+    });
+    expect(response.isError).toBe(true);
+    expect(vapiOperations.tools.create).toHaveBeenCalledTimes(callsBefore);
   });
 
   test('update_assistant preserves the identifier and update payload', async () => {

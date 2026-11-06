@@ -17,6 +17,8 @@ const assistant = {
     provider: 'openai',
     model: 'gpt-4o',
     toolIds: ['00000000-0000-4000-8000-000000000004'],
+    temperature: 0.3,
+    messages: [{ role: 'system', content: 'Existing prompt' }],
   },
   voice: {
     provider: '11labs',
@@ -299,6 +301,59 @@ describe('MCP tool execution compatibility', () => {
     });
   });
 
+  test('update_assistant with only toolIds keeps the existing model', async () => {
+    await invoke('update_assistant', {
+      assistantId: assistant.id,
+      toolIds: ['00000000-0000-4000-8000-000000000005'],
+    });
+
+    expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith({
+      id: assistant.id,
+      model: {
+        provider: 'openai',
+        model: 'gpt-4o',
+        toolIds: ['00000000-0000-4000-8000-000000000005'],
+        temperature: 0.3,
+        messages: [{ role: 'system', content: 'Existing prompt' }],
+      },
+    });
+  });
+
+  test('update_assistant with only instructions replaces just the system prompt', async () => {
+    await invoke('update_assistant', {
+      assistantId: assistant.id,
+      instructions: 'New prompt',
+    });
+
+    expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith({
+      id: assistant.id,
+      model: {
+        provider: 'openai',
+        model: 'gpt-4o',
+        toolIds: ['00000000-0000-4000-8000-000000000004'],
+        temperature: 0.3,
+        messages: [{ role: 'system', content: 'New prompt' }],
+      },
+    });
+  });
+
+  test('update_assistant changing provider keeps only the prompt and tools', async () => {
+    await invoke('update_assistant', {
+      assistantId: assistant.id,
+      llm: { provider: 'anthropic', model: 'claude-3-5-haiku-20241022' },
+    });
+
+    expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith({
+      id: assistant.id,
+      model: {
+        provider: 'anthropic',
+        model: 'claude-3-5-haiku-20241022',
+        toolIds: ['00000000-0000-4000-8000-000000000004'],
+        messages: [{ role: 'system', content: 'Existing prompt' }],
+      },
+    });
+  });
+
   test('create_call preserves the outbound-call payload passed to Vapi', async () => {
     const result = await invoke('create_call', {
       assistantId: assistant.id,
@@ -344,7 +399,45 @@ describe('MCP tool execution compatibility', () => {
     expect(result.id).toBe(tool.id);
     expect(vapiOperations.tools.update).toHaveBeenLastCalledWith({
       id: tool.id,
-      body: { function: { name: 'updated_compatibility_tool' } },
+      body: {
+        function: { ...tool.function, name: 'updated_compatibility_tool' },
+      },
+    });
+  });
+
+  test('update_tool with only a description keeps the function name', async () => {
+    await invoke('update_tool', {
+      toolId: tool.id,
+      description: 'Updated description',
+    });
+
+    expect(vapiOperations.tools.get).toHaveBeenLastCalledWith({ id: tool.id });
+    expect(vapiOperations.tools.update).toHaveBeenLastCalledWith({
+      id: tool.id,
+      body: {
+        function: { ...tool.function, description: 'Updated description' },
+      },
+    });
+  });
+
+  test('update_tool with new parameters keeps the existing server headers', async () => {
+    await invoke('update_tool', {
+      toolId: tool.id,
+      function: {
+        parameters: { type: 'object', properties: { a: { type: 'string' } } },
+        server: { url: 'https://example.test/v2' },
+      },
+    });
+
+    expect(vapiOperations.tools.update).toHaveBeenLastCalledWith({
+      id: tool.id,
+      body: {
+        function: {
+          ...tool.function,
+          parameters: { type: 'object', properties: { a: { type: 'string' } } },
+        },
+        server: { ...tool.server, url: 'https://example.test/v2' },
+      },
     });
   });
 

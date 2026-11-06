@@ -58,7 +58,8 @@ export const registerToolTools = (
       inputSchema: UpdateToolInputSchema,
     },
     createToolHandler(async (data) => {
-      const updateToolDto = transformUpdateToolInput(data);
+      const existingTool = await vapiClient.tools.get({ id: data.toolId });
+      const updateToolDto = transformUpdateToolInput(data, existingTool);
       const tool = await vapiClient.tools.update({
         id: data.toolId,
         body: updateToolDto,

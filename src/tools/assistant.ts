@@ -90,7 +90,10 @@ export const registerAssistantTools = (
         }
 
         // Transform the update data
-        const updateAssistantDto = transformUpdateAssistantInput(data);
+        const updateAssistantDto = transformUpdateAssistantInput(
+          data,
+          existingAssistant
+        );
 
         // Update the assistant
         const updatedAssistant = await vapiClient.assistants.update({

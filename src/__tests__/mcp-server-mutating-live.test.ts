@@ -104,6 +104,13 @@ liveDescribe('live Vapi create/update compatibility', () => {
       });
       expect(persistedAssistant.name).toBe(updatedAssistantName);
 
+      // An instructions-only update must not drop the model's provider.
+      const reinstructedAssistant = await invoke('update_assistant', {
+        assistantId,
+        instructions: 'Disposable compatibility test prompt',
+      });
+      expect(reinstructedAssistant.llm).toEqual(persistedAssistant.llm);
+
       const createdTool = await invoke('create_tool', {
         type: 'apiRequest',
         name: createdToolName,
@@ -131,6 +138,13 @@ liveDescribe('live Vapi create/update compatibility', () => {
 
       const persistedTool = await invoke('get_tool', { toolId });
       expect(persistedTool.name).toBe(updatedToolName);
+
+      // A description-only update must not drop the function name.
+      const redescribedTool = await invoke('update_tool', {
+        toolId,
+        description: 'Redescribed disposable compatibility test tool',
+      });
+      expect(redescribedTool.name).toBe(updatedToolName);
     } catch (error) {
       testFailure = error;
       throw error;

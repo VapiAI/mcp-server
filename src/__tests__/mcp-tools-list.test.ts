@@ -111,7 +111,7 @@ describe('MCP tools/list compatibility baseline', () => {
           compareStrings(left, right)
         );
 
-      expect(normalizedCatalog).toHaveLength(26);
+      expect(normalizedCatalog).toHaveLength(30);
       expect(normalizedCatalog).toEqual(expectedCatalog);
 
       const invocationCount = Object.values(vapiOperations).reduce(

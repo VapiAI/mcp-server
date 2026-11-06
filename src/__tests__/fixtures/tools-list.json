@@ -433,6 +433,86 @@
     }
   },
   {
+    "name": "create_squad",
+    "description": "Creates a Vapi squad. Each member is an existing assistant (assistantId) or an inline one, with assistantDestinations naming the members it can hand off to.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "members": {
+          "description": "Assistants in the squad. The call starts with the first member.",
+          "items": {
+            "additionalProperties": true,
+            "description": "Squad member (get_api_schema: SquadMemberDTO)",
+            "properties": {
+              "assistant": {
+                "additionalProperties": {},
+                "description": "Inline assistant configuration, for an assistant that exists only in this squad (get_api_schema: CreateAssistantDTO)",
+                "type": "object"
+              },
+              "assistantDestinations": {
+                "description": "Other squad members this assistant can hand the call off to",
+                "items": {
+                  "additionalProperties": true,
+                  "description": "Handoff destination. Other fields, such as transferMode or contextEngineeringPlan, are sent as given (get_api_schema: TransferDestinationAssistant, HandoffDestinationAssistant).",
+                  "properties": {
+                    "assistantName": {
+                      "description": "Name of the squad member to hand off to",
+                      "type": "string"
+                    },
+                    "description": {
+                      "description": "When to hand off to this member; the assistant uses this to decide",
+                      "type": "string"
+                    },
+                    "message": {
+                      "description": "What to say to the caller before handing off",
+                      "type": "string"
+                    },
+                    "type": {
+                      "const": "assistant",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "assistantName"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "assistantId": {
+                "description": "ID of an existing assistant. Use this or assistant.",
+                "type": "string"
+              },
+              "assistantOverrides": {
+                "additionalProperties": {},
+                "description": "Overrides for this member's settings and template variables (get_api_schema: AssistantOverrides)",
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "membersOverrides": {
+          "additionalProperties": {},
+          "description": "Overrides applied to every member's settings (get_api_schema: AssistantOverrides)",
+          "type": "object"
+        },
+        "name": {
+          "description": "Name of the squad",
+          "type": "string"
+        }
+      },
+      "required": [
+        "members"
+      ],
+      "type": "object"
+    }
+  },
+  {
     "name": "create_tool",
     "description": "Creates a new Vapi tool",
     "inputSchema": {
@@ -823,6 +903,24 @@
     }
   },
   {
+    "name": "get_squad",
+    "description": "Gets a Vapi squad with its members and handoff destinations",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "squadId": {
+          "description": "ID of the squad",
+          "type": "string"
+        }
+      },
+      "required": [
+        "squadId"
+      ],
+      "type": "object"
+    }
+  },
+  {
     "name": "get_tool",
     "description": "Gets details of a specific tool",
     "inputSchema": {
@@ -961,6 +1059,23 @@
       "properties": {
         "limit": {
           "description": "Maximum number of results to return (default 50)",
+          "maximum": 100,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "list_squads",
+    "description": "Lists Vapi squads: groups of assistants that hand calls off to each other",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "description": "Maximum number of squads to return (default 50)",
           "maximum": 100,
           "minimum": 1,
           "type": "integer"
@@ -1223,6 +1338,90 @@
       },
       "required": [
         "assistantId"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "update_squad",
+    "description": "Updates a Vapi squad. Fields you omit keep their current values.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "members": {
+          "description": "New list of members. Replaces the whole list; omit it to keep the current members.",
+          "items": {
+            "additionalProperties": true,
+            "description": "Squad member (get_api_schema: SquadMemberDTO)",
+            "properties": {
+              "assistant": {
+                "additionalProperties": {},
+                "description": "Inline assistant configuration, for an assistant that exists only in this squad (get_api_schema: CreateAssistantDTO)",
+                "type": "object"
+              },
+              "assistantDestinations": {
+                "description": "Other squad members this assistant can hand the call off to",
+                "items": {
+                  "additionalProperties": true,
+                  "description": "Handoff destination. Other fields, such as transferMode or contextEngineeringPlan, are sent as given (get_api_schema: TransferDestinationAssistant, HandoffDestinationAssistant).",
+                  "properties": {
+                    "assistantName": {
+                      "description": "Name of the squad member to hand off to",
+                      "type": "string"
+                    },
+                    "description": {
+                      "description": "When to hand off to this member; the assistant uses this to decide",
+                      "type": "string"
+                    },
+                    "message": {
+                      "description": "What to say to the caller before handing off",
+                      "type": "string"
+                    },
+                    "type": {
+                      "const": "assistant",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "assistantName"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "assistantId": {
+                "description": "ID of an existing assistant. Use this or assistant.",
+                "type": "string"
+              },
+              "assistantOverrides": {
+                "additionalProperties": {},
+                "description": "Overrides for this member's settings and template variables (get_api_schema: AssistantOverrides)",
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "membersOverrides": {
+          "additionalProperties": {},
+          "description": "Overrides applied to every member's settings. Replaces the current overrides; omit to keep them (get_api_schema: AssistantOverrides).",
+          "type": "object"
+        },
+        "name": {
+          "description": "New name for the squad",
+          "type": "string"
+        },
+        "squadId": {
+          "description": "ID of the squad to update",
+          "type": "string"
+        }
+      },
+      "required": [
+        "squadId"
       ],
       "type": "object"
     }

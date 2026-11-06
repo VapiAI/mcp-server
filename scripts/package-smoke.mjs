@@ -23,6 +23,7 @@ const expectedToolNames = [
   'create_simulation_personality',
   'create_simulation_scenario',
   'create_simulation_suite',
+  'create_squad',
   'create_tool',
   'get_api_schema',
   'get_assistant',
@@ -30,6 +31,7 @@ const expectedToolNames = [
   'get_phone_number',
   'get_simulation_run',
   'get_simulation_run_item',
+  'get_squad',
   'get_tool',
   'list_assistants',
   'list_calls',
@@ -39,9 +41,11 @@ const expectedToolNames = [
   'list_simulation_scenarios',
   'list_simulation_suites',
   'list_simulations',
+  'list_squads',
   'list_tools',
   'run_simulations',
   'update_assistant',
+  'update_squad',
   'update_tool',
 ];
 

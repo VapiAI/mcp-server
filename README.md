@@ -289,6 +289,13 @@ truncation. Submitted values and credential contents are not echoed. Agents
 should correct the listed fields and retry; a validation failure never invokes
 the API handler. Tests exercise this correction loop through a real MCP client.
 
+`tools/list` advertises a compact input summary derived from the same validators:
+field names, basic types, required fields, defaults, and short constraints. It
+omits provider/model catalogs, lengthy API documentation, and recursive schema
+definitions. The full OpenAPI-derived validator still runs before any API call;
+the advertised summary is intentionally broader. Catalog tests cap the current
+serialized tool list at 20 KB to prevent unexpected agent-context growth.
+
 `npm test` includes schema contract tests, independent Ajv parity cases, and
 validation-feedback tests. The existing live compatibility
 suites cover read-only resources and disposable assistants/custom tools.

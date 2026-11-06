@@ -116,8 +116,20 @@ describe('MCP tools/list compatibility baseline', () => {
       expect(normalizedCatalog).toHaveLength(13);
       expect(normalizedCatalog).toEqual(expectedCatalog);
 
-      // The advertised contract must remain a usable JSON Schema after the
-      // validation/feedback boundary adds transport metadata.
+      // This is the agent-visible payload, not just the pretty-printed fixture.
+      expect(Buffer.byteLength(JSON.stringify(normalizedCatalog))).toBeLessThan(20_000);
+      for (const name of ['create_assistant', 'update_assistant']) {
+        const tool = response.tools.find(tool => tool.name === name)!;
+        expect(Buffer.byteLength(JSON.stringify(tool))).toBeLessThan(4_000);
+        expect(tool.inputSchema.properties?.voice).toEqual(expect.objectContaining({
+          type: 'object', required: ['provider', 'voiceId'],
+          properties: { provider: { type: 'string' }, voiceId: { type: 'string' }, model: { type: 'string' } },
+        }));
+      }
+      expect(JSON.stringify(normalizedCatalog)).not.toMatch(/"(?:definitions|\$defs|\$ref)":/);
+
+      // Compact discovery remains usable JSON Schema, but is intentionally
+      // broader than the full validator used by the execution boundary.
       const ajv = new Ajv({ strict: false });
       addFormats.default(ajv);
       const id = '00000000-0000-4000-8000-000000000001';

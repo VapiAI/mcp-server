@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { ToolResponse } from './utils.js';
+import { summarizeInputSchema } from './input-schema.js';
 
 type Issue = z.core.$ZodIssue;
 type FieldIssue = {
@@ -53,7 +54,7 @@ export function validationIssues(issues: Issue[], input: unknown, prefix: Proper
         return [optionIssue(path, compatible.flatMap(branch => branch.flatMap(child => child.code === 'invalid_value' ? child.values : [])))];
       }
       const expected = [...new Set(issue.errors.flatMap(branch => branch.flatMap(child => child.code === 'invalid_type' && child.path.length === 0 ? [child.expected] : [])))];
-      return [{ path: fieldPath(path), code: 'invalid_union', message: expected.length ? `Expected ${expected.join(' or ')}.` : 'Does not match the supported configuration; check the tool input schema.' }];
+      return [{ path: fieldPath(path), code: 'invalid_union', message: expected.length ? `Expected ${expected.join(' or ')}.` : 'Does not match the supported configuration; check the API schema for this field.' }];
     }
     if (issue.code === 'unrecognized_keys') return issue.keys.map(key => ({
       path: fieldPath([...path, key]), code: 'unrecognized_key',
@@ -74,7 +75,7 @@ function optionIssue(path: PropertyKey[], values: unknown[]): FieldIssue {
   const allowedValues = unique.slice(0, MAX_OPTIONS);
   return {
     path: fieldPath(path), code: 'invalid_value', allowedValues, allowedValuesTruncated: unique.length > MAX_OPTIONS,
-    message: `Expected one of: ${allowedValues.map(value => JSON.stringify(value)).join(', ')}${unique.length > MAX_OPTIONS ? ` (and ${unique.length - MAX_OPTIONS} more; see the tool input schema)` : ''}.`,
+    message: `Expected one of: ${allowedValues.map(value => JSON.stringify(value)).join(', ')}${unique.length > MAX_OPTIONS ? ` (and ${unique.length - MAX_OPTIONS} more; see the API schema for this field)` : ''}.`,
   };
 }
 
@@ -85,10 +86,12 @@ export function registerValidatedTool<Schema extends z.ZodType>(
   handler: (params: z.output<Schema>) => Promise<ToolResponse>
 ) {
   const schema = config.inputSchema;
-  // Advertise the real contract, but run its parser here exactly once. This
+  // Advertise a compact input summary, but run the full parser exactly once. This
   // boundary lets us format validation failures before the SDK stringifies a
   // raw ZodError. No request reaches the API handler before parsing succeeds.
-  const transportSchema = z.object({}).passthrough().meta(z.toJSONSchema(schema, { io: 'input', target: 'draft-07' }));
+  const transportSchema = z.object({}).passthrough().meta(summarizeInputSchema(
+    z.toJSONSchema(schema, { io: 'input', target: 'draft-07' })
+  ));
   return server.registerTool(name, { description: config.description, inputSchema: transportSchema }, async raw => {
     const parsed = await schema.safeParseAsync(raw);
     if (!parsed.success) {

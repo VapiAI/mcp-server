@@ -3,6 +3,8 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { VapiClient } from '@vapi-ai/server-sdk';
+import { Ajv } from 'ajv';
+import addFormats from 'ajv-formats';
 import { registerAllTools } from '../tools/index.js';
 
 const toolId = '00000000-0000-4000-8000-000000000004';
@@ -23,6 +25,23 @@ beforeAll(async () => {
 });
 afterAll(async () => { await client.close(); await server.close(); });
 beforeEach(() => { operation.mockClear(); });
+
+test.each([
+  { name: 'create_assistant', args: { name: 'Test', voice: { provider: 'vapi', voiceId: 'Elliot', model: 'foreign-model' } } },
+  { name: 'create_tool', args: { type: 'function', name: 'weather', function: {
+    parameters: { type: 'object', properties: { city: { type: 'not-a-type' } } },
+    server: { url: 'https://example.test' },
+  } } },
+])('$name retains full validation for details omitted from tools/list', async ({ name, args }) => {
+  const advertised = (await client.listTools()).tools.find(tool => tool.name === name)!;
+  const ajv = new Ajv({ strict: false });
+  addFormats.default(ajv);
+  expect(ajv.compile(advertised.inputSchema)(args)).toBe(true);
+  const response = await client.callTool({ name, arguments: args });
+  expect(response.isError).toBe(true);
+  expect(response.structuredContent).toEqual({ validationError: expect.objectContaining({ code: 'INVALID_ARGUMENTS' }) });
+  expect(operation).not.toHaveBeenCalled();
+});
 
 test.each([
   { name: 'create_call', args: { scheduledAt: 'tomorrow' }, path: 'scheduledAt' },

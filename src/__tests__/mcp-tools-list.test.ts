@@ -113,11 +113,14 @@ describe('MCP tools/list compatibility baseline', () => {
           compareStrings(left, right)
         );
 
-      expect(normalizedCatalog).toHaveLength(14);
+      expect(normalizedCatalog).toHaveLength(expectedCatalog.length);
       expect(normalizedCatalog).toEqual(expectedCatalog);
 
       // This is the agent-visible payload, not just the pretty-printed fixture.
-      expect(Buffer.byteLength(JSON.stringify(normalizedCatalog))).toBeLessThan(20_000);
+      // Preserve the existing API-tool budget and allow 2 KB for the new skill tools.
+      const apiCatalog = normalizedCatalog.filter(({ name }) => !['search_skills', 'load_skill'].includes(name));
+      expect(Buffer.byteLength(JSON.stringify(apiCatalog))).toBeLessThan(20_000);
+      expect(Buffer.byteLength(JSON.stringify(normalizedCatalog))).toBeLessThan(22_000);
       for (const name of ['create_assistant', 'update_assistant']) {
         const tool = response.tools.find(tool => tool.name === name)!;
         expect(Buffer.byteLength(JSON.stringify(tool))).toBeLessThan(4_000);
@@ -138,7 +141,7 @@ describe('MCP tools/list compatibility baseline', () => {
         get_assistant: { assistantId: id }, get_call: { callId: id },
         get_phone_number: { phoneNumberId: id }, get_tool: { toolId: id },
         create_call: {}, create_tool: { type: 'apiRequest', apiRequest: { url: 'https://example.test' } },
-        update_tool: { toolId: id },
+        update_tool: { toolId: id }, load_skill: { name: 'create-assistant' },
       };
       for (const tool of response.tools) {
         expect({ name: tool.name, valid: ajv.compile(tool.inputSchema)(validArguments[tool.name] ?? {}) }).toEqual({ name: tool.name, valid: true });

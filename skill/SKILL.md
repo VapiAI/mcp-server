@@ -26,9 +26,13 @@ If a tool returns an authentication error, tell the user to configure a Vapi API
 
 ### 3. Build the Voice Assistant
 
-Before creating an assistant, fetch the latest prompt engineering guidelines from the [Prompt Guide](https://raw.githubusercontent.com/VapiAI/mcp-server/main/skill/PROMPT_GUIDE.md).
+Use `search_skills` to find the relevant public Vapi workflow, then `load_skill`
+to read its instructions and any relevant supporting files from its returned
+file list.
 
-Use these guidelines to craft effective voice assistant prompts based on what the user wants to build.
+If the connected server does not yet expose these tools, fetch the latest
+[Prompt Guide](https://raw.githubusercontent.com/VapiAI/mcp-server/main/skill/PROMPT_GUIDE.md)
+for voice assistant prompting guidance.
 
 ## Available Tools
 
@@ -52,6 +56,10 @@ Use these guidelines to craft effective voice assistant prompts based on what th
 - `get_tool` - Get tool details
 - `create_tool` - Create tool for API integration
 - `update_tool` - Update tool
+
+### Public Skills
+- `search_skills` - Search public Vapi skills, or browse with an empty query
+- `load_skill` - Read a skill or a supporting file without installing it
 
 ## Workflow Examples
 

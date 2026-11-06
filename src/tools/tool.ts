@@ -28,7 +28,7 @@ export const registerToolTools = (
       inputSchema: GetToolInputSchema.shape,
     },
     createToolHandler(async (data) => {
-      const tool = await vapiClient.tools.get(data.toolId);
+      const tool = await vapiClient.tools.get({ id: data.toolId });
       return transformToolOutput(tool);
     })
   );
@@ -54,7 +54,10 @@ export const registerToolTools = (
     },
     createToolHandler(async (data) => {
       const updateToolDto = transformUpdateToolInput(data);
-      const tool = await vapiClient.tools.update(data.toolId, updateToolDto);
+      const tool = await vapiClient.tools.update({
+        id: data.toolId,
+        body: updateToolDto,
+      });
       return transformToolOutput(tool);
     })
   );

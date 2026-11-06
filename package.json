@@ -63,7 +63,7 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",
-    "@vapi-ai/server-sdk": "^0.5.2",
+    "@vapi-ai/server-sdk": "^3.0.0",
     "dotenv": "^16.4.7",
     "zod": "^3.25.76",
     "zod-to-json-schema": "^3.24.5"

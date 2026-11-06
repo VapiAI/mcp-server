@@ -29,7 +29,9 @@ export const registerPhoneNumberTools = (
     },
     createToolHandler(async (data) => {
       const phoneNumberId = data.phoneNumberId;
-      const phoneNumber = await vapiClient.phoneNumbers.get(phoneNumberId);
+      const phoneNumber = await vapiClient.phoneNumbers.get({
+        id: phoneNumberId,
+      });
       return transformPhoneNumberOutput(phoneNumber);
     })
   );

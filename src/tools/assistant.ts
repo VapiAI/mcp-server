@@ -54,7 +54,7 @@ export const registerAssistantTools = (
       //   console.log('get_assistant', data);
       const assistantId = data.assistantId;
       try {
-        const assistant = await vapiClient.assistants.get(assistantId);
+        const assistant = await vapiClient.assistants.get({ id: assistantId });
         if (!assistant) {
           throw new Error(`Assistant with ID ${assistantId} not found`);
         }
@@ -76,7 +76,9 @@ export const registerAssistantTools = (
       const assistantId = data.assistantId;
       try {
         // First check if the assistant exists
-        const existingAssistant = await vapiClient.assistants.get(assistantId);
+        const existingAssistant = await vapiClient.assistants.get({
+          id: assistantId,
+        });
         if (!existingAssistant) {
           throw new Error(`Assistant with ID ${assistantId} not found`);
         }
@@ -85,10 +87,10 @@ export const registerAssistantTools = (
         const updateAssistantDto = transformUpdateAssistantInput(data);
 
         // Update the assistant
-        const updatedAssistant = await vapiClient.assistants.update(
-          assistantId,
-          updateAssistantDto
-        );
+        const updatedAssistant = await vapiClient.assistants.update({
+          ...updateAssistantDto,
+          id: assistantId,
+        });
 
         return transformAssistantOutput(updatedAssistant);
       } catch (error: any) {

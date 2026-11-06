@@ -44,7 +44,7 @@ export const registerCallTools = (
       inputSchema: GetCallInputSchema.shape,
     },
     createToolHandler(async (data) => {
-      const call = await vapiClient.calls.get(data.callId);
+      const call = await vapiClient.calls.get({ id: data.callId });
       return transformCallOutput(call);
     })
   );

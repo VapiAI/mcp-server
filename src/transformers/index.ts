@@ -133,6 +133,11 @@ export function transformUpdateAssistantInput(
 export function transformAssistantOutput(
   assistant: Vapi.Assistant
 ): z.infer<typeof AssistantOutputSchema> {
+  // Report voice and transcriber models only when the assistant has one.
+  // Agents copy these values into create/update calls, and the API rejects a
+  // `model` for providers that don't take one.
+  const voiceModel = getAssistantVoiceModel(assistant.voice);
+  const transcriberModel = getAssistantTranscriberModel(assistant.transcriber);
   return {
     id: assistant.id,
     createdAt: assistant.createdAt,
@@ -145,11 +150,11 @@ export function transformAssistantOutput(
     voice: {
       provider: assistant.voice?.provider || '11labs',
       voiceId: getAssistantVoiceId(assistant.voice),
-      model: getAssistantVoiceModel(assistant.voice) || 'eleven_turbo_v2_5',
+      ...(voiceModel && { model: voiceModel }),
     },
     transcriber: {
       provider: assistant.transcriber?.provider || 'deepgram',
-      model: getAssistantTranscriberModel(assistant.transcriber) || 'nova-3',
+      ...(transcriberModel && { model: transcriberModel }),
     },
     toolIds: assistant.model?.toolIds || [],
   };

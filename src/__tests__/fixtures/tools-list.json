@@ -143,7 +143,7 @@
           "description": "Transcription configuration",
           "properties": {
             "model": {
-              "description": "Transcription model to use",
+              "description": "Transcription model to use. Omit it for providers that do not take a model.",
               "type": "string"
             },
             "provider": {
@@ -152,8 +152,7 @@
             }
           },
           "required": [
-            "provider",
-            "model"
+            "provider"
           ],
           "type": "object"
         },
@@ -166,7 +165,7 @@
           "description": "Voice configuration",
           "properties": {
             "model": {
-              "description": "Voice model to use",
+              "description": "Voice model to use. Omit it for providers that do not take a model, such as vapi.",
               "type": "string"
             },
             "provider": {
@@ -773,7 +772,7 @@
           "description": "New transcription configuration",
           "properties": {
             "model": {
-              "description": "Transcription model to use",
+              "description": "Transcription model to use. Omit it for providers that do not take a model.",
               "type": "string"
             },
             "provider": {
@@ -782,8 +781,7 @@
             }
           },
           "required": [
-            "provider",
-            "model"
+            "provider"
           ],
           "type": "object"
         },
@@ -792,7 +790,7 @@
           "description": "New voice configuration",
           "properties": {
             "model": {
-              "description": "Voice model to use",
+              "description": "Voice model to use. Omit it for providers that do not take a model, such as vapi.",
               "type": "string"
             },
             "provider": {

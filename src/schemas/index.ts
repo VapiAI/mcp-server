@@ -148,7 +148,12 @@ export const CreateAssistantInputSchema = z.object({
   transcriber: z
     .object({
       provider: z.string().describe('Provider to use for transcription'),
-      model: z.string().describe('Transcription model to use'),
+      model: z
+        .string()
+        .optional()
+        .describe(
+          'Transcription model to use. Omit it for providers that do not take a model.'
+        ),
     })
     .default(DEFAULT_TRANSCRIBER)
     .describe('Transcription configuration'),
@@ -156,7 +161,12 @@ export const CreateAssistantInputSchema = z.object({
     .object({
       provider: VoiceProviderSchema.describe('Provider to use for voice'),
       voiceId: z.string().describe('Voice ID to use'),
-      model: z.string().optional().describe('Voice model to use'),
+      model: z
+        .string()
+        .optional()
+        .describe(
+          'Voice model to use. Omit it for providers that do not take a model, such as vapi.'
+        ),
     })
     .default(DEFAULT_VOICE)
     .describe('Voice configuration'),
@@ -189,7 +199,7 @@ export const AssistantOutputSchema = BaseResponseSchema.extend({
   }),
   transcriber: z.object({
     provider: z.string(),
-    model: z.string(),
+    model: z.string().optional(),
   }),
   toolIds: z.array(z.string()).optional(),
 });
@@ -225,7 +235,12 @@ export const UpdateAssistantInputSchema = z.object({
   transcriber: z
     .object({
       provider: z.string().describe('Provider to use for transcription'),
-      model: z.string().describe('Transcription model to use'),
+      model: z
+        .string()
+        .optional()
+        .describe(
+          'Transcription model to use. Omit it for providers that do not take a model.'
+        ),
     })
     .optional()
     .describe('New transcription configuration'),
@@ -233,7 +248,12 @@ export const UpdateAssistantInputSchema = z.object({
     .object({
       provider: VoiceProviderSchema.describe('Provider to use for voice'),
       voiceId: z.string().describe('Voice ID to use'),
-      model: z.string().optional().describe('Voice model to use'),
+      model: z
+        .string()
+        .optional()
+        .describe(
+          'Voice model to use. Omit it for providers that do not take a model, such as vapi.'
+        ),
     })
     .optional()
     .describe('New voice configuration'),

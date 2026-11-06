@@ -202,6 +202,33 @@ describe('MCP tool execution compatibility', () => {
     expect(getOperation).toHaveBeenLastCalledWith({ id: expectedId });
   });
 
+  test('get_assistant does not invent voice or transcriber models', async () => {
+    vapiOperations.assistants.get.mockResolvedValueOnce({
+      ...assistant,
+      voice: { provider: 'vapi', voiceId: 'Elliot' },
+      transcriber: { provider: 'assembly-ai' },
+    } as never);
+
+    const result = await invoke('get_assistant', { assistantId: assistant.id });
+
+    expect(result.voice).toEqual({ provider: 'vapi', voiceId: 'Elliot' });
+    expect(result.transcriber).toEqual({ provider: 'assembly-ai' });
+  });
+
+  test('create_assistant accepts a transcriber without a model', async () => {
+    await invoke('create_assistant', {
+      name: 'Compatibility Assistant',
+      voice: { provider: 'vapi', voiceId: 'Elliot' },
+      transcriber: { provider: 'assembly-ai' },
+    });
+
+    const [dto] = vapiOperations.assistants.create.mock.calls.at(-1) as unknown as [
+      Record<string, unknown>,
+    ];
+    expect(dto.voice).toEqual({ provider: 'vapi', voiceId: 'Elliot' });
+    expect(dto.transcriber).toEqual({ provider: 'assembly-ai' });
+  });
+
   test('create_assistant preserves schema defaults and calls Vapi', async () => {
     const result = await invoke('create_assistant', {
       name: 'Compatibility Assistant',

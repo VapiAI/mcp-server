@@ -257,6 +257,14 @@ and request bodies. Builds and installs use it without network access. Refresh
 explicitly with `npm run schemas:snapshot`, or pass a saved spec with
 `npm run schemas:snapshot -- /path/spec.json`.
 
+When upgrading `@vapi-ai/server-sdk`, refresh and review the bundled schema in
+the same PR, then run `npm run typecheck`, `npm test`, and `npm run test:package`.
+Check changes against the SDK's request types and the MCP adapters below. The
+public endpoint serves the current API spec, not a spec version tied to the SDK
+release, so refreshing does not by itself guarantee compatibility. Keep the
+reviewed schema bundled with the release; do not refresh it during installation
+or startup.
+
 The adapter documents published contract corrections: overlapping enum/string
 `oneOf` alternatives become `anyOf`; duplicate enum values and JavaScript regex
 delimiters are removed; the contradictory object/string-enum annotation on

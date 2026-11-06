@@ -2,7 +2,12 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient, Vapi } from '@vapi-ai/server-sdk';
 
 import { GetToolInputSchema, CreateToolInputSchema, UpdateToolInputSchema } from '../schemas/index.js';
-import { transformToolInput, transformUpdateToolInput, transformToolOutput } from '../transformers/index.js';
+import {
+  transformToolInput,
+  transformUpdateToolInput,
+  transformToolOutput,
+  withFullPayload,
+} from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
 
 export const registerToolTools = (
@@ -29,7 +34,7 @@ export const registerToolTools = (
     },
     createToolHandler(async (data) => {
       const tool = await vapiClient.tools.get({ id: data.toolId });
-      return transformToolOutput(tool);
+      return withFullPayload(transformToolOutput(tool), tool);
     })
   );
 

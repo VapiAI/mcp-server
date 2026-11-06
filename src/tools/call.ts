@@ -5,6 +5,7 @@ import { CallInputSchema, GetCallInputSchema } from '../schemas/index.js';
 import {
   transformCallInput,
   transformCallOutput,
+  withFullPayload,
 } from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
 
@@ -45,7 +46,7 @@ export const registerCallTools = (
     },
     createToolHandler(async (data) => {
       const call = await vapiClient.calls.get({ id: data.callId });
-      return transformCallOutput(call);
+      return withFullPayload(transformCallOutput(call), call);
     })
   );
 };

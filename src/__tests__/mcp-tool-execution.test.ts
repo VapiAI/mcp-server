@@ -124,6 +124,63 @@ describe('MCP tool execution compatibility', () => {
 
   test.each([
     [
+      'get_tool',
+      { toolId: tool.id },
+      vapiOperations.tools.get,
+      {
+        ...tool,
+        type: 'transferCall',
+        destinations: [
+          {
+            type: 'number',
+            number: '+15555550102',
+            transferPlan: { mode: 'warm-transfer-say-summary' },
+          },
+        ],
+        messages: [{ type: 'request-start', content: 'Transferring you now' }],
+      },
+      {
+        name: 'compatibility_tool',
+        description: 'Compatibility tool',
+        parameters: tool.function.parameters,
+      },
+    ],
+    [
+      'get_call',
+      { callId: call.id },
+      vapiOperations.calls.get,
+      {
+        ...call,
+        artifact: { logUrl: 'https://example.test/log' },
+        transport: { provider: 'twilio' },
+      },
+      { scheduledAt: undefined },
+    ],
+    [
+      'get_phone_number',
+      { phoneNumberId: phoneNumber.id },
+      vapiOperations.phoneNumbers.get,
+      { ...phoneNumber, provider: 'twilio', assistantId: assistant.id },
+      { phoneNumber: phoneNumber.number },
+    ],
+  ])('%s returns the full API payload with the summary fields', async (
+    name,
+    args,
+    getOperation,
+    fullPayload,
+    summaryFields
+  ) => {
+    getOperation.mockResolvedValueOnce(fullPayload as never);
+
+    const result = await invoke(name, args);
+
+    expect(result).toEqual(
+      JSON.parse(JSON.stringify({ ...summaryFields, ...fullPayload }))
+    );
+  });
+
+  test.each([
+    [
       'list_assistants',
       vapiOperations.assistants.list,
       expect.objectContaining({

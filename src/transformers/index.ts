@@ -365,19 +365,22 @@ export function transformUpdateToolInput(
 }
 
 export function transformToolOutput(
-  tool: Vapi.ToolsGetResponse
+  tool: Vapi.GetToolsResponse
 ): z.infer<typeof ToolOutputSchema> {
+  // Not every tool type in SDK 3.x has `function` or `server`.
+  const toolFunction = 'function' in tool ? tool.function : undefined;
+  const toolServer = 'server' in tool ? tool.server : undefined;
   return {
     id: tool.id,
     createdAt: tool.createdAt,
     updatedAt: tool.updatedAt,
     type: tool.type || '',
-    name: tool.function?.name || '',
-    description: tool.function?.description || '',
-    parameters: tool.function?.parameters || {},
+    name: toolFunction?.name || '',
+    description: toolFunction?.description || '',
+    parameters: toolFunction?.parameters || {},
     server: {
-      url: tool.server?.url || '',
-      headers: tool.server?.headers as Record<string, string> || {},
+      url: toolServer?.url || '',
+      headers: toolServer?.headers as Record<string, string> || {},
     }
   };
 }

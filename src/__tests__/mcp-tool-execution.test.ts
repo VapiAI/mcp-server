@@ -199,7 +199,7 @@ describe('MCP tool execution compatibility', () => {
   ) => {
     const result = await invoke(name, args);
     expect(result.id).toBe(expectedId);
-    expect(getOperation).toHaveBeenLastCalledWith(expectedId);
+    expect(getOperation).toHaveBeenLastCalledWith({ id: expectedId });
   });
 
   test('create_assistant preserves schema defaults and calls Vapi', async () => {
@@ -234,10 +234,10 @@ describe('MCP tool execution compatibility', () => {
     });
 
     expect(result.id).toBe(assistant.id);
-    expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith(
-      assistant.id,
-      { name: 'Updated Assistant' }
-    );
+    expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith({
+      id: assistant.id,
+      name: 'Updated Assistant',
+    });
   });
 
   test('create_call preserves the outbound-call payload passed to Vapi', async () => {
@@ -283,8 +283,9 @@ describe('MCP tool execution compatibility', () => {
     });
 
     expect(result.id).toBe(tool.id);
-    expect(vapiOperations.tools.update).toHaveBeenLastCalledWith(tool.id, {
-      function: { name: 'updated_compatibility_tool' },
+    expect(vapiOperations.tools.update).toHaveBeenLastCalledWith({
+      id: tool.id,
+      body: { function: { name: 'updated_compatibility_tool' } },
     });
   });
 

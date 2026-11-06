@@ -177,7 +177,7 @@ liveDescribe('live Vapi create/update compatibility', () => {
 
       if (toolsResult.status === 'fulfilled') {
         for (const tool of toolsResult.value) {
-          const name = tool.function?.name;
+          const name = 'function' in tool ? tool.function?.name : undefined;
           if (tool.id && name && expectedToolNames.has(name)) {
             toolIds.add(tool.id);
           }
@@ -187,9 +187,11 @@ liveDescribe('live Vapi create/update compatibility', () => {
       }
 
       const cleanupOperations = [
-        ...Array.from(toolIds, async (id) => cleanupClient.tools.delete(id)),
+        ...Array.from(toolIds, async (id) =>
+          cleanupClient.tools.delete({ id })
+        ),
         ...Array.from(assistantIds, async (id) =>
-          cleanupClient.assistants.delete(id)
+          cleanupClient.assistants.delete({ id })
         ),
       ];
       const cleanupResults = await Promise.allSettled(cleanupOperations);

@@ -285,7 +285,45 @@ describe('MCP tool execution compatibility', () => {
     expect(result.id).toBe(tool.id);
     expect(vapiOperations.tools.update).toHaveBeenLastCalledWith({
       id: tool.id,
-      body: { function: { name: 'updated_compatibility_tool' } },
+      body: {
+        function: { ...tool.function, name: 'updated_compatibility_tool' },
+      },
+    });
+  });
+
+  test('update_tool with only a description keeps the function name', async () => {
+    await invoke('update_tool', {
+      toolId: tool.id,
+      description: 'Updated description',
+    });
+
+    expect(vapiOperations.tools.get).toHaveBeenLastCalledWith({ id: tool.id });
+    expect(vapiOperations.tools.update).toHaveBeenLastCalledWith({
+      id: tool.id,
+      body: {
+        function: { ...tool.function, description: 'Updated description' },
+      },
+    });
+  });
+
+  test('update_tool with new parameters keeps the existing server headers', async () => {
+    await invoke('update_tool', {
+      toolId: tool.id,
+      function: {
+        parameters: { type: 'object', properties: { a: { type: 'string' } } },
+        server: { url: 'https://example.test/v2' },
+      },
+    });
+
+    expect(vapiOperations.tools.update).toHaveBeenLastCalledWith({
+      id: tool.id,
+      body: {
+        function: {
+          ...tool.function,
+          parameters: { type: 'object', properties: { a: { type: 'string' } } },
+        },
+        server: { ...tool.server, url: 'https://example.test/v2' },
+      },
     });
   });
 

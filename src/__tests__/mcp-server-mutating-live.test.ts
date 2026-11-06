@@ -131,6 +131,13 @@ liveDescribe('live Vapi create/update compatibility', () => {
 
       const persistedTool = await invoke('get_tool', { toolId });
       expect(persistedTool.name).toBe(updatedToolName);
+
+      // A description-only update must not drop the function name.
+      const redescribedTool = await invoke('update_tool', {
+        toolId,
+        description: 'Redescribed disposable compatibility test tool',
+      });
+      expect(redescribedTool.name).toBe(updatedToolName);
     } catch (error) {
       testFailure = error;
       throw error;

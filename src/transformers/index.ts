@@ -62,7 +62,8 @@ export function transformAssistantInput(
 }
 
 export function transformUpdateAssistantInput(
-  input: z.infer<typeof UpdateAssistantInputSchema>
+  input: z.infer<typeof UpdateAssistantInputSchema>,
+  existing?: Vapi.Assistant
 ): Vapi.UpdateAssistantDto {
   const updateDto: any = {};
 
@@ -70,38 +71,46 @@ export function transformUpdateAssistantInput(
     updateDto.name = input.name;
   }
 
-  if (input.llm) {
-    updateDto.model = {
-      provider: input.llm.provider as any,
-      model: input.llm.model,
-    };
+  const hasToolIds = !!input.toolIds && input.toolIds.length > 0;
+  if (input.llm || hasToolIds || input.instructions) {
+    // PATCH replaces `model` as a whole, so start from the assistant's current
+    // model. Sending only the changed fields drops `provider`/`model` and the
+    // API rejects the update.
+    const existingModel: any = existing?.model ?? {};
+    const providerChanged =
+      !!input.llm && input.llm.provider !== existingModel.provider;
+    // Provider-specific settings may not be valid for a new provider, so only
+    // the prompt and tools carry over when the provider changes.
+    const model: any = providerChanged
+      ? {
+          ...(existingModel.messages && { messages: existingModel.messages }),
+          ...(existingModel.toolIds && { toolIds: existingModel.toolIds }),
+        }
+      : { ...existingModel };
 
-    if (input.toolIds && input.toolIds.length > 0) {
-      updateDto.model.toolIds = input.toolIds;
+    if (input.llm) {
+      model.provider = input.llm.provider as any;
+      model.model = input.llm.model;
+    }
+
+    if (hasToolIds) {
+      model.toolIds = input.toolIds;
     }
 
     if (input.instructions) {
-      updateDto.model.messages = [
+      const otherMessages = (model.messages ?? []).filter(
+        (message: any) => message.role !== 'system'
+      );
+      model.messages = [
         {
           role: 'system',
           content: input.instructions,
         },
+        ...otherMessages,
       ];
-    }
-  } else {
-    if (input.toolIds && input.toolIds.length > 0) {
-      updateDto.model = { toolIds: input.toolIds };
     }
 
-    if (input.instructions) {
-      if (!updateDto.model) updateDto.model = {};
-      updateDto.model.messages = [
-        {
-          role: 'system',
-          content: input.instructions,
-        },
-      ];
-    }
+    updateDto.model = model;
   }
 
   if (input.transcriber) {

@@ -104,6 +104,13 @@ liveDescribe('live Vapi create/update compatibility', () => {
       });
       expect(persistedAssistant.name).toBe(updatedAssistantName);
 
+      // An instructions-only update must not drop the model's provider.
+      const reinstructedAssistant = await invoke('update_assistant', {
+        assistantId,
+        instructions: 'Disposable compatibility test prompt',
+      });
+      expect(reinstructedAssistant.llm).toEqual(persistedAssistant.llm);
+
       const createdTool = await invoke('create_tool', {
         type: 'apiRequest',
         name: createdToolName,

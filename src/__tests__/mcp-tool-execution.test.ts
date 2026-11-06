@@ -9,14 +9,14 @@ import { parseToolResponse } from '../utils/response.js';
 const timestamp = '2026-01-01T00:00:00.000Z';
 
 const assistant = {
-  id: 'assistant-1',
+  id: '00000000-0000-4000-8000-000000000001',
   createdAt: timestamp,
   updatedAt: timestamp,
   name: 'Compatibility Assistant',
   model: {
     provider: 'openai',
     model: 'gpt-4o',
-    toolIds: ['tool-1'],
+    toolIds: ['00000000-0000-4000-8000-000000000004'],
   },
   voice: {
     provider: '11labs',
@@ -30,18 +30,18 @@ const assistant = {
 };
 
 const call = {
-  id: 'call-1',
+  id: '00000000-0000-4000-8000-000000000002',
   createdAt: timestamp,
   updatedAt: timestamp,
   status: 'ended',
   endedReason: 'customer-ended-call',
   assistantId: assistant.id,
-  phoneNumberId: 'phone-number-1',
+  phoneNumberId: '00000000-0000-4000-8000-000000000003',
   customer: { number: '+15555550100' },
 };
 
 const phoneNumber = {
-  id: 'phone-number-1',
+  id: '00000000-0000-4000-8000-000000000003',
   createdAt: timestamp,
   updatedAt: timestamp,
   name: 'Compatibility Number',
@@ -50,7 +50,7 @@ const phoneNumber = {
 };
 
 const tool = {
-  id: 'tool-1',
+  id: '00000000-0000-4000-8000-000000000004',
   createdAt: timestamp,
   updatedAt: timestamp,
   type: 'function',
@@ -130,7 +130,7 @@ describe('MCP tool execution compatibility', () => {
         id: assistant.id,
         name: assistant.name,
         llm: { provider: 'openai', model: 'gpt-4o' },
-        toolIds: ['tool-1'],
+        toolIds: ['00000000-0000-4000-8000-000000000004'],
       }),
     ],
     [

@@ -21,7 +21,7 @@ const configurations = [
 
 describe.each([
   { operation: 'create', schema: CreateAssistantInputSchema, base: { name: 'Schema contract' } },
-  { operation: 'update', schema: UpdateAssistantInputSchema, base: { assistantId: 'assistant-1' } },
+  { operation: 'update', schema: UpdateAssistantInputSchema, base: { assistantId: '00000000-0000-4000-8000-000000000001' } },
 ])('$operation assistant schema contract', ({ operation, schema, base }) => {
   test.each(configurations)('preserves valid provider configuration: %j', configuration => {
     const parsed = schema.parse({ ...base, ...configuration });
@@ -29,7 +29,7 @@ describe.each([
     expect(parsed.transcriber).toEqual(configuration.transcriber);
     const dto = operation === 'create'
       ? transformAssistantInput(CreateAssistantInputSchema.parse({ name: 'Schema contract', ...configuration }))
-      : transformUpdateAssistantInput(UpdateAssistantInputSchema.parse({ assistantId: 'assistant-1', ...configuration }));
+      : transformUpdateAssistantInput(UpdateAssistantInputSchema.parse({ assistantId: '00000000-0000-4000-8000-000000000001', ...configuration }));
     expect(dto.voice).toEqual(configuration.voice);
     expect(dto.transcriber).toEqual(configuration.transcriber);
   });
@@ -67,7 +67,7 @@ test('create keeps MCP defaults and leaves an omitted firstMessageMode absent', 
 });
 
 test('a sparse update does not inject create defaults', () => {
-  const parsed = UpdateAssistantInputSchema.parse({ assistantId: 'assistant-1', name: 'Renamed' });
-  expect(parsed).toEqual({ assistantId: 'assistant-1', name: 'Renamed' });
+  const parsed = UpdateAssistantInputSchema.parse({ assistantId: '00000000-0000-4000-8000-000000000001', name: 'Renamed' });
+  expect(parsed).toEqual({ assistantId: '00000000-0000-4000-8000-000000000001', name: 'Renamed' });
   expect(transformUpdateAssistantInput(parsed)).toEqual({ name: 'Renamed' });
 });

@@ -321,13 +321,22 @@ export function transformToolInput(
 }
 
 export function transformUpdateToolInput(
-  input: z.infer<typeof UpdateToolInputSchema>
+  input: z.infer<typeof UpdateToolInputSchema>,
+  existing?: Vapi.GetToolsResponse
 ): any {
   let updateDto: any = {};
+  // PATCH replaces `function` and `server` as a whole, so start from the
+  // tool's current values. Sending only the changed fields drops
+  // `function.name` and the API rejects the update.
+  const existingFunction: any =
+    existing && 'function' in existing ? existing.function : undefined;
+  const existingServer: any =
+    existing && 'server' in existing ? existing.server : undefined;
 
   // Add function definition if name and description are provided
   if (input.name || input.description) {
     updateDto.function = {
+      ...existingFunction,
       ...(input.name && { name: input.name }),
       ...(input.description && { description: input.description }),
     };
@@ -350,11 +359,13 @@ export function transformUpdateToolInput(
       updateDto.function.parameters = input.function.parameters;
     } else {
       updateDto.function = {
+        ...existingFunction,
         parameters: input.function.parameters,
       };
     }
-    
+
     updateDto.server = {
+      ...existingServer,
       url: input.function.server.url,
       ...(input.function.server.headers && { headers: input.function.server.headers }),
     };

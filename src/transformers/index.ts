@@ -384,3 +384,18 @@ export function transformToolOutput(
     }
   };
 }
+
+// ===== Full payloads =====
+
+/**
+ * Returns the full API object with the summary fields underneath it. Every
+ * field the API returned is kept (transfer destinations, messages, artifacts,
+ * ...), and summary-only fields such as `name` or `phoneNumber` stay for
+ * existing clients. Where both have a key, the API's value wins.
+ */
+export function withFullPayload<S extends object, F extends object>(
+  summary: S,
+  full: F
+): S & F {
+  return { ...summary, ...full };
+}

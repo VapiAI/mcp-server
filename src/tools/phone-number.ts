@@ -1,7 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient } from '@vapi-ai/server-sdk';
 
-import { transformPhoneNumberOutput } from '../transformers/index.js';
+import {
+  transformPhoneNumberOutput,
+  withFullPayload,
+} from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
 import { GetPhoneNumberInputSchema } from '../schemas/index.js';
 
@@ -32,7 +35,10 @@ export const registerPhoneNumberTools = (
       const phoneNumber = await vapiClient.phoneNumbers.get({
         id: phoneNumberId,
       });
-      return transformPhoneNumberOutput(phoneNumber);
+      return withFullPayload(
+        transformPhoneNumberOutput(phoneNumber),
+        phoneNumber
+      );
     })
   );
 };

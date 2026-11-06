@@ -9,14 +9,14 @@ import { parseToolResponse } from '../utils/response.js';
 const timestamp = '2026-01-01T00:00:00.000Z';
 
 const assistant = {
-  id: 'assistant-1',
+  id: '00000000-0000-4000-8000-000000000001',
   createdAt: timestamp,
   updatedAt: timestamp,
   name: 'Compatibility Assistant',
   model: {
     provider: 'openai',
     model: 'gpt-4o',
-    toolIds: ['tool-1'],
+    toolIds: ['00000000-0000-4000-8000-000000000004'],
     temperature: 0.3,
     messages: [{ role: 'system', content: 'Existing prompt' }],
   },
@@ -32,18 +32,18 @@ const assistant = {
 };
 
 const call = {
-  id: 'call-1',
+  id: '00000000-0000-4000-8000-000000000002',
   createdAt: timestamp,
   updatedAt: timestamp,
   status: 'ended',
   endedReason: 'customer-ended-call',
   assistantId: assistant.id,
-  phoneNumberId: 'phone-number-1',
+  phoneNumberId: '00000000-0000-4000-8000-000000000003',
   customer: { number: '+15555550100' },
 };
 
 const phoneNumber = {
-  id: 'phone-number-1',
+  id: '00000000-0000-4000-8000-000000000003',
   createdAt: timestamp,
   updatedAt: timestamp,
   name: 'Compatibility Number',
@@ -52,7 +52,7 @@ const phoneNumber = {
 };
 
 const tool = {
-  id: 'tool-1',
+  id: '00000000-0000-4000-8000-000000000004',
   createdAt: timestamp,
   updatedAt: timestamp,
   type: 'function',
@@ -132,7 +132,7 @@ describe('MCP tool execution compatibility', () => {
         id: assistant.id,
         name: assistant.name,
         llm: { provider: 'openai', model: 'gpt-4o' },
-        toolIds: ['tool-1'],
+        toolIds: ['00000000-0000-4000-8000-000000000004'],
       }),
     ],
     [
@@ -304,7 +304,7 @@ describe('MCP tool execution compatibility', () => {
   test('update_assistant with only toolIds keeps the existing model', async () => {
     await invoke('update_assistant', {
       assistantId: assistant.id,
-      toolIds: ['tool-2'],
+      toolIds: ['00000000-0000-4000-8000-000000000005'],
     });
 
     expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith({
@@ -312,7 +312,7 @@ describe('MCP tool execution compatibility', () => {
       model: {
         provider: 'openai',
         model: 'gpt-4o',
-        toolIds: ['tool-2'],
+        toolIds: ['00000000-0000-4000-8000-000000000005'],
         temperature: 0.3,
         messages: [{ role: 'system', content: 'Existing prompt' }],
       },
@@ -330,7 +330,7 @@ describe('MCP tool execution compatibility', () => {
       model: {
         provider: 'openai',
         model: 'gpt-4o',
-        toolIds: ['tool-1'],
+        toolIds: ['00000000-0000-4000-8000-000000000004'],
         temperature: 0.3,
         messages: [{ role: 'system', content: 'New prompt' }],
       },
@@ -348,7 +348,7 @@ describe('MCP tool execution compatibility', () => {
       model: {
         provider: 'anthropic',
         model: 'claude-3-5-haiku-20241022',
-        toolIds: ['tool-1'],
+        toolIds: ['00000000-0000-4000-8000-000000000004'],
         messages: [{ role: 'system', content: 'Existing prompt' }],
       },
     });

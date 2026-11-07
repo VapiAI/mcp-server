@@ -162,6 +162,17 @@ describe('stdio MCP protocol compatibility', () => {
         expect(invalid.result?.structuredContent).toEqual({ validationError: expect.objectContaining({
           code: 'INVALID_ARGUMENTS', issues: [expect.objectContaining({ path: 'toolId' })],
         }) });
+        const simulation = await server.request('tools/call', {
+          name: 'run_simulations', arguments: {
+            assistantId: '00000000-0000-4000-8000-000000000001',
+            simulationIds: ['00000000-0000-4000-8000-000000000002'], iterations: 11,
+          },
+        });
+        expect(simulation.error).toBeUndefined();
+        expect(simulation.result?.isError).toBe(true);
+        expect(simulation.result?.structuredContent).toEqual({ validationError: expect.objectContaining({
+          code: 'INVALID_ARGUMENTS', issues: [expect.objectContaining({ path: 'iterations', maximum: 10 })],
+        }) });
       } finally {
         await server.close();
       }

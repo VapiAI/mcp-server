@@ -96,3 +96,42 @@ const snapshot = {
 };
 await writeFile(new URL('../src/schemas/assistant-openapi.json', import.meta.url), `${JSON.stringify(snapshot, null, 2)}\n`);
 console.log('Saved compact input contracts for all current MCP tool surfaces');
+
+// Simulation inputs share the source and normalization strategy above, but keep
+// their full DTO closure separate from the compact existing-tool projection.
+const simulationSchemas = Object.fromEntries([
+  'CreatePersonalityDTO', 'CreateScenarioDTO', 'CreateSimulationDTO',
+  'CreateSimulationSuiteDTO', 'CreateSimulationRunDTO',
+].map(name => {
+  if (!schemas[name]) throw new Error(`Missing simulation DTO: ${name}`);
+  return [name, schemas[name]];
+}));
+const simulationParameters = {};
+for (const [name, path, location, parameter, method] of [
+  ['limit', '/eval/simulation', 'query', 'limit', 'get'],
+  ['scenarioName', '/eval/simulation/scenario', 'query', 'name', 'get'],
+  ['runStatus', '/eval/simulation/run', 'query', 'status', 'get'],
+  ['targetId', '/eval/simulation/run', 'query', 'targetId', 'get'],
+  ['runId', '/eval/simulation/run/{id}', 'path', 'id', 'get'],
+  ['itemRunId', '/eval/simulation/run/{id}/item/{itemId}', 'path', 'id', 'get'],
+  ['itemId', '/eval/simulation/run/{id}/item/{itemId}', 'path', 'itemId', 'get'],
+  ['idempotencyKey', '/eval/simulation/run', 'header', 'Idempotency-Key', 'post'],
+]) {
+  const entry = spec.paths[path]?.[method]?.parameters?.find(p => p.in === location && p.name === parameter);
+  if (!entry?.schema) throw new Error(`Missing simulation parameter: ${path} ${parameter}`);
+  simulationParameters[name] = entry.schema;
+}
+// A single paging adapter is shared by all five simulation list tools. Fail a
+// refresh if the API stops publishing the same limit contract for them.
+for (const path of ['/eval/simulation/personality', '/eval/simulation/scenario', '/eval/simulation/suite', '/eval/simulation/run']) {
+  const limit = spec.paths[path].get.parameters.find(p => p.in === 'query' && p.name === 'limit').schema;
+  if (JSON.stringify(limit) !== JSON.stringify(simulationParameters.limit)) throw new Error(`Simulation limit contract differs: ${path}`);
+}
+// Start a fresh closure; avoid bundling unrelated existing-tool definitions.
+for (const key of Object.keys(definitions)) delete definitions[key];
+closeReferences(simulationSchemas);
+closeReferences(simulationParameters);
+await writeFile(new URL('../src/schemas/simulation-openapi.json', import.meta.url), `${JSON.stringify({
+  source: snapshot.source, schemas: simulationSchemas, parameters: simulationParameters, definitions,
+}, null, 2)}\n`);
+console.log('Saved full simulation input contracts');

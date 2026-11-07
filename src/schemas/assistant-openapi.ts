@@ -25,11 +25,17 @@ export const functionRequiresName = snapshot.functionRequiresName;
 // The published spec uses overlapping oneOf [enum, string] branches for preset
 // IDs and model names. The API accepts both. Change only this recognizable
 // pattern, leaving discriminated/exclusive unions intact.
-function inputContract(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(inputContract);
+export function inputContract(value: unknown, schemaMap = false): unknown {
+  if (Array.isArray(value)) return value.map(item => inputContract(item));
   if (!value || typeof value !== 'object') return value;
   const schema = value as Record<string, unknown>;
-  const alternatives = schema.oneOf as JsonSchema[] | undefined;
+  // Property names such as oneOf/default are user-defined keys in schema maps,
+  // rather than JSON Schema keywords. Preserve them and normalize their values.
+  if (schemaMap) return Object.fromEntries(Object.entries(schema).map(([key, nested]) => [key, inputContract(nested)]));
+  // An empty published preset enum denotes no preset values. Represent that
+  // branch as an always-failing schema so it remains valid JSON Schema.
+  if (Array.isArray(schema.enum) && schema.enum.length === 0) return { not: {} };
+  const alternatives = Array.isArray(schema.oneOf) ? schema.oneOf as JsonSchema[] : undefined;
   const overlap = alternatives?.some(branch => branch.type === 'string' &&
     Object.keys(branch).every(key => ['type', 'title', 'description'].includes(key))) &&
     alternatives.some(branch => branch.type === 'string' && Array.isArray(branch.enum));
@@ -48,7 +54,9 @@ function inputContract(value: unknown): unknown {
         // BackoffPlan.type is published as object with a string enum. Keep the
         // enum's actual value type; the incompatible type annotation is a spec defect.
         : key === 'type' && nested === 'object' && Array.isArray(schema.enum) && schema.enum.every(v => typeof v === 'string') ? 'string'
-        : inputContract(nested),
+        : ['properties', 'definitions', '$defs', 'patternProperties', 'dependentSchemas'].includes(key) ? inputContract(nested, true)
+        : ['allOf', 'anyOf', 'oneOf', 'not', 'items', 'additionalProperties', 'contains', 'if', 'then', 'else'].includes(key) ? inputContract(nested)
+        : nested,
     ]));
 }
 
@@ -59,7 +67,7 @@ export function providerContract(field: 'voice' | 'transcriber' | 'llm'): JsonSc
     oneOf: supported.map(definition => ({
       type: 'object',
       required: definition.required,
-      properties: inputContract(definition.properties) as Record<string, JsonSchema>,
+      properties: inputContract(definition.properties, true) as Record<string, JsonSchema>,
       // API DTOs reject undeclared provider fields. In particular, a provider
       // without a model property must reject model, not silently accept it.
       additionalProperties: false,

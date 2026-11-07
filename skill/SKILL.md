@@ -64,6 +64,25 @@ for voice assistant prompting guidance.
 - `search_skills` - Search public Vapi skills, or browse with an empty query
 - `load_skill` - Read a skill or a supporting file without installing it
 
+### Simulations
+
+- `list_simulation_personalities` - List simulated callers
+- `create_simulation_personality` - Create a simulated caller with a tester assistant
+- `list_simulation_scenarios` - List tester scripts and evaluations
+- `create_simulation_scenario` - Create a tester script and evaluations
+- `list_simulations` - List scenario/personality pairs
+- `create_simulation` - Pair a scenario with a personality
+- `list_simulation_suites` - List groups of simulations
+- `create_simulation_suite` - Group simulations into a suite
+- `run_simulations` - Run simulations or suites against an assistant or squad
+- `list_simulation_runs` - List runs and filter by status or target
+- `get_simulation_run` - Get run status and item summaries
+- `get_simulation_run_item` - Get a full item including transcript and results
+
+Create a personality and scenario, pair them in a simulation, then run it against
+an assistant or squad. Correct fields reported by structured validation errors
+and retry. Use the item tool for full transcripts after inspecting run status.
+
 ## Workflow Examples
 
 **User:** "I want to build a voice assistant that can schedule appointments"

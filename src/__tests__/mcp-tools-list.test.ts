@@ -113,16 +113,29 @@ describe('MCP tools/list compatibility baseline', () => {
           compareStrings(left, right)
         );
 
-      expect(normalizedCatalog).toHaveLength(expectedCatalog.length);
+      expect(normalizedCatalog).toHaveLength(29);
       expect(normalizedCatalog).toEqual(expectedCatalog);
 
-      // This is the agent-visible payload, not just the pretty-printed fixture.
-      // Preserve the API and skill-tool budgets, with 1 KB for the docs proxy.
-      const apiCatalog = normalizedCatalog.filter(({ name }) => !['search_skills', 'load_skill', 'ask_vapi_docs'].includes(name));
+      // Preserve the existing discovery budgets; simulations add at most 10 KB.
+      const simulationTools = normalizedCatalog.filter(tool => tool.name.includes('simulation'));
+      const existingCatalog = normalizedCatalog.filter(tool => !tool.name.includes('simulation'));
+      const apiCatalog = existingCatalog.filter(({ name }) => !['search_skills', 'load_skill', 'ask_vapi_docs'].includes(name));
+      const withoutDocs = existingCatalog.filter(tool => tool.name !== 'ask_vapi_docs');
+      expect(apiCatalog).toHaveLength(14);
+      expect(simulationTools).toHaveLength(12);
       expect(Buffer.byteLength(JSON.stringify(apiCatalog))).toBeLessThan(20_000);
-      const existingCatalog = normalizedCatalog.filter(tool => tool.name !== 'ask_vapi_docs');
-      expect(Buffer.byteLength(JSON.stringify(existingCatalog))).toBeLessThan(22_000);
-      expect(Buffer.byteLength(JSON.stringify(normalizedCatalog))).toBeLessThan(23_000);
+      expect(Buffer.byteLength(JSON.stringify(withoutDocs))).toBeLessThan(22_000);
+      expect(Buffer.byteLength(JSON.stringify(existingCatalog))).toBeLessThan(23_000);
+      expect(Buffer.byteLength(JSON.stringify(simulationTools))).toBeLessThan(10_000);
+      expect(Buffer.byteLength(JSON.stringify(normalizedCatalog))).toBeLessThan(33_000);
+      for (const tool of simulationTools) {
+        expect(Buffer.byteLength(JSON.stringify(tool))).toBeLessThan(3_000);
+        JSON.stringify(tool.inputSchema, (key, value) => {
+          if (key === 'description') expect(value.length).toBeLessThanOrEqual(180);
+          if (key === 'enum') expect(value.length).toBeLessThanOrEqual(8);
+          return value;
+        });
+      }
       for (const name of ['create_assistant', 'update_assistant']) {
         const tool = response.tools.find(tool => tool.name === name)!;
         expect(Buffer.byteLength(JSON.stringify(tool))).toBeLessThan(4_000);
@@ -145,6 +158,12 @@ describe('MCP tools/list compatibility baseline', () => {
         create_call: {}, create_tool: { type: 'apiRequest', apiRequest: { url: 'https://example.test' } },
         update_tool: { toolId: id }, load_skill: { name: 'create-assistant' },
         ask_vapi_docs: { question: 'How do assistant hooks work?' },
+        create_simulation: { scenarioId: id, personalityId: id },
+        create_simulation_personality: { name: 'Tester', assistant: {} },
+        create_simulation_scenario: { name: 'Test', instructions: 'Ask for help', evaluations: [] },
+        create_simulation_suite: { name: 'Suite', simulationIds: [id] },
+        get_simulation_run: { runId: id }, get_simulation_run_item: { runId: id, itemId: id },
+        run_simulations: { assistantId: id, simulationIds: [id] },
       };
       for (const tool of response.tools) {
         expect({ name: tool.name, valid: ajv.compile(tool.inputSchema)(validArguments[tool.name] ?? {}) }).toEqual({ name: tool.name, valid: true });

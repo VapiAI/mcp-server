@@ -6,6 +6,13 @@ Build AI voice assistants and phone agents with [Vapi](https://vapi.ai) using th
 
 The MCP server requires a Vapi API key. Get one from the [Vapi dashboard](https://dashboard.vapi.ai/org/api-keys).
 
+### Remote Server (Streamable HTTP)
+
+Clients that support remote MCP servers can connect directly:
+
+- URL: `https://mcp.vapi.ai/mcp`
+- Header: `Authorization: Bearer your_vapi_api_key_here`
+
 ### Local Server (stdio)
 
 Configure any MCP client that supports local stdio servers to run:
@@ -29,14 +36,6 @@ Set `VAPI_TOKEN` in the server environment. MCP client configuration formats var
   }
 }
 ```
-
-### Remote Server (Streamable HTTP)
-
-Clients that support remote MCP servers can connect directly:
-
-- URL: `https://mcp.vapi.ai/mcp`
-- Header: `Authorization: Bearer your_vapi_api_key_here`
-
 ### Client-Specific Examples
 
 #### Claude Code

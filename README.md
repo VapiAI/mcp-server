@@ -13,6 +13,26 @@ Clients that support remote MCP servers can connect directly:
 - URL: `https://mcp.vapi.ai/mcp`
 - Header: `Authorization: Bearer your_vapi_api_key_here`
 
+#### Claude Setup
+
+export your token to your shell then:
+
+```bash
+claude mcp add --transport http --scope user vapi-hosted \
+  https://mcp.vapi.ai/mcp \
+  --header 'Authorization: Bearer ${VAPI_TOKEN}'
+```
+
+#### Codex Setup
+
+export your token to your shell then:
+
+```bash
+codex mcp add vapi-hosted \
+  --url https://mcp.vapi.ai/mcp \
+  --bearer-token-env-var VAPI_TOKEN
+```
+
 ### Local Server (stdio)
 
 Configure any MCP client that supports local stdio servers to run:

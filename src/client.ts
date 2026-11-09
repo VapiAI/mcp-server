@@ -1,6 +1,10 @@
-import { VapiClient, Vapi } from '@vapi-ai/server-sdk';
+import { VapiClient } from '@vapi-ai/server-sdk';
 
-export const createVapiClient = (token: string): VapiClient => {
+// An API key, or a function returning a current OAuth access token. The SDK
+// calls the function for every request, so the token can refresh mid-session.
+export type VapiToken = string | (() => Promise<string>);
+
+export const createVapiClient = (token: VapiToken): VapiClient => {
   if (!token) {
     throw new Error('No Vapi token available');
   }

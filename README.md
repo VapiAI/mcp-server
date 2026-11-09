@@ -30,6 +30,23 @@ Set `VAPI_TOKEN` in the server environment. MCP client configuration formats var
 }
 ```
 
+#### Sign in with your Vapi account (preview)
+
+Instead of an API key, the local server can use your normal Vapi sign-in (including MFA and SSO). Run once:
+
+```bash
+npx -y @vapi-ai/mcp-server login
+```
+
+Your browser opens to sign in and pick one organization. The server then uses that sign-in and refreshes it automatically, so you can leave `VAPI_TOKEN` out of the client configuration. If `VAPI_TOKEN` is set, it takes precedence.
+
+- `npx -y @vapi-ai/mcp-server status` shows which credentials are in use.
+- `npx -y @vapi-ai/mcp-server logout` deletes the saved sign-in.
+
+Credentials are saved with owner-only permissions in `~/.config/vapi-mcp/credentials.json` (`%APPDATA%\vapi-mcp\credentials.json` on Windows), or in the file named by `VAPI_MCP_CREDENTIALS_FILE`.
+
+Sign-in is not enabled for production yet. Until it is, `login` needs `VAPI_OAUTH_ISSUER`, `VAPI_OAUTH_CLIENT_ID` and `VAPI_OAUTH_AUDIENCE` set.
+
 ### Remote Server (Streamable HTTP)
 
 Clients that support remote MCP servers can connect directly:

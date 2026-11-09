@@ -193,7 +193,7 @@ describe('MCP tool execution compatibility', () => {
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual(expectedResult);
-    expect(listOperation).toHaveBeenLastCalledWith({ limit: 10 });
+    expect(listOperation).toHaveBeenLastCalledWith({ limit: 11 });
   });
 
   test.each([

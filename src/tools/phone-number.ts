@@ -4,7 +4,8 @@ import { VapiClient } from '@vapi-ai/server-sdk';
 
 import { transformPhoneNumberOutput } from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
-import { EmptyInputSchema, GetPhoneNumberInputSchema } from '../schemas/index.js';
+import { ListInputSchema, GetPhoneNumberInputSchema } from '../schemas/index.js';
+import { createV1ListHandler } from './list.js';
 
 export const registerPhoneNumberTools = (
   server: McpServer,
@@ -14,13 +15,10 @@ export const registerPhoneNumberTools = (
     server,
     'list_phone_numbers',
     {
-      description: 'Lists all Vapi phone numbers',
-      inputSchema: EmptyInputSchema,
+      description: 'Lists up to 10 Vapi phone numbers',
+      inputSchema: ListInputSchema,
     },
-    createToolHandler(async () => {
-      const phoneNumbers = await vapiClient.phoneNumbers.list({ limit: 10 });
-      return phoneNumbers.map(transformPhoneNumberOutput);
-    })
+    createV1ListHandler(request => vapiClient.phoneNumbers.list(request), transformPhoneNumberOutput)
   );
 
   registerValidatedTool(

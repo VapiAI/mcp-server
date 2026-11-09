@@ -151,6 +151,30 @@ Connect to Vapi's hosted MCP server from any MCP client:
 
 ## Available Tools
 
+### Paginating assistants, calls, phone numbers and tools
+
+`list_assistants`, `list_calls`, `list_phone_numbers` and `list_tools` return at
+most **10 items per call**, newest first. Start with `{}`, then pass the returned
+`pagination.nextBefore` as `before` to continue:
+
+```json
+{"before":"2026-11-09T12:00:00.000Z"}
+```
+
+The original result array remains in the first text content block. A second text
+block contains `pagination`; `structuredContent` contains both `results` and
+`pagination`. Stop when `hasMore` is false. Page size is fixed; `limit` and other
+unsupported arguments are rejected. Each call makes one v1 SDK list request for
+11 rows, with one row used only to check the page boundary.
+
+V1 provides creation-time filters rather than a unique continuation token.
+Pages may contain fewer than 10 items to keep equal timestamps together. If more
+than 10 items share a creation timestamp, the tool returns 10 items plus a
+`pagination.warning` and no `nextBefore`, even though `hasMore` remains true.
+That warning means traversal is blocked by v1's timestamp-only ordering; it must
+not be treated as a complete list. This avoids silently skipping tied items.
+List calls are separate reads, so concurrent edits/deletions are not a snapshot.
+
 ### Documentation
 | Tool | Description |
 |------|-------------|
@@ -172,7 +196,7 @@ include secrets or private customer data in docs questions.
 ### Assistants
 | Tool | Description |
 |------|-------------|
-| `list_assistants` | List all assistants |
+| `list_assistants` | List assistants in pages of up to 10 |
 | `get_assistant` | Get assistant by ID |
 | `create_assistant` | Create new assistant |
 | `update_assistant` | Update assistant |
@@ -180,20 +204,20 @@ include secrets or private customer data in docs questions.
 ### Calls
 | Tool | Description |
 |------|-------------|
-| `list_calls` | List call history |
+| `list_calls` | List call history in pages of up to 10 |
 | `get_call` | Get call details |
 | `create_call` | Start outbound call (immediate or scheduled) |
 
 ### Phone Numbers
 | Tool | Description |
 |------|-------------|
-| `list_phone_numbers` | List phone numbers |
+| `list_phone_numbers` | List phone numbers in pages of up to 10 |
 | `get_phone_number` | Get phone number details |
 
 ### Tools (Function Calling)
 | Tool | Description |
 |------|-------------|
-| `list_tools` | List custom tools |
+| `list_tools` | List custom tools in pages of up to 10 |
 | `get_tool` | Get tool details |
 | `create_tool` | Create tool for API integration |
 | `update_tool` | Update tool |

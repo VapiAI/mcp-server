@@ -144,30 +144,6 @@ To run a build from this repository instead, see [Local Development Config](#loc
 
 ### Available Tools
 
-#### Paginating assistants, calls, phone numbers and tools
-
-`list_assistants`, `list_calls`, `list_phone_numbers` and `list_tools` return at
-most **10 items per call**, newest first. Start with `{}`, then pass the returned
-`pagination.nextBefore` as `before` to continue:
-
-```json
-{"before":"2026-11-09T12:00:00.000Z"}
-```
-
-The original result array remains in the first text content block. A second text
-block contains `pagination`; `structuredContent` contains both `results` and
-`pagination`. Stop when `hasMore` is false. Page size is fixed; `limit` and other
-unsupported arguments are rejected. Each call makes one v1 SDK list request for
-11 rows, with one row used only to check the page boundary.
-
-V1 provides creation-time filters rather than a unique continuation token.
-Pages may contain fewer than 10 items to keep equal timestamps together. If more
-than 10 items share a creation timestamp, the tool returns 10 items plus a
-`pagination.warning` and no `nextBefore`, even though `hasMore` remains true.
-That warning means traversal is blocked by v1's timestamp-only ordering; it must
-not be treated as a complete list. This avoids silently skipping tied items.
-List calls are separate reads, so concurrent edits/deletions are not a snapshot.
-
 #### Documentation
 | Tool | Description |
 |------|-------------|

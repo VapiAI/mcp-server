@@ -3,6 +3,13 @@ import { CreateAssistantNameSchema, UpdateAssistantNameSchema, VoiceInputSchema,
 
 export const EmptyInputSchema = z.object({});
 
+export const ListInputSchema = z.strictObject({
+  // Keep discovery compact while validating the full ISO timestamp at runtime.
+  before: z.string().meta({ format: 'date-time' }).pipe(z.iso.datetime({ offset: true })).optional().describe(
+    'Use pagination.nextBefore to continue.'
+  ),
+});
+
 // ===== Model Provider and Models =====
 
 export const ModelProvider = {

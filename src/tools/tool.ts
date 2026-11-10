@@ -2,9 +2,10 @@ import { registerValidatedTool } from './validation.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient, Vapi } from '@vapi-ai/server-sdk';
 
-import { EmptyInputSchema, GetToolInputSchema, CreateToolInputSchema, UpdateToolInputSchema } from '../schemas/index.js';
+import { ListInputSchema, GetToolInputSchema, CreateToolInputSchema, UpdateToolInputSchema } from '../schemas/index.js';
 import { transformToolInput, transformUpdateToolInput, transformToolOutput } from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
+import { createV1ListHandler } from './list.js';
 
 export const registerToolTools = (
   server: McpServer,
@@ -14,13 +15,10 @@ export const registerToolTools = (
     server,
     'list_tools',
     {
-      description: 'Lists all Vapi tools',
-      inputSchema: EmptyInputSchema,
+      description: 'Lists up to 10 Vapi tools',
+      inputSchema: ListInputSchema,
     },
-    createToolHandler(async () => {
-      const tools = await vapiClient.tools.list({ limit: 10 });
-      return tools.map(transformToolOutput);
-    })
+    createV1ListHandler(request => vapiClient.tools.list(request), transformToolOutput)
   );
 
   registerValidatedTool(

@@ -2,7 +2,7 @@ import { registerValidatedTool } from './validation.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient, Vapi } from '@vapi-ai/server-sdk';
 import {
-  EmptyInputSchema,
+  ListInputSchema,
   CreateAssistantInputSchema,
   GetAssistantInputSchema,
   UpdateAssistantInputSchema,
@@ -13,6 +13,7 @@ import {
   transformUpdateAssistantInput,
 } from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
+import { createV1ListHandler } from './list.js';
 
 export const registerAssistantTools = (
   server: McpServer,
@@ -22,15 +23,10 @@ export const registerAssistantTools = (
     server,
     'list_assistants',
     {
-      description: 'Lists all Vapi assistants',
-      inputSchema: EmptyInputSchema,
+      description: 'Lists up to 10 Vapi assistants',
+      inputSchema: ListInputSchema,
     },
-    createToolHandler(async () => {
-      //   console.log('list_assistants');
-      const assistants = await vapiClient.assistants.list({ limit: 10 });
-      //   console.log('assistants', assistants);
-      return assistants.map(transformAssistantOutput);
-    })
+    createV1ListHandler(request => vapiClient.assistants.list(request), transformAssistantOutput)
   );
 
   registerValidatedTool(

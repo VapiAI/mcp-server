@@ -1,83 +1,61 @@
 # Vapi MCP Server
 
-Build AI voice assistants and phone agents with [Vapi](https://vapi.ai) using the [Model Context Protocol](https://modelcontextprotocol.com/).
+Build AI voice assistants and phone agents with [Vapi](https://vapi.ai) from any agent or app that speaks the [Model Context Protocol](https://modelcontextprotocol.com/).
 
-## Setup
+## Connect to the hosted server
 
-The MCP server requires a Vapi API key. Get one from the [Vapi dashboard](https://dashboard.vapi.ai/org/api-keys).
+**You don't need to clone, install or run anything.** Vapi hosts this server for you:
 
-### Remote Server (Streamable HTTP)
+- **URL:** `https://mcp.vapi.ai/mcp` (Streamable HTTP)
+- **Header:** `Authorization: Bearer YOUR_VAPI_API_KEY`
 
-Clients that support remote MCP servers can connect directly:
+Get an API key from the [Vapi dashboard](https://dashboard.vapi.ai/org/api-keys).
 
-- URL: `https://mcp.vapi.ai/mcp`
-- Header: `Authorization: Bearer your_vapi_api_key_here`
+👉 **[Step-by-step setup for Codex, Claude Code, Cursor, VS Code, Hermes and Claude Desktop](https://docs.vapi.ai/sdk/mcp-server#connect-your-agent)**
 
-#### Claude CLI Setup
+The two most common setups:
 
-export your token to your shell then:
+**Claude Code**
 
 ```bash
-claude mcp add --transport http --scope user vapi-hosted \
+export VAPI_API_KEY="YOUR_VAPI_API_KEY"
+claude mcp add --transport http --scope user vapi \
   https://mcp.vapi.ai/mcp \
-  --header 'Authorization: Bearer ${VAPI_TOKEN}'
+  --header 'Authorization: Bearer ${VAPI_API_KEY}'
 ```
 
-### Local Server (stdio)
-
-Configure any MCP client that supports local stdio servers to run:
-
-```text
-npx -y @vapi-ai/mcp-server
-```
-
-Set `VAPI_TOKEN` in the server environment. MCP client configuration formats vary, but the server definition generally looks like this:
-
-```json
-{
-  "mcpServers": {
-    "vapi": {
-      "command": "npx",
-      "args": ["-y", "@vapi-ai/mcp-server"],
-      "env": {
-        "VAPI_TOKEN": "<your_vapi_token>"
-      }
-    }
-  }
-}
-```
-### Client-Specific Examples
-
-#### Claude Code
+**Codex**
 
 ```bash
-claude mcp add -e VAPI_TOKEN=your_vapi_token vapi -- npx -y @vapi-ai/mcp-server
+export VAPI_API_KEY="YOUR_VAPI_API_KEY"
+codex mcp add vapi --url https://mcp.vapi.ai/mcp \
+  --bearer-token-env-var VAPI_API_KEY
 ```
 
-#### Claude Desktop
+Keep `VAPI_API_KEY` set whenever you launch your agent. Start a new session, then try:
 
-Use the local server configuration above in the Claude Desktop configuration file. To connect to the hosted server through an stdio bridge instead:
-
-```json
-{
-  "mcpServers": {
-    "vapi": {
-      "command": "npx",
-      "args": [
-        "mcp-remote",
-        "https://mcp.vapi.ai/mcp",
-        "--header",
-        "Authorization: Bearer ${VAPI_TOKEN}"
-      ],
-      "env": {
-        "VAPI_TOKEN": "<your_vapi_token>"
-      }
-    }
-  }
-}
+```
+List my Vapi assistants.
 ```
 
-### Optional Agent Skill
+```
+I want to build a voice assistant that can schedule appointments.
+```
+
+```
+Call +1234567890 using my appointment reminder assistant with these details:
+- Customer name: Sarah Johnson
+- Appointment date: March 25th
+- Appointment time: 2:30 PM
+```
+
+```
+Schedule a call with my support assistant for next Tuesday at 3:00 PM to +1555123456
+```
+
+> The legacy SSE endpoint (`https://mcp.vapi.ai/sse`) is deprecated. Move existing remote configurations to `https://mcp.vapi.ai/mcp`.
+
+### Optional: add the Vapi agent skill
 
 The [`skill`](./skill) directory contains reusable instructions for AI coding agents that support Agent Skills. Install it using your host's skill installation process.
 
@@ -88,45 +66,17 @@ mkdir -p ~/.claude/skills/vapi
 curl -o ~/.claude/skills/vapi/SKILL.md https://raw.githubusercontent.com/VapiAI/mcp-server/main/skill/SKILL.md
 ```
 
----
-
-## Example Usage
-
-### Create a Voice Assistant
-
-Ask your MCP-enabled agent:
-```
-I want to build a voice assistant that can schedule appointments
-```
-
-### Make an Outbound Call
-
-```
-Call +1234567890 using my appointment reminder assistant with these details:
-- Customer name: Sarah Johnson
-- Appointment date: March 25th
-- Appointment time: 2:30 PM
-```
-
-### Schedule a Future Call
-
-```
-Schedule a call with my support assistant for next Tuesday at 3:00 PM to +1555123456
-```
-
----
-
-## Using Variable Values in Assistant Prompts
+### Using Variable Values in Assistant Prompts
 
 The `create_call` action supports passing dynamic variables through `assistantOverrides.variableValues`. Use double curly braces in your assistant's prompts: `{{variableName}}`.
 
-### Example Prompt with Variables
+#### Example Prompt with Variables
 
 ```
 Hello {{customerName}}, this is a reminder about your appointment on {{appointmentDate}} at {{appointmentTime}} with {{doctorName}}.
 ```
 
-### Default Variables
+#### Default Variables
 
 These are automatically available (no need to pass):
 
@@ -142,25 +92,59 @@ See [Vapi documentation](https://docs.vapi.ai/assistants/dynamic-variables#defau
 
 ---
 
-## Remote MCP Server
+## Oh, you're still here?
 
-Connect to Vapi's hosted MCP server from any MCP client:
+You must want to [leave feedback](#leave-feedback), [run a local server yourself](#run-a-local-server) or [peek under the hood](#peek-under-the-hood). Read on.
 
-### Streamable HTTP (Recommended)
+### Leave feedback
 
-- URL: `https://mcp.vapi.ai/mcp`
-- Header: `Authorization: Bearer your_vapi_api_key_here`
+- **Found a bug or want a tool we don't have?** [Open an issue](https://github.com/VapiAI/mcp-server/issues).
+- **Have a question or want to talk it through?** Join the [Vapi Discord](https://discord.gg/v5Ee6FhAZt).
+- **Want to fix it yourself?** Pull requests are welcome. See [Development](#development) for how to build and test.
 
-### SSE (Deprecated)
+### Run a local server
 
-- URL: `https://mcp.vapi.ai/sse`
-- Header: `Authorization: Bearer your_vapi_api_key_here`
+Run the server on your own machine if your client only supports local stdio servers or you want to try unreleased changes. It uses the same tools as the hosted server.
+
+Configure your MCP client to run:
+
+```text
+npx -y @vapi-ai/mcp-server
+```
+
+Set `VAPI_TOKEN` to your Vapi API key in the server environment. MCP client configuration formats vary, but the server definition generally looks like this:
+
+```json
+{
+  "mcpServers": {
+    "vapi": {
+      "command": "npx",
+      "args": ["-y", "@vapi-ai/mcp-server"],
+      "env": {
+        "VAPI_TOKEN": "<your_vapi_token>"
+      }
+    }
+  }
+}
+```
+
+For Claude Code:
+
+```bash
+claude mcp add -e VAPI_TOKEN=your_vapi_token vapi -- npx -y @vapi-ai/mcp-server
+```
+
+For Claude Desktop, add the configuration above to the Claude Desktop configuration file.
+
+To run a build from this repository instead, see [Local Development Config](#local-development-config).
 
 ---
 
-## Available Tools
+## Peek under the hood
 
-### Documentation
+### Available Tools
+
+#### Documentation
 | Tool | Description |
 |------|-------------|
 | `ask_vapi_docs` | Query the Fern docs MCP for current documentation passages and source URLs |
@@ -178,7 +162,7 @@ at startup. Discovery through `tools/list` makes no network requests; upstream
 failures are returned as tool errors. No extra MCP connection is needed. Do not
 include secrets or private customer data in docs questions.
 
-### Assistants
+#### Assistants
 | Tool | Description |
 |------|-------------|
 | `list_assistants` | List all assistants |
@@ -186,20 +170,20 @@ include secrets or private customer data in docs questions.
 | `create_assistant` | Create new assistant |
 | `update_assistant` | Update assistant |
 
-### Calls
+#### Calls
 | Tool | Description |
 |------|-------------|
 | `list_calls` | List call history |
 | `get_call` | Get call details |
 | `create_call` | Start outbound call (immediate or scheduled) |
 
-### Phone Numbers
+#### Phone Numbers
 | Tool | Description |
 |------|-------------|
 | `list_phone_numbers` | List phone numbers |
 | `get_phone_number` | Get phone number details |
 
-### Tools (Function Calling)
+#### Tools (Function Calling)
 | Tool | Description |
 |------|-------------|
 | `list_tools` | List custom tools |
@@ -207,7 +191,7 @@ include secrets or private customer data in docs questions.
 | `create_tool` | Create tool for API integration |
 | `update_tool` | Update tool |
 
-### Public Skills
+#### Public Skills
 | Tool | Description |
 |------|-------------|
 | `search_skills` | Search public Vapi skills by keywords; omit `query` to browse |
@@ -233,7 +217,7 @@ calls and send no Vapi credentials upstream. The server still requires
 upstream failures are returned as tool errors. No GitHub token is needed for this
 public content. GitHub's unauthenticated API rate limits apply.
 
-### Simulations
+#### Simulations
 
 | Tool | Description |
 |------|-------------|
@@ -256,9 +240,7 @@ metadata in `itemsMetadata` and `itemsTruncated: true` when more items exist.
 Legacy array responses are also supported. Use `get_simulation_run_item` for
 the full details of a known item.
 
----
-
-## Development
+### Development
 
 ```bash
 # Install dependencies
@@ -271,7 +253,7 @@ npm run build
 npm run inspector
 ```
 
-### Local Development Config
+#### Local Development Config
 
 ```json
 {
@@ -287,7 +269,7 @@ npm run inspector
 }
 ```
 
-### Testing
+#### Testing
 
 ```bash
 # Safe default suite (build, mocked execution, contract, and stdio compatibility)
@@ -317,7 +299,7 @@ export VAPI_TOKEN=your_test_org_token_here
 npm run test:live:mutating
 ```
 
-### Input validation from OpenAPI
+#### Input validation from OpenAPI
 
 All 21 parameterized MCP tools use imported OpenAPI constraints through
 Zod's experimental `z.fromJSONSchema()`, pinned to Zod 4.6.7. This covers

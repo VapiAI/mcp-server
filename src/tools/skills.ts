@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { PublicSkills } from '../knowledge/skills.js';
+import { readOnly } from './annotations.js';
 
 async function knowledgeResult(action: () => Promise<CallToolResult>): Promise<CallToolResult> {
   try {
@@ -17,13 +18,12 @@ function jsonResult(data: object): CallToolResult {
 
 export function registerSkillTools(server: McpServer) {
   const skills = new PublicSkills();
-  const annotations = { readOnlyHint: true, destructiveHint: false, openWorldHint: true };
   server.registerTool('search_skills', {
     description: 'Find Vapi agent skills in the public VapiAI/skills repository by name, description or content. Omit query to browse. Use load_skill to read a result.',
     inputSchema: {
       query: z.string().trim().max(500).default('').describe('Keywords describing the Vapi task, or empty to browse all skills.'),
       limit: z.number().int().min(1).max(30).default(10),
-    }, annotations,
+    }, annotations: readOnly('Search Vapi Skills', true),
   }, ({ query, limit }) => knowledgeResult(async () => jsonResult(await skills.search(query, limit))));
 
   server.registerTool('load_skill', {
@@ -31,6 +31,6 @@ export function registerSkillTools(server: McpServer) {
     inputSchema: {
       name: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(100).describe('Exact skill name from search_skills.'),
       path: z.string().min(1).max(300).default('SKILL.md').describe('File path relative to the skill directory, such as SKILL.md or references/hooks.md.'),
-    }, annotations,
+    }, annotations: readOnly('Load Vapi Skill', true),
   }, ({ name, path }) => knowledgeResult(async () => jsonResult(await skills.load(name, path))));
 }

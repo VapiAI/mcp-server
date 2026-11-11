@@ -1,4 +1,5 @@
 import { registerValidatedTool } from './validation.js';
+import { creates, readOnly, updates } from './annotations.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient, Vapi } from '@vapi-ai/server-sdk';
 import {
@@ -25,6 +26,7 @@ export const registerAssistantTools = (
     {
       description: 'Lists up to 10 Vapi assistants',
       inputSchema: ListInputSchema,
+      annotations: readOnly('List Assistants'),
     },
     createV1ListHandler(request => vapiClient.assistants.list(request), transformAssistantOutput)
   );
@@ -35,6 +37,7 @@ export const registerAssistantTools = (
     {
       description: 'Creates a new Vapi assistant',
       inputSchema: CreateAssistantInputSchema,
+      annotations: creates('Create Assistant'),
     },
     createToolHandler(async (data) => {
       //   console.log('create_assistant', data);
@@ -50,6 +53,7 @@ export const registerAssistantTools = (
     {
       description: 'Gets a Vapi assistant by ID',
       inputSchema: GetAssistantInputSchema,
+      annotations: readOnly('Get Assistant'),
     },
     createToolHandler(async (data) => {
       //   console.log('get_assistant', data);
@@ -73,6 +77,7 @@ export const registerAssistantTools = (
     {
       description: 'Updates an existing Vapi assistant',
       inputSchema: UpdateAssistantInputSchema,
+      annotations: updates('Update Assistant'),
     },
     createToolHandler(async (data) => {
       const assistantId = data.assistantId;

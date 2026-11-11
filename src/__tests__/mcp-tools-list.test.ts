@@ -146,6 +146,22 @@ describe('MCP tools/list compatibility baseline', () => {
       }
       expect(JSON.stringify(normalizedCatalog)).not.toMatch(/"(?:definitions|\$defs|\$ref)":/);
 
+      // Directory review requires a title and readOnlyHint on every tool, and
+      // destructiveHint on tools that change data.
+      for (const { name, annotations } of response.tools) {
+        const readOnly = /^(list|get|search|load|ask)_/.test(name);
+        expect({ name, annotations }).toEqual({
+          name,
+          annotations: expect.objectContaining({
+            title: expect.any(String),
+            readOnlyHint: readOnly,
+            destructiveHint: name.startsWith('update_'),
+            openWorldHint: expect.any(Boolean),
+          }),
+        });
+      }
+      expect(response.tools.find(tool => tool.name === 'create_call')!.annotations?.openWorldHint).toBe(true);
+
       // Compact discovery remains usable JSON Schema, but is intentionally
       // broader than the full validator used by the execution boundary.
       const ajv = new Ajv({ strict: false });

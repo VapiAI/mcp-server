@@ -1,4 +1,5 @@
 import { registerValidatedTool } from './validation.js';
+import { creates, readOnly } from './annotations.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient, Vapi } from '@vapi-ai/server-sdk';
 
@@ -20,6 +21,7 @@ export const registerCallTools = (
     {
       description: 'Lists up to 10 Vapi calls',
       inputSchema: ListInputSchema,
+      annotations: readOnly('List Calls'),
     },
     createV1ListHandler(request => vapiClient.calls.list(request), transformCallOutput)
   );
@@ -30,6 +32,7 @@ export const registerCallTools = (
     {
       description: 'Creates a outbound call',
       inputSchema: CallInputSchema,
+      annotations: creates('Create Outbound Call', true),
     },
     createToolHandler(async (data) => {
       const createCallDto = transformCallInput(data);
@@ -44,6 +47,7 @@ export const registerCallTools = (
     {
       description: 'Gets details of a specific call',
       inputSchema: GetCallInputSchema,
+      annotations: readOnly('Get Call'),
     },
     createToolHandler(async (data) => {
       const call = await vapiClient.calls.get({ id: data.callId });

@@ -14,6 +14,7 @@ import {
   RunSimulationsInputSchema,
 } from '../schemas/index.js';
 import { registerValidatedTool } from './validation.js';
+import { creates, readOnly } from './annotations.js';
 import { createToolHandler } from './utils.js';
 
 const DEFAULT_LIMIT = 50;
@@ -53,6 +54,7 @@ export const registerSimulationTools = (
       description:
         'Lists simulation personalities: the simulated callers (testers) used in Vapi simulations',
       inputSchema: ListSimulationResourcesInputSchema,
+      annotations: readOnly('List Simulation Personalities'),
     },
     createToolHandler(async (data) =>
       vapiClient.simulationPersonalities.personalityControllerFindAll({
@@ -68,6 +70,7 @@ export const registerSimulationTools = (
       description:
         'Creates a simulation personality: the simulated caller that talks to the assistant under test',
       inputSchema: CreateSimulationPersonalityInputSchema,
+      annotations: creates('Create Simulation Personality'),
     },
     createToolHandler(async (data) =>
       vapiClient.simulationPersonalities.personalityControllerCreate(
@@ -83,6 +86,7 @@ export const registerSimulationTools = (
       description:
         'Lists simulation scenarios: the scripts testers follow and the checks that decide pass or fail',
       inputSchema: ListSimulationScenariosInputSchema,
+      annotations: readOnly('List Simulation Scenarios'),
     },
     createToolHandler(async (data) =>
       vapiClient.simulationScenarios.scenarioControllerFindAll({
@@ -99,6 +103,7 @@ export const registerSimulationTools = (
       description:
         'Creates a simulation scenario: instructions for the tester plus evaluations that decide whether the assistant passed',
       inputSchema: CreateSimulationScenarioInputSchema,
+      annotations: creates('Create Simulation Scenario'),
     },
     createToolHandler(async ({ additionalFields, ...data }) =>
       vapiClient.simulationScenarios.scenarioControllerCreate({
@@ -115,6 +120,7 @@ export const registerSimulationTools = (
       description:
         'Lists simulations. Each simulation pairs one scenario with one personality.',
       inputSchema: ListSimulationResourcesInputSchema,
+      annotations: readOnly('List Simulations'),
     },
     createToolHandler(async (data) =>
       vapiClient.simulations.simulationControllerFindAll({
@@ -130,6 +136,7 @@ export const registerSimulationTools = (
       description:
         'Creates a simulation that pairs a scenario with a personality. Run it with run_simulations.',
       inputSchema: CreateSimulationInputSchema,
+      annotations: creates('Create Simulation'),
     },
     createToolHandler(async (data) =>
       vapiClient.simulations.simulationControllerCreate(data)
@@ -142,6 +149,7 @@ export const registerSimulationTools = (
     {
       description: 'Lists simulation suites: named groups of simulations',
       inputSchema: ListSimulationResourcesInputSchema,
+      annotations: readOnly('List Simulation Suites'),
     },
     createToolHandler(async (data) =>
       vapiClient.simulationSuites.simulationSuiteControllerFindAll({
@@ -157,6 +165,7 @@ export const registerSimulationTools = (
       description:
         'Creates a simulation suite that groups simulations so they can be run together',
       inputSchema: CreateSimulationSuiteInputSchema,
+      annotations: creates('Create Simulation Suite'),
     },
     createToolHandler(async ({ additionalFields, ...data }) =>
       vapiClient.simulationSuites.simulationSuiteControllerCreate({
@@ -174,6 +183,7 @@ export const registerSimulationTools = (
         'Starts a simulation run of simulations and/or suites against an assistant or squad. ' +
         'Returns the run with its ID and a dashboard URL to share with the user. Check progress with get_simulation_run.',
       inputSchema: RunSimulationsInputSchema,
+      annotations: creates('Run Simulations'),
     },
     createToolHandler(async (data) => {
       const simulations = [
@@ -209,6 +219,7 @@ export const registerSimulationTools = (
     {
       description: 'Lists simulation runs, newest first',
       inputSchema: ListSimulationRunsInputSchema,
+      annotations: readOnly('List Simulation Runs'),
     },
     createToolHandler(async (data) =>
       vapiClient.simulationRuns.simulationRunControllerFindAll({
@@ -228,6 +239,7 @@ export const registerSimulationTools = (
         'itemsTruncated indicates omitted items; itemsMetadata preserves API pagination metadata. ' +
         'Use get_simulation_run_item for an item’s transcript and call details.',
       inputSchema: GetSimulationRunInputSchema,
+      annotations: readOnly('Get Simulation Run'),
     },
     createToolHandler(async (data) => {
       const [run, response] = await Promise.all([
@@ -257,6 +269,7 @@ export const registerSimulationTools = (
       description:
         'Gets one simulation run item in full, including results, call snapshots, transcript, and improvement suggestions',
       inputSchema: GetSimulationRunItemInputSchema,
+      annotations: readOnly('Get Simulation Run Item'),
     },
     createToolHandler(async (data) =>
       vapiClient.simulationRuns.simulationRunControllerFindItem({

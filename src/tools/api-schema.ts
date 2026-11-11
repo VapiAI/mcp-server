@@ -3,6 +3,7 @@ import { VapiClient, VapiEnvironment } from '@vapi-ai/server-sdk';
 
 import { GetApiSchemaInputSchema } from '../schemas/index.js';
 import { createToolHandler } from './utils.js';
+import { readOnly } from './annotations.js';
 
 type SchemaMap = Record<string, unknown>;
 
@@ -78,6 +79,7 @@ export const registerApiSchemaTools = (
         'References to other schemas are left as "#/components/schemas/<Name>" and listed in referencedSchemas, so look those up next if you need them. ' +
         'Use it to find fields that other tools accept through additionalFields.',
       inputSchema: GetApiSchemaInputSchema.shape,
+      annotations: readOnly('Get API Schema'),
     },
     createToolHandler(async (data) => {
       const schemas = await loadSchemas(vapiClient);

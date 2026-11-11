@@ -1,4 +1,5 @@
 import { registerValidatedTool } from './validation.js';
+import { readOnly } from './annotations.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient } from '@vapi-ai/server-sdk';
 
@@ -17,6 +18,7 @@ export const registerPhoneNumberTools = (
     {
       description: 'Lists up to 10 Vapi phone numbers',
       inputSchema: ListInputSchema,
+      annotations: readOnly('List Phone Numbers'),
     },
     createV1ListHandler(request => vapiClient.phoneNumbers.list(request), transformPhoneNumberOutput)
   );
@@ -27,6 +29,7 @@ export const registerPhoneNumberTools = (
     {
       description: 'Gets details of a specific phone number',
       inputSchema: GetPhoneNumberInputSchema,
+      annotations: readOnly('Get Phone Number'),
     },
     createToolHandler(async (data) => {
       const phoneNumberId = data.phoneNumberId;

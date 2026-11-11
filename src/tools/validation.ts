@@ -1,4 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import type { ToolResponse } from './utils.js';
 import { summarizeInputSchema } from './input-schema.js';
@@ -82,7 +83,7 @@ function optionIssue(path: PropertyKey[], values: unknown[]): FieldIssue {
 export function registerValidatedTool<Schema extends z.ZodType>(
   server: McpServer,
   name: string,
-  config: { description: string; inputSchema: Schema },
+  config: { description: string; inputSchema: Schema; annotations: ToolAnnotations },
   handler: (params: z.output<Schema>) => Promise<ToolResponse>
 ) {
   const schema = config.inputSchema;
@@ -92,7 +93,7 @@ export function registerValidatedTool<Schema extends z.ZodType>(
   const transportSchema = z.object({}).passthrough().meta(summarizeInputSchema(
     z.toJSONSchema(schema, { io: 'input', target: 'draft-07' })
   ));
-  return server.registerTool(name, { description: config.description, inputSchema: transportSchema }, async raw => {
+  return server.registerTool(name, { description: config.description, inputSchema: transportSchema, annotations: config.annotations }, async raw => {
     const parsed = await schema.safeParseAsync(raw);
     if (!parsed.success) {
       const all = validationIssues(parsed.error.issues, raw);

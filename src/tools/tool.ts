@@ -1,4 +1,5 @@
 import { registerValidatedTool } from './validation.js';
+import { creates, readOnly, updates } from './annotations.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient, Vapi } from '@vapi-ai/server-sdk';
 
@@ -17,6 +18,7 @@ export const registerToolTools = (
     {
       description: 'Lists up to 10 Vapi tools',
       inputSchema: ListInputSchema,
+      annotations: readOnly('List Tools'),
     },
     createV1ListHandler(request => vapiClient.tools.list(request), transformToolOutput)
   );
@@ -27,6 +29,7 @@ export const registerToolTools = (
     {
       description: 'Gets details of a specific tool',
       inputSchema: GetToolInputSchema,
+      annotations: readOnly('Get Tool'),
     },
     createToolHandler(async (data) => {
       const tool = await vapiClient.tools.get({ id: data.toolId });
@@ -40,6 +43,7 @@ export const registerToolTools = (
     {
       description: 'Creates a new Vapi tool',
       inputSchema: CreateToolInputSchema,
+      annotations: creates('Create Tool'),
     },
     createToolHandler(async (data) => {
       const createToolDto = transformToolInput(data);
@@ -54,6 +58,7 @@ export const registerToolTools = (
     {
       description: 'Updates an existing Vapi tool',
       inputSchema: UpdateToolInputSchema,
+      annotations: updates('Update Tool'),
     },
     createToolHandler(async (data) => {
       const existingTool = await vapiClient.tools.get({ id: data.toolId });

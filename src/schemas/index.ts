@@ -254,14 +254,23 @@ const ServerSchema = z.object({
   headers: HeaderMapSchema.optional().describe('Headers to send with the request'),
 });
 
-const BackoffPlanSchema = z.object({
-  type: apiField<'fixed' | 'exponential'>('backoffType').default('fixed'),
-  maxRetries: apiField<number>('backoffMaxRetries').default(3).describe('Maximum number of retries'),
-  baseDelaySeconds: apiField<number>('backoffDelay').default(1).describe('Base delay between retries in seconds'),
-});
+// Defaults apply on create only. On update, an omitted field must stay
+// omitted so the existing tool setting is not overwritten.
+const withDefault = <T extends z.ZodType>(
+  schema: T,
+  value: Exclude<z.output<T>, undefined>,
+  applyDefaults: boolean
+) => (applyDefaults ? schema.default(value) : schema.optional());
+
+const createBackoffPlanSchema = (applyDefaults: boolean) =>
+  z.object({
+    type: withDefault(apiField<'fixed' | 'exponential'>('backoffType'), 'fixed', applyDefaults),
+    maxRetries: withDefault(apiField<number>('backoffMaxRetries'), 3, applyDefaults).describe('Maximum number of retries'),
+    baseDelaySeconds: withDefault(apiField<number>('backoffDelay'), 1, applyDefaults).describe('Base delay between retries in seconds'),
+  });
 
 // Base tool configuration schema (reusable for both create and update)
-const BaseToolConfigSchema = z.object({
+const createBaseToolConfigSchema = (applyDefaults: boolean) => z.object({
   // Common fields for all tools
   name: apiField<string>('functionName').optional().describe('Name of the function/tool'),
   description: apiField<string>('functionDescription').optional().describe('Description of what the function/tool does'),
@@ -287,11 +296,11 @@ const BaseToolConfigSchema = z.object({
   // API Request tool configuration
   apiRequest: z.object({
     url: apiField<string>('apiUrl').pipe(z.string().url()).meta({ format: 'uri' }).describe('URL to make the API request to'),
-    method: apiField<'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'>('apiMethod').default('POST').describe('HTTP method for the API request'),
+    method: withDefault(apiField<'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'>('apiMethod'), 'POST', applyDefaults).describe('HTTP method for the API request'),
     headers: HeaderMapSchema.optional().describe('Headers to send with the request (key-value pairs)'),
     body: ApiBodySchema.optional().describe('Body schema for the API request in JSON Schema format'),
-    backoffPlan: BackoffPlanSchema.optional().describe('Retry configuration for failed API requests'),
-    timeoutSeconds: apiField<number>('apiTimeout').default(20).describe('Request timeout in seconds'),
+    backoffPlan: createBackoffPlanSchema(applyDefaults).optional().describe('Retry configuration for failed API requests'),
+    timeoutSeconds: withDefault(apiField<number>('apiTimeout'), 20, applyDefaults).describe('Request timeout in seconds'),
   }).optional().describe('API Request tool configuration - for HTTP API integration'),
 
   // Documented fields the options above don't cover
@@ -305,7 +314,7 @@ const BaseToolConfigSchema = z.object({
     ),
 });
 
-export const CreateToolInputSchema = BaseToolConfigSchema.extend({
+export const CreateToolInputSchema = createBaseToolConfigSchema(true).extend({
   type: apiField<'sms' | 'transferCall' | 'function' | 'apiRequest'>('toolType')
     .describe('Type of the tool to create'),
 }).superRefine((input, ctx) => {
@@ -320,7 +329,7 @@ export const CreateToolInputSchema = BaseToolConfigSchema.extend({
   ...(functionRequiresName ? [{ if: { properties: { type: { const: 'function' } }, required: ['type'], anyOf: [{ required: ['function'] }, { required: ['description'], properties: { description: { minLength: 1 } } }] }, then: { required: ['name'] } }] : []),
 ] });
 
-export const UpdateToolInputSchema = BaseToolConfigSchema.extend({
+export const UpdateToolInputSchema = createBaseToolConfigSchema(false).extend({
   toolId: apiField<string>('toolId').describe('ID of the tool to update'),
 });
 

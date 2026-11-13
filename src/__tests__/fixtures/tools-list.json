@@ -92,8 +92,17 @@
           "additionalProperties": false,
           "description": "Transcription configuration",
           "properties": {
+            "keyterm": {
+              "type": "array"
+            },
+            "language": {
+              "type": "string"
+            },
             "model": {
               "type": "string"
+            },
+            "numerals": {
+              "type": "boolean"
             },
             "provider": {
               "type": "string"
@@ -1270,8 +1279,17 @@
           "additionalProperties": false,
           "description": "New transcription configuration",
           "properties": {
+            "keyterm": {
+              "type": "array"
+            },
+            "language": {
+              "type": "string"
+            },
             "model": {
               "type": "string"
+            },
+            "numerals": {
+              "type": "boolean"
             },
             "provider": {
               "type": "string"

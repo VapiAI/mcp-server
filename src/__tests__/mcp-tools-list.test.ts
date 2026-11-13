@@ -123,7 +123,8 @@ describe('MCP tools/list compatibility baseline', () => {
       const withoutDocs = existingCatalog.filter(tool => tool.name !== 'ask_vapi_docs');
       expect(apiCatalog).toHaveLength(14);
       expect(simulationTools).toHaveLength(12);
-      expect(Buffer.byteLength(JSON.stringify(apiCatalog))).toBeLessThan(20_000);
+      // Advertising the three Deepgram fields on create/update adds 172 bytes.
+      expect(Buffer.byteLength(JSON.stringify(apiCatalog))).toBeLessThan(20_256);
       expect(Buffer.byteLength(JSON.stringify(withoutDocs))).toBeLessThan(22_000);
       expect(Buffer.byteLength(JSON.stringify(existingCatalog))).toBeLessThan(23_000);
       expect(Buffer.byteLength(JSON.stringify(simulationTools))).toBeLessThan(10_000);

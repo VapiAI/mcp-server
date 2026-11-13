@@ -84,7 +84,13 @@ export const providersRequiringExpandedInputs = Object.fromEntries(
 );
 
 type VoiceConfiguration = { provider: string; voiceId: string; model?: string };
-type TranscriberConfiguration = { provider: string; model?: string };
+type TranscriberConfiguration = {
+  provider: string;
+  model?: string;
+  language?: string;
+  numerals?: boolean;
+  keyterm?: string[];
+};
 
 // fromJSONSchema validates at runtime but intentionally returns an untyped
 // ZodType. These types describe the projected fields, not a second validator.

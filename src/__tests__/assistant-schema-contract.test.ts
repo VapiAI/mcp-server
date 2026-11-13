@@ -1,9 +1,22 @@
 import { describe, expect, test } from '@jest/globals';
+import { readFileSync } from 'node:fs';
 import type { Vapi } from '@vapi-ai/server-sdk';
 import { CreateAssistantInputSchema, UpdateAssistantInputSchema } from '../schemas/index.js';
 import { transformAssistantOutput, transformAssistantInput, transformUpdateAssistantInput } from '../transformers/index.js';
 
 const configurations = [
+  {
+    voice: { provider: 'vapi', voiceId: 'Elliot' },
+    transcriber: { provider: 'deepgram', model: 'nova-3', language: 'en' },
+  },
+  {
+    voice: { provider: 'vapi', voiceId: 'Elliot' },
+    transcriber: { provider: 'deepgram', model: 'nova-3', numerals: true, keyterm: ['Vapi'] },
+  },
+  {
+    voice: { provider: 'vapi', voiceId: 'Elliot' },
+    transcriber: { provider: 'deepgram', model: 'nova-3', numerals: false, keyterm: [] },
+  },
   {
     voice: { provider: '11labs', voiceId: 'sarah', model: 'eleven_turbo_v2_5' },
     transcriber: { provider: 'deepgram', model: 'nova-3' },
@@ -80,9 +93,25 @@ describe.each([
     { transcriber: { provider: null, model: 'nova-3' } },
     { transcriber: { provider: 'deepgram', model: null } },
     { transcriber: { provider: 'deepgram', model: 42 } },
+    { transcriber: { provider: 'deepgram', language: 'invalid-language' } },
+    { transcriber: { provider: 'deepgram', numerals: 'true' } },
+    { transcriber: { provider: 'deepgram', keyterm: 'Vapi' } },
+    { transcriber: { provider: 'deepgram', keyterm: [42] } },
+    { transcriber: { provider: 'deepgram', unexpectedField: true } },
+    { transcriber: { provider: 'assembly-ai', numerals: true } },
+    { transcriber: { provider: 'openai', model: 'gpt-4o-transcribe', keyterm: ['Vapi'] } },
   ])('rejects malformed input: %j', invalid => {
     expect(schema.safeParse({ ...base, ...invalid }).success).toBe(false);
   });
+});
+
+test('Deepgram fields retain the unprojected API definitions from the pinned source', () => {
+  const compact = JSON.parse(readFileSync(new URL('../schemas/assistant-openapi.json', import.meta.url), 'utf8'));
+  const full = JSON.parse(readFileSync(new URL('../schemas/simulation-openapi.json', import.meta.url), 'utf8'));
+  const deepgram = compact.transcriber.find((definition: { name: string }) => definition.name === 'DeepgramTranscriber');
+  for (const field of ['language', 'numerals', 'keyterm']) {
+    expect(deepgram.properties[field]).toEqual(full.definitions.DeepgramTranscriber.properties[field]);
+  }
 });
 
 test('create keeps MCP defaults and leaves an omitted firstMessageMode absent', () => {

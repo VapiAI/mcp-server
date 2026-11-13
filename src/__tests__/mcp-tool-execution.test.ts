@@ -28,6 +28,10 @@ const assistant = {
   transcriber: {
     provider: 'deepgram',
     model: 'nova-3',
+    language: 'en',
+    numerals: true,
+    keyterm: ['Existing'],
+    smartFormat: true,
   },
 };
 
@@ -262,6 +266,55 @@ describe('MCP tool execution compatibility', () => {
         firstMessageMode: 'assistant-waits-for-user',
       })
     );
+  });
+
+  test.each([
+    { provider: 'deepgram', model: 'nova-3', language: 'en' },
+    { provider: 'deepgram', model: 'nova-3', numerals: true, keyterm: ['Vapi'] },
+    { provider: 'deepgram', model: 'nova-3', numerals: false, keyterm: [] },
+  ])('create_assistant forwards Deepgram settings: %j', async transcriber => {
+    await invoke('create_assistant', { name: 'Deepgram settings', transcriber });
+    expect(vapiOperations.assistants.create).toHaveBeenLastCalledWith(expect.objectContaining({ transcriber }));
+  });
+
+  test('update_assistant preserves stored transcriber settings and applies false and empty overrides', async () => {
+    await invoke('update_assistant', {
+      assistantId: assistant.id,
+      transcriber: { provider: 'deepgram', model: 'nova-3-general', numerals: false, keyterm: [] },
+    });
+    expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith({
+      id: assistant.id,
+      transcriber: { ...assistant.transcriber, model: 'nova-3-general', numerals: false, keyterm: [] },
+    });
+    expect(assistant.transcriber).toEqual({
+      provider: 'deepgram', model: 'nova-3', language: 'en', numerals: true, keyterm: ['Existing'], smartFormat: true,
+    });
+  });
+
+  test('update_assistant preserves the stored transcriber model when omitted', async () => {
+    await invoke('update_assistant', {
+      assistantId: assistant.id,
+      transcriber: { provider: 'deepgram', language: 'fr' },
+    });
+    expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith({
+      id: assistant.id, transcriber: { ...assistant.transcriber, language: 'fr' },
+    });
+  });
+
+  test('update_assistant changing transcriber provider drops the previous provider settings', async () => {
+    const transcriber = { provider: 'openai', model: 'gpt-4o-transcribe' };
+    await invoke('update_assistant', { assistantId: assistant.id, transcriber });
+    expect(vapiOperations.assistants.update).toHaveBeenLastCalledWith({ id: assistant.id, transcriber });
+  });
+
+  test('invalid Deepgram fields are rejected before calling Vapi', async () => {
+    const callsBefore = vapiOperations.assistants.update.mock.calls.length;
+    const response = await client.callTool({
+      name: 'update_assistant',
+      arguments: { assistantId: assistant.id, transcriber: { provider: 'deepgram', numerals: 'true' } },
+    });
+    expect(response.isError).toBe(true);
+    expect(vapiOperations.assistants.update).toHaveBeenCalledTimes(callsBefore);
   });
 
   test('create_tool validates records, preserves defaults and strips unknown fields', async () => {

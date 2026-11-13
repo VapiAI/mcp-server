@@ -39,10 +39,7 @@ export function transformAssistantInput(
     ];
   }
 
-  assistantDto.transcriber = {
-    provider: input.transcriber.provider,
-    ...(input.transcriber.model ? { model: input.transcriber.model } : {}),
-  };
+  assistantDto.transcriber = { ...input.transcriber };
 
   assistantDto.voice = {
     provider: input.voice.provider as any,
@@ -114,9 +111,14 @@ export function transformUpdateAssistantInput(
   }
 
   if (input.transcriber) {
+    // PATCH replaces transcriber as a whole. Preserve the stored settings for
+    // the same provider, but do not carry them into a different provider.
+    const existingTranscriber = existing?.transcriber;
     updateDto.transcriber = {
-      provider: input.transcriber.provider,
-      ...(input.transcriber.model ? { model: input.transcriber.model } : {}),
+      ...(existingTranscriber?.provider === input.transcriber.provider
+        ? existingTranscriber
+        : {}),
+      ...input.transcriber,
     };
   }
 

@@ -19,12 +19,15 @@ for (const field of ['voice', 'transcriber', 'llm']) {
   fields[field] = schemas.CreateAssistantDTO.properties[apiField].oneOf.map(({ $ref }) => {
     const name = $ref.split('/').at(-1);
     const schema = schemas[name];
+    const providerKeys = field === 'transcriber' && name === 'DeepgramTranscriber'
+      ? [...keys, 'language', 'numerals', 'keyterm']
+      : keys;
     return {
       name,
       // Keep the original required list, including fields outside the MCP
       // surface, so projection cannot accidentally relax a provider contract.
       required: schema.required,
-      properties: Object.fromEntries(keys.filter(key => schema.properties[key]).map(key => [key, schema.properties[key]])),
+      properties: Object.fromEntries(providerKeys.filter(key => schema.properties[key]).map(key => [key, schema.properties[key]])),
     };
   });
 }

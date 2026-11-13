@@ -912,13 +912,77 @@
   },
   {
     "name": "list_calls",
-    "description": "Lists up to 10 Vapi calls",
+    "description": "Lists Vapi calls with ID and date filters, newest first (default 10, maximum 100 per page)",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": false,
       "properties": {
+        "assistantId": {
+          "description": "Filter by assistant ID.",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$",
+          "type": "string"
+        },
         "before": {
           "description": "Use pagination.nextBefore to continue.",
+          "format": "date-time",
+          "type": "string"
+        },
+        "createdAtGe": {
+          "description": "Created at or after this ISO timestamp.",
+          "format": "date-time",
+          "type": "string"
+        },
+        "createdAtGt": {
+          "description": "Created after this ISO timestamp (exclusive).",
+          "format": "date-time",
+          "type": "string"
+        },
+        "createdAtLe": {
+          "description": "Created at or before this ISO timestamp.",
+          "format": "date-time",
+          "type": "string"
+        },
+        "createdAtLt": {
+          "description": "Created before this ISO timestamp (exclusive); combined with before using the earlier bound.",
+          "format": "date-time",
+          "type": "string"
+        },
+        "id": {
+          "description": "Filter by call ID.",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+          "type": "string"
+        },
+        "limit": {
+          "description": "Maximum calls per page (1–100; default 10).",
+          "maximum": 100,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "phoneNumberId": {
+          "description": "Filter by phone number ID.",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$",
+          "type": "string"
+        },
+        "updatedAtGe": {
+          "description": "Updated at or after this ISO timestamp.",
+          "format": "date-time",
+          "type": "string"
+        },
+        "updatedAtGt": {
+          "description": "Updated after this ISO timestamp (exclusive).",
+          "format": "date-time",
+          "type": "string"
+        },
+        "updatedAtLe": {
+          "description": "Updated at or before this ISO timestamp.",
+          "format": "date-time",
+          "type": "string"
+        },
+        "updatedAtLt": {
+          "description": "Updated before this ISO timestamp (exclusive).",
           "format": "date-time",
           "type": "string"
         }

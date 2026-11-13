@@ -242,6 +242,36 @@ the full details of a known item.
 
 ### Development
 
+### npm releases
+
+To release, bump `version` in `package.json` and `package-lock.json`, then merge
+to `main`. After compilation and tests pass, CI creates `v<version>` at that
+commit and builds and publishes that tag in the same run. An unchanged version
+whose tag already points to an earlier commit skips publishing. CI never moves
+an existing tag. Re-running the same commit can resume a failed release.
+
+Manual `v*` tag pushes also publish after CI passes, and the tag must match the
+package version. Manual workflow runs on a tag use the same release path.
+Alpha and beta releases use the `alpha` and `beta` npm dist-tags; stable releases
+use `latest`. Publishing always uses a prepared tarball in a separate job,
+without checking out code, installing dependencies, restoring caches, or running
+package lifecycle scripts with publishing authority.
+
+Publishing uses [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)
+with GitHub OIDC, not an `NPM_TOKEN` secret. On npm, configure the trusted publisher
+for `@vapi-ai/mcp-server` with organization `VapiAI`, repository `mcp-server`, and
+workflow filename `ci.yml` (case-sensitive), with no environment name. Enable
+direct `npm publish` permission; stage-only permission requires human approval
+and cannot complete this automatic release flow. A new trust configuration must
+complete its first successful publish within two days or be recreated. Node 24's
+bundled npm supports OIDC (minimum npm 11.5.1 and Node 22.14.0).
+
+If CI stays queued before creating jobs, check GitHub Actions policy and runner
+availability separately from npm authentication. If publishing fails, verify the
+trusted publisher settings and expiry. Tarballs are retained for one day; after
+that, re-run all jobs to recreate the artifact. Re-running an already published
+version fails because npm versions cannot be overwritten.
+
 ```bash
 # Install dependencies
 npm install

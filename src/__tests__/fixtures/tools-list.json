@@ -797,40 +797,82 @@
   },
   {
     "name": "get_call",
-    "description": "Gets details of a specific call",
+    "description": "Returns an API-shaped call summary. Use fields to load optional details; _mcp reports missing or truncated data.",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
       "properties": {
-        "callId": {
-          "description": "ID of the call to get",
+        "fields": {
+          "description": "Optional API field paths, such as transcript, analysis.summary, artifact.recordingUrl, or messages; use * for all safe fields.",
+          "items": {
+            "pattern": "^(?:\\*|[A-Za-z][A-Za-z0-9]*(\\.[A-Za-z][A-Za-z0-9]*)*)$",
+            "type": "string"
+          },
+          "maxItems": 6,
+          "type": "array"
+        },
+        "id": {
+          "description": "Call ID",
           "format": "uuid",
           "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
           "type": "string"
+        },
+        "limit": {
+          "description": "Maximum characters or array items per page, up to 8000 characters or 50 items.",
+          "maximum": 8000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "offset": {
+          "description": "Offset for a paged field; use _mcp.truncatedFields[].nextOffset.",
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
         }
       },
       "required": [
-        "callId"
+        "id"
       ],
       "type": "object"
     }
   },
   {
     "name": "get_phone_number",
-    "description": "Gets details of a specific phone number",
+    "description": "Returns API-shaped phone number details. Use fields to load provider configuration.",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
       "properties": {
-        "phoneNumberId": {
-          "description": "ID of the phone number to get",
+        "fields": {
+          "description": "Optional API field paths for provider settings, such as provider or providerResourceId; use * for all safe fields.",
+          "items": {
+            "pattern": "^(?:\\*|[A-Za-z][A-Za-z0-9]*(\\.[A-Za-z][A-Za-z0-9]*)*)$",
+            "type": "string"
+          },
+          "maxItems": 6,
+          "type": "array"
+        },
+        "id": {
+          "description": "Phone number ID",
           "format": "uuid",
           "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
           "type": "string"
+        },
+        "limit": {
+          "description": "Maximum characters or array items per page, up to 8000 characters or 50 items.",
+          "maximum": 8000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "offset": {
+          "description": "Offset for a paged field; use _mcp.truncatedFields[].nextOffset.",
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
         }
       },
       "required": [
-        "phoneNumberId"
+        "id"
       ],
       "type": "object"
     }
@@ -876,20 +918,41 @@
   },
   {
     "name": "get_tool",
-    "description": "Gets details of a specific tool",
+    "description": "Returns API-shaped tool details. Use fields to load additional configuration.",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
       "properties": {
-        "toolId": {
-          "description": "ID of the tool to get",
+        "fields": {
+          "description": "Optional API field paths, such as destinations, messages, function.parameters, or server.url; use * for all safe fields.",
+          "items": {
+            "pattern": "^(?:\\*|[A-Za-z][A-Za-z0-9]*(\\.[A-Za-z][A-Za-z0-9]*)*)$",
+            "type": "string"
+          },
+          "maxItems": 6,
+          "type": "array"
+        },
+        "id": {
+          "description": "Tool ID",
           "format": "uuid",
           "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
           "type": "string"
+        },
+        "limit": {
+          "description": "Maximum characters or array items per page, up to 8000 characters or 50 items.",
+          "maximum": 8000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "offset": {
+          "description": "Offset for a paged field; use _mcp.truncatedFields[].nextOffset.",
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
         }
       },
       "required": [
-        "toolId"
+        "id"
       ],
       "type": "object"
     }

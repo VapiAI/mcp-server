@@ -10,6 +10,7 @@ import {
 } from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
 import { createV1ListHandler } from './list.js';
+import { selectResourceDetails } from './resource-details.js';
 
 export const registerCallTools = (
   server: McpServer,
@@ -45,13 +46,17 @@ export const registerCallTools = (
     server,
     'get_call',
     {
-      description: 'Gets details of a specific call',
+      description: 'Returns an API-shaped call summary. Use fields to load optional details; _mcp reports missing or truncated data.',
       inputSchema: GetCallInputSchema,
       annotations: readOnly('Get Call'),
     },
     createToolHandler(async (data) => {
-      const call = await vapiClient.calls.get({ id: data.callId });
-      return transformCallOutput(call);
+      const call = await vapiClient.calls.get({ id: data.id });
+      return selectResourceDetails(
+        call as unknown as Record<string, unknown>,
+        ['id', 'createdAt', 'updatedAt', 'status', 'endedReason', 'assistantId', 'phoneNumberId', 'customer.number', 'schedulePlan'],
+        data
+      );
     })
   );
 };

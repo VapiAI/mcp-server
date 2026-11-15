@@ -80,9 +80,9 @@ liveDescribe('live Vapi read-only compatibility', () => {
 
   test.each([
     ['list_assistants', 'get_assistant', 'assistantId'],
-    ['list_calls', 'get_call', 'callId'],
-    ['list_phone_numbers', 'get_phone_number', 'phoneNumberId'],
-    ['list_tools', 'get_tool', 'toolId'],
+    ['list_calls', 'get_call', 'id'],
+    ['list_phone_numbers', 'get_phone_number', 'id'],
+    ['list_tools', 'get_tool', 'id'],
   ])(
     '%s results can be retrieved through %s when present',
     async (listName, getName, idArgument) => {

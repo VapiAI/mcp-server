@@ -7,6 +7,7 @@ import { transformPhoneNumberOutput } from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
 import { ListInputSchema, GetPhoneNumberInputSchema } from '../schemas/index.js';
 import { createV1ListHandler } from './list.js';
+import { selectResourceDetails } from './resource-details.js';
 
 export const registerPhoneNumberTools = (
   server: McpServer,
@@ -27,16 +28,19 @@ export const registerPhoneNumberTools = (
     server,
     'get_phone_number',
     {
-      description: 'Gets details of a specific phone number',
+      description: 'Returns API-shaped phone number details. Use fields to load provider configuration.',
       inputSchema: GetPhoneNumberInputSchema,
       annotations: readOnly('Get Phone Number'),
     },
     createToolHandler(async (data) => {
-      const phoneNumberId = data.phoneNumberId;
       const phoneNumber = await vapiClient.phoneNumbers.get({
-        id: phoneNumberId,
+        id: data.id,
       });
-      return transformPhoneNumberOutput(phoneNumber);
+      return selectResourceDetails(
+        phoneNumber as unknown as Record<string, unknown>,
+        ['id', 'createdAt', 'updatedAt', 'name', 'number', 'status', 'provider', 'assistantId', 'providerResourceId'],
+        data
+      );
     })
   );
 };

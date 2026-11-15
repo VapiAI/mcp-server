@@ -124,9 +124,9 @@ liveDescribe('live Vapi create/update compatibility', () => {
       expect(typeof toolId).toBe('string');
       expect(createdTool.name).toBe(createdToolName);
 
-      const retrievedTool = await invoke('get_tool', { toolId });
+      const retrievedTool = await invoke('get_tool', { id: toolId });
       expect(retrievedTool.id).toBe(toolId);
-      expect(retrievedTool.name).toBe(createdToolName);
+      expect(retrievedTool.function.name).toBe(createdToolName);
 
       const updatedTool = await invoke('update_tool', {
         toolId,
@@ -136,8 +136,8 @@ liveDescribe('live Vapi create/update compatibility', () => {
       expect(updatedTool.id).toBe(toolId);
       expect(updatedTool.name).toBe(updatedToolName);
 
-      const persistedTool = await invoke('get_tool', { toolId });
-      expect(persistedTool.name).toBe(updatedToolName);
+      const persistedTool = await invoke('get_tool', { id: toolId });
+      expect(persistedTool.function.name).toBe(updatedToolName);
 
       // A description-only update must not drop the function name.
       const redescribedTool = await invoke('update_tool', {

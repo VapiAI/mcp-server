@@ -58,13 +58,13 @@ test.each([
 });
 
 test('an agent can correct a reported field and retry successfully', async () => {
-  const invalid = await client.callTool({ name: 'get_tool', arguments: { toolId: 'not-a-uuid' } });
+  const invalid = await client.callTool({ name: 'get_tool', arguments: { id: 'not-a-uuid' } });
   expect(invalid.isError).toBe(true);
   expect(invalid.structuredContent).toEqual({ validationError: expect.objectContaining({
-    issues: expect.arrayContaining([expect.objectContaining({ path: 'toolId', code: 'invalid_format' })]),
+    issues: expect.arrayContaining([expect.objectContaining({ path: 'id', code: 'invalid_format' })]),
   }) });
   expect(operation).not.toHaveBeenCalled();
-  const corrected = await client.callTool({ name: 'get_tool', arguments: { toolId } });
+  const corrected = await client.callTool({ name: 'get_tool', arguments: { id: toolId } });
   expect(corrected.isError).not.toBe(true);
   expect(operation).toHaveBeenCalledTimes(1);
 });

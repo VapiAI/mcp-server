@@ -42,11 +42,11 @@ test.each([
 
 describe.each([
   { schema: GetAssistantInputSchema, key: 'assistantId', id: assistantId },
-  { schema: GetCallInputSchema, key: 'callId', id: callId },
-  { schema: GetPhoneNumberInputSchema, key: 'phoneNumberId', id: phoneNumberId },
-  { schema: GetToolInputSchema, key: 'toolId', id: toolId },
+  { schema: GetCallInputSchema, key: 'id', id: callId },
+  { schema: GetPhoneNumberInputSchema, key: 'id', id: phoneNumberId },
+  { schema: GetToolInputSchema, key: 'id', id: toolId },
 ])('$key lookup contract', ({ schema, key, id }) => {
-  test('preserves the identifier alias', () => {
+  test('uses the API identifier name', () => {
     expect(schema.parse({ [key]: id })).toEqual({ [key]: id });
   });
   test.each([{}, { [key]: null }, { [key]: 42 }])('rejects a missing or malformed identifier: %j', input => {

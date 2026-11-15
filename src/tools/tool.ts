@@ -7,6 +7,7 @@ import { ListInputSchema, GetToolInputSchema, CreateToolInputSchema, UpdateToolI
 import { transformToolInput, transformUpdateToolInput, transformToolOutput } from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
 import { createV1ListHandler } from './list.js';
+import { selectResourceDetails } from './resource-details.js';
 
 export const registerToolTools = (
   server: McpServer,
@@ -27,13 +28,17 @@ export const registerToolTools = (
     server,
     'get_tool',
     {
-      description: 'Gets details of a specific tool',
+      description: 'Returns API-shaped tool details. Use fields to load additional configuration.',
       inputSchema: GetToolInputSchema,
       annotations: readOnly('Get Tool'),
     },
     createToolHandler(async (data) => {
-      const tool = await vapiClient.tools.get({ id: data.toolId });
-      return transformToolOutput(tool);
+      const tool = await vapiClient.tools.get({ id: data.id });
+      return selectResourceDetails(
+        tool as unknown as Record<string, unknown>,
+        ['id', 'createdAt', 'updatedAt', 'type', 'function.name'],
+        data
+      );
     })
   );
 

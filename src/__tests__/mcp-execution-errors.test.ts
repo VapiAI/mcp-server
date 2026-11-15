@@ -98,8 +98,10 @@ describe('execution error semantics across the MCP and Vapi SDK boundary', () =>
 
   test('preserves only allowlisted retry and correlation headers', async () => {
     nextResponse = { status: 429 };
+    const before = requests.length;
     const result = await callTool({ name: 'list_calls', arguments: {} });
 
+    expect(requests).toHaveLength(before + 1);
     expect(result.structuredContent).toEqual({
       error: expect.objectContaining({
         status: 429,
@@ -137,8 +139,10 @@ describe('execution error semantics across the MCP and Vapi SDK boundary', () =>
 
   test('keeps ordinary successful MCP results successful', async () => {
     nextResponse = { status: 200 };
+    const before = requests.length;
     const result = await callTool({ name: 'list_calls', arguments: {} });
 
+    expect(requests).toHaveLength(before + 1);
     expect(result.isError).not.toBe(true);
     expect(result.content).toEqual(
       expect.arrayContaining([expect.objectContaining({ type: 'text' })])

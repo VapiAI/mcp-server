@@ -15,7 +15,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { assertMismatchFails, contractCases, verifyContract } from './runtime-contract.mjs';
+import { assertMismatchFails, contractCases, pendingCases, hostedMismatchControl, verifyContract } from './runtime-contract.mjs';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
@@ -211,6 +211,8 @@ function startHttpProbe(endpoint, token) {
       method: 'POST',
       headers,
       body: JSON.stringify({ jsonrpc: '2.0', id, method, params }),
+      signal: AbortSignal.timeout(10_000),
+      redirect: 'error',
     });
     if (!response.ok) {
       throw new Error(`Hosted MCP returned HTTP ${response.status} for ${method}`);
@@ -238,6 +240,8 @@ function startHttpProbe(endpoint, token) {
       method: 'POST',
       headers,
       body: JSON.stringify({ jsonrpc: '2.0', method, params }),
+      signal: AbortSignal.timeout(10_000),
+      redirect: 'error',
     });
     if (!response.ok) {
       throw new Error(`Hosted MCP returned HTTP ${response.status} for ${method}`);
@@ -279,7 +283,7 @@ async function readSseResponse(response) {
       return JSON.parse(dataLines.join('\n'));
     }
   } finally {
-    await reader.cancel().catch(() => {});
+    void reader.cancel().catch(() => {});
   }
   throw new Error('Hosted MCP returned no JSON-RPC result in its event stream');
 }
@@ -328,8 +332,8 @@ async function verifyHostedRuntime(expected) {
     return {
       status: 'pending',
       reason: 'MCP_CONTRACT_HOST_URL was not supplied',
-      cases: contractCases.map((name) => ({ name, status: 'pending' })),
-      caseCount: { passed: 0, pending: contractCases.length, total: contractCases.length },
+      cases: [...contractCases, ...pendingCases].map((name) => ({ name, status: 'pending' })),
+      caseCount: { passed: 0, pending: contractCases.length + pendingCases.length, total: contractCases.length + pendingCases.length },
     };
   }
   const environment = process.env.MCP_CONTRACT_HOST_ENV;
@@ -358,22 +362,25 @@ async function verifyHostedRuntime(expected) {
     const observation = await collectContract(probe, { ...expected, serverVersion: undefined, allowExtraTools: true });
     const result = verifyContract(observation, { ...expected, serverVersion: undefined, allowExtraTools: true });
     return {
-      status: result.passed ? 'passed' : 'failed',
+      status: result.passed ? 'pending' : 'failed',
+      identity: { status: 'pending', reason: 'Host package and contract identity are not exposed by the endpoint' },
       environment,
       endpoint: `${endpoint.origin}${endpoint.pathname}`,
       revision: hostRevision,
       revisionSource: 'operator-supplied deployment record',
       serverInfo: result.serverInfo ?? null,
+      identityMismatchControl: result.passed ? hostedMismatchControl(observation, expected) : { status: 'pending', reason: 'Behavioral control did not pass' },
       hostOnlyTools: result.actualToolNames.filter((name) => !expected.toolNames.includes(name)),
       failures: result.failures,
       cases: contractCases.map((name) => ({
         name,
         status: result.failures.some((failure) => failure.name === name) ? 'failed' : 'passed',
-      })),
+      })).concat(pendingCases.map((name) => ({ name, status: 'pending' }))),
       caseCount: {
         passed: contractCases.filter((name) => !result.failures.some((failure) => failure.name === name)).length,
         failed: [...new Set(result.failures.map((failure) => failure.name))].length,
-        total: contractCases.length,
+        pending: pendingCases.length,
+        total: contractCases.length + pendingCases.length,
       },
     };
   } catch (error) {
@@ -384,8 +391,8 @@ async function verifyHostedRuntime(expected) {
       revision: hostRevision,
       revisionSource: 'operator-supplied deployment record',
       reason: error instanceof Error ? error.message : 'Hosted contract request failed',
-      cases: contractCases.map((name) => ({ name, status: 'pending' })),
-      caseCount: { passed: 0, pending: contractCases.length, total: contractCases.length },
+      cases: [...contractCases, ...pendingCases].map((name) => ({ name, status: 'pending' })),
+      caseCount: { passed: 0, pending: contractCases.length + pendingCases.length, total: contractCases.length + pendingCases.length },
     };
   } finally {
     await probe.close();
@@ -531,6 +538,7 @@ try {
     generatedAt: new Date().toISOString(),
     contractRevision: runtime.contractRevision,
     cases: contractCases,
+    pendingCases,
     package: {
       name: packageMetadata.name,
       version: packageMetadata.version,
@@ -538,16 +546,16 @@ try {
       sourceTreeDirty: runtime.sourceTreeDirty,
       artifactIntegrity: packed[0].integrity ?? null,
       status: 'packed-local',
-      result: { status: 'passed', caseCount: { passed: contractCases.length, total: contractCases.length } },
+      result: { status: 'pending', cases: pendingCases.map((name) => ({ name, status: 'pending' })), caseCount: { passed: contractCases.length, pending: pendingCases.length, total: contractCases.length + pendingCases.length } },
     },
     hosted,
-    releaseLifecycle: { merged: 'not-checked', published: 'not-checked', deployed: hosted.status === 'passed' ? 'target-observed' : 'pending' },
+    releaseLifecycle: { merged: 'not-checked', published: 'not-checked', deployed: 'not-checked' },
     controls: { intentionalVersionMismatch: 'failed-as-expected' },
   };
   const reportPath = process.env.MCP_CONTRACT_REPORT;
   if (reportPath) await writeFile(resolve(reportPath), `${JSON.stringify(report, null, 2)}\n`);
   console.log(JSON.stringify(report, null, 2));
-  if (hosted.status === 'failed') process.exitCode = 1;
+  if (process.env.MCP_CONTRACT_HOST_URL && hosted.status !== 'passed') process.exitCode = 1;
 } finally {
   await server?.close();
   await rm(temporaryRoot, { recursive: true, force: true });

@@ -64,3 +64,18 @@ export function assertMismatchFails(observation, expected) {
   assert(mismatch.failures.some((failure) => failure.name === 'initialize'),
     'mismatch control must identify initialization metadata as the failure');
 }
+
+// These guarantees require controlled fixtures and their owning delivery changes.
+export const pendingCases = [
+  'execution_error', 'result_completeness', 'read_only_denial',
+  'cancellation_deadline', 'retry_safety', 'host_identity',
+];
+
+// A matching catalog cannot establish which package is running in the host.
+export function hostedMismatchControl(observation, expected) {
+  const stale = structuredClone(observation);
+  stale.initialize.result.serverInfo = { name: 'Vapi MCP', version: '0.0.1' };
+  const behavioral = verifyContract(stale, { ...expected, allowExtraTools: true });
+  if (!behavioral.passed) throw new Error('Hosted mismatch control requires a passing behavioral observation');
+  return { status: 'pending', reason: 'Stale host identity cannot be verified from the current protocol' };
+}

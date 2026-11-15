@@ -11,6 +11,20 @@ import {
 import { createToolHandler } from './utils.js';
 import { createV1ListHandler } from './list.js';
 
+export function uncertainCallError(error: unknown): Error {
+  const uncertain = new Error(
+    'Call creation outcome is unknown after one request. Check Vapi call history before retrying.',
+    { cause: error }
+  );
+  if (error && typeof error === 'object') {
+    Object.assign(uncertain, {
+      statusCode: (error as { statusCode?: unknown }).statusCode,
+      rawResponse: (error as { rawResponse?: unknown }).rawResponse,
+    });
+  }
+  return uncertain;
+}
+
 export const registerCallTools = (
   server: McpServer,
   vapiClient: VapiClient
@@ -45,10 +59,8 @@ export const registerCallTools = (
       } catch (error) {
         const statusCode = (error as { statusCode?: unknown })?.statusCode;
         if (typeof statusCode !== 'number' || statusCode === 408 || statusCode === 429 || statusCode >= 500) {
-          const message = error instanceof Error ? error.message : String(error);
-          throw new Error(
-            `Call creation outcome is unknown after one request: ${message}. Check Vapi call history before retrying.`
-          );
+          // Preserve SDK metadata without exposing its potentially sensitive body.
+          throw uncertainCallError(error);
         }
         throw error;
       }

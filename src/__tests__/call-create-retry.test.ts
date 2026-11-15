@@ -3,7 +3,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient } from '@vapi-ai/server-sdk';
-import { registerCallTools } from '../tools/call.js';
+import { registerCallTools, uncertainCallError } from '../tools/call.js';
 
 const input = {
   assistantId: 'assistant-1',
@@ -33,9 +33,20 @@ describe('create_call SDK retry policy', () => {
     await harness?.server.close();
   });
 
+  test('retains SDK status and response metadata without exposing its body', () => {
+    const rawResponse = new Response('secret', { status: 429, headers: { 'retry-after': '3', 'x-request-id': 'request-1' } });
+    const upstream = Object.assign(new Error('secret'), { statusCode: 429, rawResponse });
+    const wrapped = uncertainCallError(upstream) as Error & { statusCode: number; rawResponse: Response };
+    expect(wrapped.cause).toBe(upstream);
+    expect(wrapped.statusCode).toBe(429);
+    expect(wrapped.rawResponse.headers.get('retry-after')).toBe('3');
+    expect(wrapped.rawResponse.headers.get('x-request-id')).toBe('request-1');
+    expect(wrapped.message).not.toContain('secret');
+  });
+
   test('does not retry a retryable HTTP failure', async () => {
     const fetch = jest.fn<typeof globalThis.fetch>(async () =>
-      new Response(JSON.stringify({ message: 'temporary API failure' }), {
+      new Response(JSON.stringify({ message: 'sensitive upstream detail' }), {
         status: 500,
         headers: { 'content-type': 'application/json' },
       })
@@ -50,6 +61,7 @@ describe('create_call SDK retry policy', () => {
       type: 'text',
       text: expect.stringContaining('Check Vapi call history before retrying.'),
     }));
+    expect(JSON.stringify(result)).not.toContain('sensitive upstream detail');
   });
 
   test('surfaces accepted-then-lost responses as uncertain without a second POST', async () => {

@@ -10,14 +10,31 @@ function isSecretField(key: string): boolean {
 /** Redacts credential-bearing fields and URLs without modifying the source object. */
 export function redactCredentials<T>(value: T): T {
   if (typeof value === 'string') return redactCredentialText(value, false) as T;
-  if (Array.isArray(value)) return value.map(redactCredentials) as T;
+  if (Array.isArray(value)) return value.map((item) => redactCredentials(item)) as T;
   if (!value || typeof value !== 'object') return value;
 
   return Object.fromEntries(
-    Object.entries(value).map(([key, item]) => [
-      key,
-      isSecretField(key) ? REDACTED : redactCredentials(item),
-    ])
+    Object.entries(value).map(([key, item]) => {
+      // A JSON Schema property name is a contract label, not a credential value.
+      if (
+        key === 'properties' &&
+        (value as { type?: unknown }).type === 'object' &&
+        item &&
+        typeof item === 'object' &&
+        !Array.isArray(item)
+      ) {
+        return [
+          key,
+          Object.fromEntries(
+            Object.entries(item).map(([property, schema]) => [
+              property,
+              redactCredentials(schema),
+            ])
+          ),
+        ];
+      }
+      return [key, isSecretField(key) ? REDACTED : redactCredentials(item)];
+    })
   ) as T;
 }
 

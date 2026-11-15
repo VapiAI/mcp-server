@@ -463,6 +463,15 @@ describe('MCP tool execution compatibility', () => {
     const secret = 'synthetic-vapi-secret';
     const sourceTool = {
       ...tool,
+      function: {
+        ...tool.function,
+        parameters: {
+          type: 'object',
+          properties: {
+            password: { type: 'string', description: 'Tool input label' },
+          },
+        },
+      },
       server: {
         url: 'https://user:pass@example.test/tools?access_token=query-secret&region=us',
         headers: {
@@ -487,6 +496,8 @@ describe('MCP tool execution compatibility', () => {
     expect(serialized).toContain('[REDACTED]');
     expect(serialized).toContain('X-Region');
     expect(serialized).toContain('us-east');
+    expect(serialized).toContain('"password"');
+    expect(serialized).toContain('Tool input label');
     expect(sourceTool.server.headers.Authorization).toBe(`Bearer ${secret}`);
   });
 

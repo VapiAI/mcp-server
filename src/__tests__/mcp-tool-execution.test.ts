@@ -300,19 +300,57 @@ describe('MCP tool execution compatibility', () => {
       expect(reads.isError).not.toBe(true);
       expect(vapiOperations.assistants.list).toHaveBeenCalledTimes(listCallsBefore + 1);
 
-      // Calling the hidden write by name must still fail at the MCP boundary.
-      const denied = await readOnlyClient.callTool({
-        name: 'create_assistant',
-        arguments: { name: 'Must not be created' },
-      });
-      expect(denied.isError).toBe(true);
-      expect(denied.content).toEqual(expect.arrayContaining([
-        expect.objectContaining({ type: 'text', text: expect.stringMatching(/not found/i) }),
-      ]));
+      // Every current mutation must fail by name, before validation or handlers.
+      for (const name of [
+        'create_assistant', 'update_assistant', 'create_call', 'create_tool',
+        'update_tool', 'create_simulation', 'create_simulation_personality',
+        'create_simulation_scenario', 'create_simulation_suite', 'run_simulations',
+      ]) {
+        const denied = await readOnlyClient.callTool({ name, arguments: {} });
+        expect({ name, isError: denied.isError, content: denied.content }).toEqual({
+          name, isError: true, content: expect.arrayContaining([
+            expect.objectContaining({ type: 'text', text: expect.stringMatching(/not found/i) }),
+          ]),
+        });
+      }
       expect(vapiOperations.assistants.create).toHaveBeenCalledTimes(createCallsBefore);
+      // The already connected default server remains writable.
+      const defaultResult = await client.callTool({ name: 'create_assistant', arguments: { name: 'Default mode' } });
+      expect(defaultResult.isError).not.toBe(true);
+      expect(vapiOperations.assistants.create).toHaveBeenCalledTimes(createCallsBefore + 1);
     } finally {
       await readOnlyClient.close();
       await readOnlyServer.close();
+    }
+  });
+
+  test('environment policy and explicit override remain isolated and preserve upstream authorization', async () => {
+    const previous = process.env.VAPI_MCP_READ_ONLY;
+    process.env.VAPI_MCP_READ_ONLY = 'true';
+    const attempts = jest.fn(async () => { throw new Error('credential denied'); });
+    const restricted = { assistants: { list: attempts } } as unknown as VapiClient;
+    const servers = [new McpServer({ name: 'env', version: '0' }), new McpServer({ name: 'override', version: '0' })];
+    const clients = [new Client({ name: 'env', version: '0' }), new Client({ name: 'override', version: '0' })];
+    try {
+      registerAllTools(servers[0], restricted);
+      registerAllTools(servers[1], restricted, { readOnly: false });
+      for (let i = 0; i < servers.length; i++) {
+        const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+        await servers[i].connect(serverTransport);
+        await clients[i].connect(clientTransport);
+      }
+      expect((await clients[0].listTools()).tools.some(tool => tool.name === 'create_assistant')).toBe(false);
+      expect((await clients[1].listTools()).tools.some(tool => tool.name === 'create_assistant')).toBe(true);
+      const result = await clients[0].callTool({ name: 'list_assistants', arguments: {} });
+      expect(result.content).toEqual(expect.arrayContaining([
+        expect.objectContaining({ type: 'text', text: expect.stringContaining('credential denied') }),
+      ]));
+      expect(attempts).toHaveBeenCalledTimes(1);
+    } finally {
+      if (previous === undefined) delete process.env.VAPI_MCP_READ_ONLY;
+      else process.env.VAPI_MCP_READ_ONLY = previous;
+      await Promise.all(clients.map(client => client.close()));
+      await Promise.all(servers.map(server => server.close()));
     }
   });
 

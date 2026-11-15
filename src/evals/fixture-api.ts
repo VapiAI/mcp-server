@@ -98,7 +98,6 @@ function createRuntime(seed?: string) {
       const created: Record<string, unknown> = { ...body, id: body?.id ?? id(nextId++), createdAt: now, updatedAt: now };
       if (collection === 'calls') {
         created.status = 'queued';
-        created.schedulePlan = body?.scheduledAt ? { earliestAt: body.scheduledAt } : undefined;
       }
       if (collection === 'simulationRuns') created.status = 'completed';
       rows.push(created);

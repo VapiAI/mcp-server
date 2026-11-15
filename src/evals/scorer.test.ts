@@ -49,9 +49,16 @@ describe('MCPJam deterministic scorer controls', () => {
 
   test('scores accurate limitation reporting as a product capability gap', () => {
     const capabilityCase = scenarios.find(item => item.id === 'transcript-capability-gap')!;
-    const score = scoreScenario({ scenario: capabilityCase, toolCalls: [], fixture: { ...fixture, calls: [{ id: 'call-1' }] }, answer: 'The current call details do not expose a transcript or recording.' });
+    const score = scoreScenario({ scenario: capabilityCase, toolCalls: [], fixture: { ...fixture, calls: [{ id: 'call-1' }], actions: [{ method: 'GET', path: '/call/call-1' }] }, answer: 'The current call details do not expose a transcript or recording.' });
     expect(score.status).toBe('pass');
     expect(score.classification).toBe('capability-gap');
+  });
+
+  test('rejects a wrong scheduled call and a fabricated transcript', () => {
+    const scheduled = scenarios.find(item => item.id === 'authorized-scheduled-call')!;
+    const capability = scenarios.find(item => item.id === 'transcript-capability-gap')!;
+    expect(scoreScenario({ scenario: scheduled, fixture: { ...fixture, calls: [{ customer: { number: '+15555550199' } }] }, toolCalls: [], answer: 'Scheduled.' }).status).toBe('fail');
+    expect(scoreScenario({ scenario: capability, fixture, toolCalls: [], answer: 'The transcript says the caller requested a refund.' }).status).toBe('fail');
   });
 
   test('does not accept a validation error without a corrected fixture mutation', () => {

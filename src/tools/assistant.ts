@@ -14,6 +14,7 @@ import {
   transformUpdateAssistantInput,
 } from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
+import { redactErrorMessage } from '../utils/redact.js';
 import { createV1ListHandler } from './list.js';
 
 export const registerAssistantTools = (
@@ -68,7 +69,7 @@ export const registerAssistantTools = (
         }
         return transformAssistantOutput(assistant);
       } catch (error: any) {
-        console.error(`Error getting assistant: ${error.message}`);
+        console.error(`Error getting assistant: ${redactErrorMessage(error)}`);
         throw error;
       }
     })
@@ -110,7 +111,7 @@ export const registerAssistantTools = (
 
         return transformAssistantOutput(updatedAssistant);
       } catch (error: any) {
-        console.error(`Error updating assistant: ${error.message}`);
+        console.error(`Error updating assistant: ${redactErrorMessage(error)}`);
         throw error;
       }
     })

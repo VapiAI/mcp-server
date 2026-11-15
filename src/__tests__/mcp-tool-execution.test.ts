@@ -459,6 +459,115 @@ describe('MCP tool execution compatibility', () => {
     });
   });
 
+  test('get_tool redacts credentials at the MCP result boundary without changing source data', async () => {
+    const secret = 'synthetic-vapi-secret';
+    const sourceTool = {
+      ...tool,
+      server: {
+        url: 'https://user:pass@example.test/tools?access_token=query-secret&region=us',
+        headers: {
+          Authorization: `Bearer ${secret}`,
+          'X-Vapi-Secret': secret,
+          'X-Region': 'us-east',
+        },
+      },
+    };
+    vapiOperations.tools.get.mockResolvedValueOnce(sourceTool as any);
+
+    const response = await client.callTool({
+      name: 'get_tool',
+      arguments: { toolId: tool.id },
+    });
+    const serialized = JSON.stringify(response);
+
+    expect(response.isError).not.toBe(true);
+    expect(serialized).not.toContain(secret);
+    expect(serialized).not.toContain('user:pass');
+    expect(serialized).not.toContain('query-secret');
+    expect(serialized).toContain('[REDACTED]');
+    expect(serialized).toContain('X-Region');
+    expect(serialized).toContain('us-east');
+    expect(sourceTool.server.headers.Authorization).toBe(`Bearer ${secret}`);
+  });
+
+  test('list_tools redacts the same fields in text and structured MCP results', async () => {
+    const secret = 'synthetic-list-secret';
+    vapiOperations.tools.list.mockResolvedValueOnce([{
+      ...tool,
+      server: {
+        url: 'https://example.test/tools?api_key=list-query-secret&region=us',
+        headers: { Authorization: `Bearer ${secret}`, 'X-Region': 'us-east' },
+      },
+    }] as any);
+
+    const response = await client.callTool({ name: 'list_tools', arguments: {} });
+    const serialized = JSON.stringify(response);
+
+    expect(serialized).not.toContain(secret);
+    expect(serialized).not.toContain('list-query-secret');
+    expect(serialized).toContain('[REDACTED]');
+    expect(serialized).toContain('X-Region');
+    expect(serialized).toContain('us-east');
+    expect(response.structuredContent).toBeDefined();
+  });
+
+  test('a redacted tool read does not turn placeholders into update credentials', async () => {
+    const secret = 'update-preserves-synthetic-secret';
+    const sourceTool = {
+      ...tool,
+      server: {
+        url: 'https://example.test/tools',
+        headers: { Authorization: `Bearer ${secret}` },
+      },
+    };
+    vapiOperations.tools.get
+      .mockResolvedValueOnce(sourceTool as any)
+      .mockResolvedValueOnce(sourceTool as any);
+    await client.callTool({ name: 'get_tool', arguments: { toolId: tool.id } });
+    await client.callTool({
+      name: 'update_tool',
+      arguments: { toolId: tool.id, description: 'Safe description update' },
+    });
+
+    expect(vapiOperations.tools.update).toHaveBeenLastCalledWith({
+      id: tool.id,
+      body: {
+        function: { ...tool.function, description: 'Safe description update' },
+        server: sourceTool.server,
+      },
+    });
+    expect(JSON.stringify(vapiOperations.tools.update.mock.lastCall)).not.toContain('[REDACTED]');
+  });
+
+  test('upstream error credentials are absent from MCP text and diagnostics', async () => {
+    const secret = 'synthetic-error-secret';
+    const error = new Error(
+      `Request failed for https://user:pass@example.test/path?api_key=query-secret: Authorization: Bearer ${secret}; body {"client_secret":"${secret}"}`
+    );
+    vapiOperations.assistants.get.mockRejectedValueOnce(error);
+    const diagnostic = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      const response = await client.callTool({
+        name: 'get_assistant',
+        arguments: { assistantId: assistant.id },
+      });
+      const serialized = JSON.stringify(response);
+      const logged = diagnostic.mock.calls.map(call => call.join(' ')).join(' ');
+
+      expect(serialized).not.toContain(secret);
+      expect(serialized).not.toContain('user:pass');
+      expect(serialized).not.toContain('query-secret');
+      expect(logged).not.toContain(secret);
+      expect(logged).not.toContain('user:pass');
+      expect(logged).not.toContain('query-secret');
+      expect(serialized).toContain('[REDACTED]');
+      expect(logged).toContain('[REDACTED]');
+    } finally {
+      diagnostic.mockRestore();
+    }
+  });
+
   test.each(['create_assistant', 'update_assistant'])('%s rejects a long name before any API call', async name => {
     const createCalls = vapiOperations.assistants.create.mock.calls.length;
     const getCalls = vapiOperations.assistants.get.mock.calls.length;

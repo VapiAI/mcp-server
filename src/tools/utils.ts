@@ -1,22 +1,24 @@
 import { z } from 'zod';
+import { redactCredentials, redactErrorMessage } from '../utils/redact.js';
 
 export type ToolResponse = {
   content: Array<{ type: 'text'; text: string }>;
 };
 
 export function createSuccessResponse(data: any): ToolResponse {
+  const safeData = redactCredentials(data);
   return {
     content: [
       {
         type: 'text' as const,
-        text: typeof data === 'string' ? data : JSON.stringify(data),
+        text: typeof safeData === 'string' ? safeData : JSON.stringify(safeData),
       },
     ],
   };
 }
 
 export function createErrorResponse(error: any): ToolResponse {
-  const errorMessage = error?.message || String(error);
+  const errorMessage = redactErrorMessage(error);
   return {
     content: [
       {

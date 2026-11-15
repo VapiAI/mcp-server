@@ -36,7 +36,22 @@ export const registerCallTools = (
     },
     createToolHandler(async (data) => {
       const createCallDto = transformCallInput(data);
-      const call = await vapiClient.calls.create(createCallDto);
+      let call: Vapi.CreateCallsResponse;
+      try {
+        // Creating a call is non-idempotent. The SDK retries 408, 429, and 5xx
+        // responses by default, which can create another call when the first
+        // request was accepted but its response was lost.
+        call = await vapiClient.calls.create(createCallDto, { maxRetries: 0 });
+      } catch (error) {
+        const statusCode = (error as { statusCode?: unknown })?.statusCode;
+        if (typeof statusCode !== 'number' || statusCode === 408 || statusCode === 429 || statusCode >= 500) {
+          const message = error instanceof Error ? error.message : String(error);
+          throw new Error(
+            `Call creation outcome is unknown after one request: ${message}. Check Vapi call history before retrying.`
+          );
+        }
+        throw error;
+      }
       return transformCallOutput(call as unknown as Vapi.Call);
     })
   );

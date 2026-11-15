@@ -41,7 +41,10 @@ export const registerToolTools = (
     server,
     'create_tool',
     {
-      description: 'Creates a new Vapi tool. Before building the payload, call load_skill({"name":"create-tool"}). Follow this tool\'s input schema.',
+      description:
+        'Creates a reusable capability a Vapi voice assistant can invoke during a conversation, such as a custom function, HTTP API request, SMS, or call transfer. ' +
+        'Attach the returned tool ID to an assistant with create_assistant or update_assistant. ' +
+        'For optional guidance on choosing a tool type, configuring it, and attaching it safely, load the public create-tool skill with load_skill({"name":"create-tool"}).',
       inputSchema: CreateToolInputSchema,
       annotations: creates('Create Tool'),
     },
@@ -56,7 +59,10 @@ export const registerToolTools = (
     server,
     'update_tool',
     {
-      description: 'Updates an existing Vapi tool. Before building the payload, call load_skill({"name":"create-tool"}). Follow this tool\'s input schema.',
+      description:
+        'Changes an existing reusable Vapi tool by toolId, such as its description, function endpoint, or transfer destinations. ' +
+        'Inspect the tool with get_tool when preparing an edit. ' +
+        'For optional guidance on safe configuration updates and assistant attachment management, load the public create-tool skill with load_skill({"name":"create-tool"}).',
       inputSchema: UpdateToolInputSchema,
       annotations: updates('Update Tool'),
     },

@@ -116,19 +116,19 @@ describe('MCP tools/list compatibility baseline', () => {
       expect(normalizedCatalog).toHaveLength(29);
       expect(normalizedCatalog).toEqual(expectedCatalog);
 
-      // Skill pointers add 551 API bytes and 538 simulation bytes. Allow 600
-      // additional bytes per group while preserving the total discovery budget.
+      // Resource explanations and optional process guidance add 2,974 bytes
+      // over main. Keep category limits and a 35 KB overall discovery budget.
       const simulationTools = normalizedCatalog.filter(tool => tool.name.includes('simulation'));
       const existingCatalog = normalizedCatalog.filter(tool => !tool.name.includes('simulation'));
       const apiCatalog = existingCatalog.filter(({ name }) => !['search_skills', 'load_skill', 'ask_vapi_docs'].includes(name));
       const withoutDocs = existingCatalog.filter(tool => tool.name !== 'ask_vapi_docs');
       expect(apiCatalog).toHaveLength(14);
       expect(simulationTools).toHaveLength(12);
-      expect(Buffer.byteLength(JSON.stringify(apiCatalog))).toBeLessThan(20_600);
-      expect(Buffer.byteLength(JSON.stringify(withoutDocs))).toBeLessThan(22_000);
-      expect(Buffer.byteLength(JSON.stringify(existingCatalog))).toBeLessThan(23_000);
-      expect(Buffer.byteLength(JSON.stringify(simulationTools))).toBeLessThan(10_600);
-      expect(Buffer.byteLength(JSON.stringify(normalizedCatalog))).toBeLessThan(33_000);
+      expect(Buffer.byteLength(JSON.stringify(apiCatalog))).toBeLessThan(22_000);
+      expect(Buffer.byteLength(JSON.stringify(withoutDocs))).toBeLessThan(23_000);
+      expect(Buffer.byteLength(JSON.stringify(existingCatalog))).toBeLessThan(24_000);
+      expect(Buffer.byteLength(JSON.stringify(simulationTools))).toBeLessThan(11_000);
+      expect(Buffer.byteLength(JSON.stringify(normalizedCatalog))).toBeLessThan(35_000);
       for (const tool of simulationTools) {
         expect(Buffer.byteLength(JSON.stringify(tool))).toBeLessThan(3_000);
         JSON.stringify(tool.inputSchema, (key, value) => {

@@ -35,7 +35,7 @@ export function redactErrorMessage(error: unknown): string {
 function redactCredentialText(text: string, redactInlineCredentials: boolean): string {
   let safeText = text
     // Credentials embedded in URL userinfo.
-    .replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/gi, `$1${REDACTED}@`)
+    .replace(/(https?:\/\/)[^\s/@]+@/gi, `$1${REDACTED}@`)
     // Secret query parameters, preserving the URL and all ordinary parameters.
     .replace(
       /([?&](?:authorization|proxy-authorization|cookie|set-cookie|x-vapi-secret|api[-_]?key|access[-_]?token|refresh[-_]?token|client[-_]?secret|password|passwd|secret|credential|private[-_]?key)=)[^&#\s]*/gi,

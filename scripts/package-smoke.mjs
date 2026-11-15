@@ -194,7 +194,7 @@ function startServer(binPath, workingDirectory, fetchHookPath, capturePath) {
 }
 
 const temporaryRoot = await mkdtemp(join(tmpdir(), 'vapi-mcp-package-smoke-'));
-const npmCacheDirectory = join(temporaryRoot, 'npm-cache');
+const npmCacheDirectory = process.env.VAPI_MCP_SMOKE_NPM_CACHE ?? join(temporaryRoot, 'npm-cache');
 let server;
 
 try {

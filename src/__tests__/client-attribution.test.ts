@@ -20,7 +20,8 @@ describe('local MCP client attribution', () => {
     requests = [];
     fetchMock = jest.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       requests.push(new Request(input, init));
-      return new Response('[]', {
+      await new Promise(resolve => setTimeout(resolve, 10));
+      return new Response(String(input).includes('/api-json') ? JSON.stringify({ components: { schemas: {} } }) : '[]', {
         status: 200,
         headers: { 'content-type': 'application/json' },
       });
@@ -50,5 +51,25 @@ describe('local MCP client attribution', () => {
     expect(attribution).toMatch(
       new RegExp(`^mcp/${packageMetadata.version}; command=list_assistants; run=local-[A-Za-z0-9-]{8,64}$`)
     );
+  });
+
+  test('keeps concurrent resource and raw-fetch tool commands separate', async () => {
+    requests.length = 0;
+    const responses = await Promise.all([
+      client.callTool({ name: 'list_calls', arguments: {} }),
+      client.callTool({ name: 'list_assistants', arguments: {} }),
+      client.callTool({ name: 'get_api_schema', arguments: { search: 'test' } }),
+    ]);
+    expect(responses.every(response => response.isError !== true)).toBe(true);
+    expect(requests).toHaveLength(3);
+    const commands = new Map(requests.map(request => [new URL(request.url).pathname, request.headers.get('x-vapi-client')]));
+    const pattern = (command: string) => new RegExp(`^mcp/${packageMetadata.version.replaceAll('.', '\\.')}\\; command=${command}; run=(local-[0-9a-f-]{36})$`);
+    const calls = commands.get('/call')?.match(pattern('list_calls'));
+    const assistants = commands.get('/assistant')?.match(pattern('list_assistants'));
+    const schema = commands.get('/api-json')?.match(pattern('get_api_schema'));
+    expect(calls).toBeTruthy();
+    expect(assistants).toBeTruthy();
+    expect(schema).toBeTruthy();
+    expect(new Set([calls?.[1], assistants?.[1], schema?.[1]]).size).toBe(1);
   });
 });

@@ -4,6 +4,7 @@ import { VapiClient, VapiEnvironment } from '@vapi-ai/server-sdk';
 import { GetApiSchemaInputSchema } from '../schemas/index.js';
 import { createToolHandler } from './utils.js';
 import { readOnly } from './annotations.js';
+import { vapiClientCommandContext } from '../client.js';
 
 type SchemaMap = Record<string, unknown>;
 
@@ -81,7 +82,7 @@ export const registerApiSchemaTools = (
       inputSchema: GetApiSchemaInputSchema.shape,
       annotations: readOnly('Get API Schema'),
     },
-    createToolHandler(async (data) => {
+    createToolHandler((data) => vapiClientCommandContext.run('get_api_schema', async () => {
       const schemas = await loadSchemas(vapiClient);
 
       if (data.name) {
@@ -106,6 +107,6 @@ export const registerApiSchemaTools = (
 
       const matches = findSchemaNames(schemas, data.search ?? '');
       return { matches: matches.slice(0, MAX_MATCHES), total: matches.length };
-    })
+    }))
   );
 };

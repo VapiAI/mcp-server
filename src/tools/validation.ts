@@ -3,6 +3,7 @@ import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import type { ToolResponse } from './utils.js';
 import { summarizeInputSchema } from './input-schema.js';
+import { vapiClientCommandContext } from '../client.js';
 
 type Issue = z.core.$ZodIssue;
 type FieldIssue = {
@@ -104,6 +105,6 @@ export function registerValidatedTool<Schema extends z.ZodType>(
         structuredContent: { validationError: { code: 'INVALID_ARGUMENTS', tool: name, issues, truncated: all.length > MAX_ISSUES } },
       };
     }
-    return handler(parsed.data);
+    return vapiClientCommandContext.run(name, () => handler(parsed.data));
   });
 }

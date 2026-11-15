@@ -249,6 +249,73 @@ describe('MCP tool execution compatibility', () => {
     );
   });
 
+  test('read-only policy keeps reads available and rejects direct writes before Vapi', async () => {
+    const readOnlyServer = new McpServer({
+      name: 'read-only-policy-test-server',
+      version: '0.0.0',
+    });
+    const readOnlyClient = new Client({
+      name: 'read-only-policy-test-client',
+      version: '0.0.0',
+    });
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+    registerAllTools(readOnlyServer, vapiOperations as unknown as VapiClient, {
+      readOnly: true,
+    });
+    await readOnlyServer.connect(serverTransport);
+    await readOnlyClient.connect(clientTransport);
+
+    try {
+      const catalog = await readOnlyClient.listTools();
+      expect(catalog.tools.map(tool => tool.name).sort()).toEqual([
+        'ask_vapi_docs',
+        'get_api_schema',
+        'get_assistant',
+        'get_call',
+        'get_phone_number',
+        'get_simulation_run',
+        'get_simulation_run_item',
+        'get_tool',
+        'list_assistants',
+        'list_calls',
+        'list_phone_numbers',
+        'list_simulation_personalities',
+        'list_simulation_runs',
+        'list_simulation_scenarios',
+        'list_simulation_suites',
+        'list_simulations',
+        'list_tools',
+        'load_skill',
+        'search_skills',
+      ].sort());
+      expect(catalog.tools.every(tool => tool.annotations?.readOnlyHint === true)).toBe(true);
+
+      const listCallsBefore = vapiOperations.assistants.list.mock.calls.length;
+      const createCallsBefore = vapiOperations.assistants.create.mock.calls.length;
+      const reads = await readOnlyClient.callTool({
+        name: 'list_assistants',
+        arguments: {},
+      });
+      expect(reads.isError).not.toBe(true);
+      expect(vapiOperations.assistants.list).toHaveBeenCalledTimes(listCallsBefore + 1);
+
+      // Calling the hidden write by name must still fail at the MCP boundary.
+      const denied = await readOnlyClient.callTool({
+        name: 'create_assistant',
+        arguments: { name: 'Must not be created' },
+      });
+      expect(denied.isError).toBe(true);
+      expect(denied.content).toEqual(expect.arrayContaining([
+        expect.objectContaining({ type: 'text', text: expect.stringMatching(/not found/i) }),
+      ]));
+      expect(vapiOperations.assistants.create).toHaveBeenCalledTimes(createCallsBefore);
+    } finally {
+      await readOnlyClient.close();
+      await readOnlyServer.close();
+    }
+  });
+
   test('create_assistant accepts a JSON-string LLM and an explicit first message mode', async () => {
     await invoke('create_assistant', {
       name: 'JSON LLM Assistant',

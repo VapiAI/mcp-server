@@ -35,7 +35,7 @@ export const registerAssistantTools = (
     server,
     'create_assistant',
     {
-      description: 'Creates a new Vapi assistant',
+      description: 'Creates a new Vapi assistant. Before building the payload, call load_skill({"name":"create-assistant"}). Follow this tool\'s input schema.',
       inputSchema: CreateAssistantInputSchema,
       annotations: creates('Create Assistant'),
     },
@@ -75,7 +75,7 @@ export const registerAssistantTools = (
     server,
     'update_assistant',
     {
-      description: 'Updates an existing Vapi assistant',
+      description: 'Updates an existing Vapi assistant. Before building the payload, call load_skill({"name":"create-assistant"}). Follow this tool\'s input schema.',
       inputSchema: UpdateAssistantInputSchema,
       annotations: updates('Update Assistant'),
     },

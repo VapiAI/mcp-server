@@ -30,7 +30,7 @@ export const registerCallTools = (
     server,
     'create_call',
     {
-      description: 'Creates a outbound call',
+      description: 'Creates an outbound call. Before building the payload, call load_skill({"name":"create-call"}). Follow this tool\'s input schema.',
       inputSchema: CallInputSchema,
       annotations: creates('Create Outbound Call', true),
     },

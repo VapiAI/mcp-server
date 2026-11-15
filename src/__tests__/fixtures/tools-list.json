@@ -27,7 +27,7 @@
   },
   {
     "name": "create_assistant",
-    "description": "Creates a new Vapi assistant",
+    "description": "Creates a new Vapi assistant. Before building the payload, call load_skill({\"name\":\"create-assistant\"}). Follow this tool's input schema.",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
@@ -133,7 +133,7 @@
   },
   {
     "name": "create_call",
-    "description": "Creates a outbound call",
+    "description": "Creates an outbound call. Before building the payload, call load_skill({\"name\":\"create-call\"}). Follow this tool's input schema.",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
@@ -185,7 +185,7 @@
   },
   {
     "name": "create_simulation",
-    "description": "Creates a simulation that pairs a scenario with a personality. Run it with run_simulations.",
+    "description": "Creates a simulation that pairs a scenario with a personality. Run it with run_simulations. Before building the payload, call load_skill({\"name\":\"simulations\"}). Follow this tool's input schema.",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
@@ -222,7 +222,7 @@
   },
   {
     "name": "create_simulation_personality",
-    "description": "Creates a simulation personality: the simulated caller that talks to the assistant under test",
+    "description": "Creates a simulation personality: the simulated caller that talks to the assistant under test. Before building the payload, call load_skill({\"name\":\"simulations\"}). Follow this tool's input schema.",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
@@ -254,7 +254,7 @@
   },
   {
     "name": "create_simulation_scenario",
-    "description": "Creates a simulation scenario: instructions for the tester plus evaluations that decide whether the assistant passed",
+    "description": "Creates a simulation scenario: instructions for the tester plus evaluations that decide whether the assistant passed. Before building the payload, call load_skill({\"name\":\"simulations\"}). Follow this tool's input schema.",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
@@ -351,7 +351,7 @@
   },
   {
     "name": "create_simulation_suite",
-    "description": "Creates a simulation suite that groups simulations so they can be run together",
+    "description": "Creates a simulation suite that groups simulations so they can be run together. Before building the payload, call load_skill({\"name\":\"simulations\"}). Follow this tool's input schema.",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
@@ -393,7 +393,7 @@
   },
   {
     "name": "create_tool",
-    "description": "Creates a new Vapi tool",
+    "description": "Creates a new Vapi tool. Before building the payload, call load_skill({\"name\":\"create-tool\"}). Follow this tool's input schema.",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
@@ -1086,7 +1086,7 @@
   },
   {
     "name": "run_simulations",
-    "description": "Starts a simulation run of simulations and/or suites against an assistant or squad. Returns the run with its ID and a dashboard URL to share with the user. Check progress with get_simulation_run.",
+    "description": "Starts a simulation run of simulations and/or suites against an assistant or squad. Returns the run with its ID and a dashboard URL to share with the user. Check progress with get_simulation_run. Before building the payload, call load_skill({\"name\":\"simulations\"}). Follow this tool's input schema.",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
@@ -1202,7 +1202,7 @@
   },
   {
     "name": "update_assistant",
-    "description": "Updates an existing Vapi assistant",
+    "description": "Updates an existing Vapi assistant. Before building the payload, call load_skill({\"name\":\"create-assistant\"}). Follow this tool's input schema.",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
@@ -1311,7 +1311,7 @@
   },
   {
     "name": "update_tool",
-    "description": "Updates an existing Vapi tool",
+    "description": "Updates an existing Vapi tool. Before building the payload, call load_skill({\"name\":\"create-tool\"}). Follow this tool's input schema.",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},

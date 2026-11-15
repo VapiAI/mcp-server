@@ -68,7 +68,8 @@ export const registerSimulationTools = (
     'create_simulation_personality',
     {
       description:
-        'Creates a simulation personality: the simulated caller that talks to the assistant under test',
+        'Creates a simulation personality: the simulated caller that talks to the assistant under test. ' +
+        'Before building the payload, call load_skill({"name":"simulations"}). Follow this tool\'s input schema.',
       inputSchema: CreateSimulationPersonalityInputSchema,
       annotations: creates('Create Simulation Personality'),
     },
@@ -101,7 +102,8 @@ export const registerSimulationTools = (
     'create_simulation_scenario',
     {
       description:
-        'Creates a simulation scenario: instructions for the tester plus evaluations that decide whether the assistant passed',
+        'Creates a simulation scenario: instructions for the tester plus evaluations that decide whether the assistant passed. ' +
+        'Before building the payload, call load_skill({"name":"simulations"}). Follow this tool\'s input schema.',
       inputSchema: CreateSimulationScenarioInputSchema,
       annotations: creates('Create Simulation Scenario'),
     },
@@ -134,7 +136,8 @@ export const registerSimulationTools = (
     'create_simulation',
     {
       description:
-        'Creates a simulation that pairs a scenario with a personality. Run it with run_simulations.',
+        'Creates a simulation that pairs a scenario with a personality. Run it with run_simulations. ' +
+        'Before building the payload, call load_skill({"name":"simulations"}). Follow this tool\'s input schema.',
       inputSchema: CreateSimulationInputSchema,
       annotations: creates('Create Simulation'),
     },
@@ -163,7 +166,8 @@ export const registerSimulationTools = (
     'create_simulation_suite',
     {
       description:
-        'Creates a simulation suite that groups simulations so they can be run together',
+        'Creates a simulation suite that groups simulations so they can be run together. ' +
+        'Before building the payload, call load_skill({"name":"simulations"}). Follow this tool\'s input schema.',
       inputSchema: CreateSimulationSuiteInputSchema,
       annotations: creates('Create Simulation Suite'),
     },
@@ -181,7 +185,8 @@ export const registerSimulationTools = (
     {
       description:
         'Starts a simulation run of simulations and/or suites against an assistant or squad. ' +
-        'Returns the run with its ID and a dashboard URL to share with the user. Check progress with get_simulation_run.',
+        'Returns the run with its ID and a dashboard URL to share with the user. Check progress with get_simulation_run. ' +
+        'Before building the payload, call load_skill({"name":"simulations"}). Follow this tool\'s input schema.',
       inputSchema: RunSimulationsInputSchema,
       annotations: creates('Run Simulations'),
     },

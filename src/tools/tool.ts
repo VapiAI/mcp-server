@@ -41,7 +41,7 @@ export const registerToolTools = (
     server,
     'create_tool',
     {
-      description: 'Creates a new Vapi tool',
+      description: 'Creates a new Vapi tool. Before building the payload, call load_skill({"name":"create-tool"}). Follow this tool\'s input schema.',
       inputSchema: CreateToolInputSchema,
       annotations: creates('Create Tool'),
     },
@@ -56,7 +56,7 @@ export const registerToolTools = (
     server,
     'update_tool',
     {
-      description: 'Updates an existing Vapi tool',
+      description: 'Updates an existing Vapi tool. Before building the payload, call load_skill({"name":"create-tool"}). Follow this tool\'s input schema.',
       inputSchema: UpdateToolInputSchema,
       annotations: updates('Update Tool'),
     },

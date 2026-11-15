@@ -1,0 +1,57 @@
+name: MCPJam behavioral evaluation
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: Run a pilot before choosing the repeated comparison budget
+        type: choice
+        options: [pilot, compare]
+        default: pilot
+        required: true
+      trials:
+        description: Independent trials per task and catalog (use the pilot recommendation for compare)
+        type: number
+        default: 2
+        required: true
+      model:
+        description: MCPJam provider/model identifier
+        type: string
+        default: openai/gpt-4o-mini
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      MCPJAM_MODEL: ${{ inputs.model }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+      MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+      MCPJAM_BASELINE_REVISION: c0a0c0fc0c72a826ff5403f510a2e8d4b6cece45
+      MCPJAM_CANDIDATE_REVISION: 0e17ed47a2bb44c3cae18e7355d7c3ab42d5135d
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Run MCPJam ${{ inputs.phase }}
+        run: npm run eval:mcpjam -- --phase "${{ inputs.phase }}" --trials "${{ inputs.trials }}"
+      - name: Retain traces and manifest for 90 days
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcpjam-${{ github.run_id }}-${{ inputs.phase }}
+          path: artifacts/mcpjam/
+          if-no-files-found: warn
+          retention-days: 90

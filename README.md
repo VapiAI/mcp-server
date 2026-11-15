@@ -299,6 +299,16 @@ export VAPI_TOKEN=your_test_org_token_here
 npm run test:live:mutating
 ```
 
+#### Model-backed MCP behavior evaluation (explicit only)
+
+Follow the [MCPJam evaluation guide](docs/mcpjam-evaluations.md) to run the
+credential-free deterministic scorer controls, a provider-backed pilot, and a
+repeated main-versus-catalog comparison. The model workflow runs only when
+`npm run eval:mcpjam` or its `workflow_dispatch` action is explicitly invoked;
+it points all Vapi requests at disposable local fixtures and never makes a
+real call. Provider credentials are read from the approved secret environment
+and are not written to evaluation reports.
+
 #### Input validation from OpenAPI
 
 All 21 parameterized MCP tools use imported OpenAPI constraints through

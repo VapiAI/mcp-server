@@ -29,3 +29,4 @@ yarn-error.log*
 
 # Testing
 coverage/
+artifacts/mcpjam/

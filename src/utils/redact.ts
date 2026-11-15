@@ -1,9 +1,8 @@
-const SECRET_FIELD = /(?:authorization|proxy-authorization|cookie|set-cookie|x-vapi-secret|api[-_]?key|access[-_]?token|refresh[-_]?token|client[-_]?secret|password|passwd|secret|credential|private[-_]?key)/i;
+const SECRET_FIELD = /^(?:authorization|proxy-authorization|cookie|set-cookie|x-vapi-secret|(?:x[-_])?api[-_]?key|access[-_]?token|refresh[-_]?token|client[-_]?secret|password|passwd|secret|credential|private[-_]?key)$/i;
 const REDACTED = '[REDACTED]';
 
 function isSecretField(key: string): boolean {
   // Keep credential references/IDs useful for support and reconciliation.
-  if (/credential[-_]?id$/i.test(key)) return false;
   return SECRET_FIELD.test(key);
 }
 
@@ -61,6 +60,8 @@ function redactCredentialText(text: string, redactInlineCredentials: boolean): s
 
   if (redactInlineCredentials) {
     safeText = safeText
+      // A Cookie header contains semicolon-delimited credentials; redact the whole line.
+      .replace(/\b((?:set-)?cookie\s*:\s*)[^\r\n]*/gi, `$1${REDACTED}`)
       // Common authorization values in upstream error messages and bodies.
       .replace(/\b(Bearer|Basic)\s+[^\s,;"']+/gi, `$1 ${REDACTED}`)
       .replace(

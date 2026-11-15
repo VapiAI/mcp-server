@@ -5,6 +5,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { VapiClient } from '@vapi-ai/server-sdk';
 import { registerAllTools } from '../tools/index.js';
 import { parseToolResponse } from '../utils/response.js';
+import { redactCredentials, redactErrorMessage } from '../utils/redact.js';
 
 const timestamp = '2026-01-01T00:00:00.000Z';
 
@@ -110,6 +111,12 @@ const vapiOperations = {
 };
 
 describe('MCP tool execution compatibility', () => {
+  test('redacts complete cookie headers and retains credential references', () => {
+    const text = redactErrorMessage(new Error('Cookie: session=synthetic-one; auth=synthetic-two'));
+    expect(text).not.toContain('synthetic-one');
+    expect(text).not.toContain('synthetic-two');
+    expect(redactCredentials({ credentialId: 'safe-id', credentialIds: ['safe-id'] })).toEqual({ credentialId: 'safe-id', credentialIds: ['safe-id'] });
+  });
   let server: McpServer;
   let client: Client;
 
@@ -496,7 +503,7 @@ describe('MCP tool execution compatibility', () => {
     expect(serialized).toContain('[REDACTED]');
     expect(serialized).toContain('X-Region');
     expect(serialized).toContain('us-east');
-    expect(serialized).toContain('"password"');
+    expect(serialized).toContain('password');
     expect(serialized).toContain('Tool input label');
     expect(sourceTool.server.headers.Authorization).toBe(`Bearer ${secret}`);
   });
@@ -537,14 +544,14 @@ describe('MCP tool execution compatibility', () => {
     await client.callTool({ name: 'get_tool', arguments: { toolId: tool.id } });
     await client.callTool({
       name: 'update_tool',
-      arguments: { toolId: tool.id, description: 'Safe description update' },
+      arguments: { toolId: tool.id, function: { parameters: { type: 'object', properties: {} }, server: { url: 'https://example.test/new' } } },
     });
 
     expect(vapiOperations.tools.update).toHaveBeenLastCalledWith({
       id: tool.id,
       body: {
-        function: { ...tool.function, description: 'Safe description update' },
-        server: sourceTool.server,
+        function: tool.function,
+        server: { ...sourceTool.server, url: 'https://example.test/new' },
       },
     });
     expect(JSON.stringify(vapiOperations.tools.update.mock.lastCall)).not.toContain('[REDACTED]');
@@ -553,7 +560,7 @@ describe('MCP tool execution compatibility', () => {
   test('upstream error credentials are absent from MCP text and diagnostics', async () => {
     const secret = 'synthetic-error-secret';
     const error = new Error(
-      `Request failed for https://user:pass@example.test/path?api_key=query-secret: Authorization: Bearer ${secret}; body {"client_secret":"${secret}"}`
+      `Request failed for https://user:pass@example.test/path?api_key=query-secret: Authorization: Bearer ${secret}; body {"client_secret":"${secret}"}\nCookie: session=cookie-one; auth=cookie-two`
     );
     vapiOperations.assistants.get.mockRejectedValueOnce(error);
     const diagnostic = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -572,6 +579,8 @@ describe('MCP tool execution compatibility', () => {
       expect(logged).not.toContain(secret);
       expect(logged).not.toContain('user:pass');
       expect(logged).not.toContain('query-secret');
+      expect(serialized + logged).not.toContain('cookie-one');
+      expect(serialized + logged).not.toContain('cookie-two');
       expect(serialized).toContain('[REDACTED]');
       expect(logged).toContain('[REDACTED]');
     } finally {

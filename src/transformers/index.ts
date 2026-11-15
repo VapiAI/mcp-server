@@ -315,10 +315,20 @@ export function transformToolInput(
       }
       break;
 
+    case 'dtmf':
+      if (input.sipInfoDtmfEnabled !== undefined) toolDto.sipInfoDtmfEnabled = input.sipInfoDtmfEnabled;
+      break;
+
+    case 'endCall':
+
+      break;
+
     default:
       throw new Error(`Unsupported tool type: ${(input as any).type}`);
   }
 
+  if (input.messages !== undefined) toolDto.messages = input.messages;
+  if (input.rejectionPlan !== undefined) toolDto.rejectionPlan = input.rejectionPlan;
   if (input.additionalFields) {
     Object.assign(toolDto, input.additionalFields);
   }
@@ -387,6 +397,10 @@ export function transformUpdateToolInput(
     if (input.apiRequest.timeoutSeconds) updateDto.timeoutSeconds = input.apiRequest.timeoutSeconds;
   }
 
+  if (input.messages !== undefined) updateDto.messages = input.messages;
+  if (input.rejectionPlan !== undefined) updateDto.rejectionPlan = input.rejectionPlan;
+  if (input.sipInfoDtmfEnabled !== undefined) updateDto.sipInfoDtmfEnabled = input.sipInfoDtmfEnabled;
+
   if (input.additionalFields) {
     Object.assign(updateDto, input.additionalFields);
   }
@@ -408,6 +422,10 @@ export function transformToolOutput(
     name: toolFunction?.name || '',
     description: toolFunction?.description || '',
     parameters: toolFunction?.parameters || {},
+    ...(tool.type === 'dtmf' && 'messages' in tool && tool.messages ? { messages: tool.messages } : {}),
+    ...(tool.type === 'dtmf' && 'sipInfoDtmfEnabled' in tool && tool.sipInfoDtmfEnabled !== undefined ? { sipInfoDtmfEnabled: tool.sipInfoDtmfEnabled } : {}),
+    ...((tool.type === 'dtmf' || tool.type === 'endCall') && 'rejectionPlan' in tool && tool.rejectionPlan ? { rejectionPlan: tool.rejectionPlan } : {}),
+    ...(tool.type === 'endCall' && 'messages' in tool && tool.messages ? { messages: tool.messages } : {}),
     server: {
       url: toolServer?.url || '',
       headers: toolServer?.headers as Record<string, string> || {},

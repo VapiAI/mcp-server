@@ -2224,6 +2224,38 @@
     "toolId": {
       "format": "uuid",
       "type": "string"
+    },
+    "nativeMessages": {
+      "type": "array",
+      "description": "Messages spoken while the tool is running. Multiple request-start messages are variants. For request-response-delayed, same timing means variants and different timings mean staged updates.",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ToolMessageStart",
+            "title": "ToolMessageStart"
+          },
+          {
+            "$ref": "#/components/schemas/ToolMessageComplete",
+            "title": "ToolMessageComplete"
+          },
+          {
+            "$ref": "#/components/schemas/ToolMessageFailed",
+            "title": "ToolMessageFailed"
+          },
+          {
+            "$ref": "#/components/schemas/ToolMessageDelayed",
+            "title": "ToolMessageDelayed"
+          }
+        ]
+      }
+    },
+    "nativeRejectionPlan": {
+      "description": "This is the plan to reject a tool call based on the conversation state.\n\n// Example 1: Reject endCall if user didn't say goodbye\n```json\n{\n  conditions: [{\n    type: 'regex',\n    regex: '(?i)\\\\b(bye|goodbye|farewell|see you later|take care)\\\\b',\n    target: { position: -1, role: 'user' },\n    negate: true  // Reject if pattern does NOT match\n  }]\n}\n```\n\n// Example 2: Reject transfer if user is actually asking a question\n```json\n{\n  conditions: [{\n    type: 'regex',\n    regex: '\\\\?',\n    target: { position: -1, role: 'user' }\n  }]\n}\n```\n\n// Example 3: Reject transfer if user didn't mention transfer recently\n```json\n{\n  conditions: [{\n    type: 'liquid',\n    liquid: `{% assign recentMessages = messages | last: 5 %}\n{% assign userMessages = recentMessages | where: 'role', 'user' %}\n{% assign mentioned = false %}\n{% for msg in userMessages %}\n  {% if msg.content contains 'transfer' or msg.content contains 'connect' or msg.content contains 'speak to' %}\n    {% assign mentioned = true %}\n    {% break %}\n  {% endif %}\n{% endfor %}\n{% if mentioned %}\n  false\n{% else %}\n  true\n{% endif %}`\n  }]\n}\n```\n\n// Example 4: Reject endCall if the bot is looping and trying to exit\n```json\n{\n  conditions: [{\n    type: 'liquid',\n    liquid: `{% assign recentMessages = messages | last: 6 %}\n{% assign userMessages = recentMessages | where: 'role', 'user' | reverse %}\n{% if userMessages.size < 3 %}\n  false\n{% else %}\n  {% assign msg1 = userMessages[0].content | downcase %}\n  {% assign msg2 = userMessages[1].content | downcase %}\n  {% assign msg3 = userMessages[2].content | downcase %}\n  {% comment %} Check for repetitive messages {% endcomment %}\n  {% if msg1 == msg2 or msg1 == msg3 or msg2 == msg3 %}\n    true\n  {% comment %} Check for common loop phrases {% endcomment %}\n  {% elsif msg1 contains 'cool thanks' or msg2 contains 'cool thanks' or msg3 contains 'cool thanks' %}\n    true\n  {% elsif msg1 contains 'okay thanks' or msg2 contains 'okay thanks' or msg3 contains 'okay thanks' %}\n    true\n  {% elsif msg1 contains 'got it' or msg2 contains 'got it' or msg3 contains 'got it' %}\n    true\n  {% else %}\n    false\n  {% endif %}\n{% endif %}`\n  }]\n}\n```",
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/ToolRejectionPlan"
+        }
+      ]
     }
   },
   "definitions": {
@@ -2331,6 +2363,610 @@
       },
       "required": [
         "type"
+      ]
+    },
+    "ToolMessageStart": {
+      "type": "object",
+      "properties": {
+        "contents": {
+          "type": "array",
+          "description": "This is an alternative to the `content` property. It allows to specify variants of the same content, one per language.\n\nUsage:\n- If your assistants are multilingual, you can provide content for each language.\n- If you don't provide content for a language, the first item in the array will be automatically translated to the active language at that moment.\n\nThis will override the `content` property.",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TextContent",
+                "title": "Text"
+              }
+            ]
+          }
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "request-start"
+          ],
+          "description": "This message is triggered when the tool call starts.\n\nThis message is never triggered for async tools.\n\nMultiple request-start messages are variants. One eligible variant is selected each time the tool starts.\n\nIf this message is not provided, one of the default filler messages \"Hold on a sec\", \"One moment\", \"Just a sec\", \"Give me a moment\" or \"This'll just take a sec\" will be used."
+        },
+        "blocking": {
+          "type": "boolean",
+          "description": "This is an optional boolean that if true, the tool call will only trigger after the message is spoken. Default is false.\n\n@default false",
+          "example": false,
+          "default": false
+        },
+        "content": {
+          "type": "string",
+          "description": "This is the content that the assistant says when this message is triggered.",
+          "maxLength": 1000
+        },
+        "conditions": {
+          "description": "This is an optional array of conditions that the tool call arguments must meet in order for this message to be triggered.",
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/Condition"
+          }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "TextContent": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "text"
+          ]
+        },
+        "text": {
+          "type": "string"
+        },
+        "language": {
+          "type": "string",
+          "enum": [
+            "aa",
+            "ab",
+            "ae",
+            "af",
+            "ak",
+            "am",
+            "an",
+            "ar",
+            "as",
+            "av",
+            "ay",
+            "az",
+            "ba",
+            "be",
+            "bg",
+            "bh",
+            "bi",
+            "bm",
+            "bn",
+            "bo",
+            "br",
+            "bs",
+            "ca",
+            "ce",
+            "ch",
+            "co",
+            "cr",
+            "cs",
+            "cu",
+            "cv",
+            "cy",
+            "da",
+            "de",
+            "dv",
+            "dz",
+            "ee",
+            "el",
+            "en",
+            "eo",
+            "es",
+            "et",
+            "eu",
+            "fa",
+            "ff",
+            "fi",
+            "fj",
+            "fo",
+            "fr",
+            "fy",
+            "ga",
+            "gd",
+            "gl",
+            "gn",
+            "gu",
+            "gv",
+            "ha",
+            "he",
+            "hi",
+            "ho",
+            "hr",
+            "ht",
+            "hu",
+            "hy",
+            "hz",
+            "ia",
+            "id",
+            "ie",
+            "ig",
+            "ii",
+            "ik",
+            "io",
+            "is",
+            "it",
+            "iu",
+            "ja",
+            "jv",
+            "ka",
+            "kg",
+            "ki",
+            "kj",
+            "kk",
+            "kl",
+            "km",
+            "kn",
+            "ko",
+            "kr",
+            "ks",
+            "ku",
+            "kv",
+            "kw",
+            "ky",
+            "la",
+            "lb",
+            "lg",
+            "li",
+            "ln",
+            "lo",
+            "lt",
+            "lu",
+            "lv",
+            "mg",
+            "mh",
+            "mi",
+            "mk",
+            "ml",
+            "mn",
+            "mr",
+            "ms",
+            "mt",
+            "my",
+            "na",
+            "nb",
+            "nd",
+            "ne",
+            "ng",
+            "nl",
+            "nn",
+            "no",
+            "nr",
+            "nv",
+            "ny",
+            "oc",
+            "oj",
+            "om",
+            "or",
+            "os",
+            "pa",
+            "pi",
+            "pl",
+            "ps",
+            "pt",
+            "qu",
+            "rm",
+            "rn",
+            "ro",
+            "ru",
+            "rw",
+            "sa",
+            "sc",
+            "sd",
+            "se",
+            "sg",
+            "si",
+            "sk",
+            "sl",
+            "sm",
+            "sn",
+            "so",
+            "sq",
+            "sr",
+            "ss",
+            "st",
+            "su",
+            "sv",
+            "sw",
+            "ta",
+            "te",
+            "tg",
+            "th",
+            "ti",
+            "tk",
+            "tl",
+            "tn",
+            "to",
+            "tr",
+            "ts",
+            "tt",
+            "tw",
+            "ty",
+            "ug",
+            "uk",
+            "ur",
+            "uz",
+            "ve",
+            "vi",
+            "vo",
+            "wa",
+            "wo",
+            "xh",
+            "yi",
+            "yue",
+            "yo",
+            "za",
+            "zh",
+            "zu"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "text",
+        "language"
+      ]
+    },
+    "Condition": {
+      "type": "object",
+      "properties": {
+        "operator": {
+          "type": "string",
+          "description": "This is the operator you want to use to compare the parameter and value.",
+          "enum": [
+            "eq",
+            "neq",
+            "gt",
+            "gte",
+            "lt",
+            "lte"
+          ]
+        },
+        "param": {
+          "type": "string",
+          "description": "This is the name of the parameter that you want to check.",
+          "maxLength": 1000
+        },
+        "value": {
+          "type": "string",
+          "description": "This is the value you want to compare against the parameter.",
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "operator",
+        "param",
+        "value"
+      ]
+    },
+    "ToolMessageComplete": {
+      "type": "object",
+      "properties": {
+        "contents": {
+          "type": "array",
+          "description": "This is an alternative to the `content` property. It allows to specify variants of the same content, one per language.\n\nUsage:\n- If your assistants are multilingual, you can provide content for each language.\n- If you don't provide content for a language, the first item in the array will be automatically translated to the active language at that moment.\n\nThis will override the `content` property.",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TextContent",
+                "title": "Text"
+              }
+            ]
+          }
+        },
+        "type": {
+          "type": "string",
+          "description": "This message is triggered when the tool call is complete.\n\nThis message is triggered immediately without waiting for your server to respond for async tool calls.\n\nIf this message is not provided, the model will be requested to respond.\n\nIf this message is provided, only this message will be spoken and the model will not be requested to come up with a response. It's an exclusive OR.",
+          "enum": [
+            "request-complete"
+          ]
+        },
+        "role": {
+          "type": "string",
+          "description": "This is optional and defaults to \"assistant\".\n\nWhen role=assistant, `content` is said out loud.\n\nWhen role=system, `content` is passed to the model in a system message. Example:\n    system: default one\n    assistant:\n    user:\n    assistant:\n    user:\n    assistant:\n    user:\n    assistant: tool called\n    tool: your server response\n    <--- system prompt as hint\n    ---> model generates response which is spoken\nThis is useful when you want to provide a hint to the model about what to say next.",
+          "enum": [
+            "assistant",
+            "system"
+          ]
+        },
+        "endCallAfterSpokenEnabled": {
+          "type": "boolean",
+          "description": "This is an optional boolean that if true, the call will end after the message is spoken. Default is false.\n\nThis is ignored if `role` is set to `system`.\n\n@default false",
+          "example": false
+        },
+        "content": {
+          "type": "string",
+          "description": "This is the content that the assistant says when this message is triggered.",
+          "maxLength": 1000
+        },
+        "conditions": {
+          "description": "This is an optional array of conditions that the tool call arguments must meet in order for this message to be triggered.",
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/Condition"
+          }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "ToolMessageFailed": {
+      "type": "object",
+      "properties": {
+        "contents": {
+          "type": "array",
+          "description": "This is an alternative to the `content` property. It allows to specify variants of the same content, one per language.\n\nUsage:\n- If your assistants are multilingual, you can provide content for each language.\n- If you don't provide content for a language, the first item in the array will be automatically translated to the active language at that moment.\n\nThis will override the `content` property.",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TextContent",
+                "title": "Text"
+              }
+            ]
+          }
+        },
+        "type": {
+          "type": "string",
+          "description": "This message is triggered when the tool call fails.\n\nThis message is never triggered for async tool calls.\n\nIf this message is not provided, the model will be requested to respond.\n\nIf this message is provided, only this message will be spoken and the model will not be requested to come up with a response. It's an exclusive OR.",
+          "enum": [
+            "request-failed"
+          ]
+        },
+        "role": {
+          "type": "string",
+          "description": "This is optional and defaults to \"assistant\".\n\nWhen role=assistant, `content` is said out loud when the tool call fails.\n\nWhen role=system, `content` is passed to the model as a system message\nalong with the failure result, and the model's generated response is\nspoken. Example:\n    assistant: tool called\n    tool: error from your server\n    <--- system prompt as hint\n    ---> model generates response which is spoken\nThis is useful when you want the model to generate an error-aware\nresponse instead of speaking a fixed failure message.",
+          "enum": [
+            "assistant",
+            "system"
+          ]
+        },
+        "endCallAfterSpokenEnabled": {
+          "type": "boolean",
+          "description": "This is an optional boolean that if true, the call will end after the message is spoken. Default is false.\n\nThis is ignored if `role` is set to `system`.\n\n@default false",
+          "example": false
+        },
+        "content": {
+          "type": "string",
+          "description": "This is the content that the assistant says when this message is triggered.",
+          "maxLength": 1000
+        },
+        "conditions": {
+          "description": "This is an optional array of conditions that the tool call arguments must meet in order for this message to be triggered.",
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/Condition"
+          }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "ToolMessageDelayed": {
+      "type": "object",
+      "properties": {
+        "contents": {
+          "type": "array",
+          "description": "This is an alternative to the `content` property. It allows to specify variants of the same content, one per language.\n\nUsage:\n- If your assistants are multilingual, you can provide content for each language.\n- If you don't provide content for a language, the first item in the array will be automatically translated to the active language at that moment.\n\nThis will override the `content` property.",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TextContent",
+                "title": "Text"
+              }
+            ]
+          }
+        },
+        "type": {
+          "type": "string",
+          "description": "This message is triggered when the tool call is delayed. Same timing means variants; different timings mean staged updates.",
+          "enum": [
+            "request-response-delayed"
+          ]
+        },
+        "timingMilliseconds": {
+          "type": "number",
+          "minimum": 100,
+          "maximum": 120000,
+          "example": 1000,
+          "description": "The number of milliseconds to wait for the server response before saying this delayed message."
+        },
+        "content": {
+          "type": "string",
+          "description": "This is the content that the assistant says when this message is triggered.",
+          "maxLength": 1000
+        },
+        "conditions": {
+          "description": "This is an optional array of conditions that the tool call arguments must meet in order for this message to be triggered.",
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/Condition"
+          }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "ToolRejectionPlan": {
+      "type": "object",
+      "properties": {
+        "conditions": {
+          "type": "array",
+          "description": "This is the list of conditions that must be evaluated.\n\nUsage:\n- If all conditions match (AND logic), the tool call is rejected.\n- For OR logic at the top level, use a single 'group' condition with operator: 'OR'.\n\n@default [] - Empty array means tool always executes",
+          "examples": [
+            "[{ type: \"regex\", regex: \"(?i)\\\\b(cancel|stop)\\\\b\", target: { role: \"user\" } }]",
+            "[{ type: \"group\", operator: \"OR\", conditions: [...] }]"
+          ],
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RegexCondition",
+                "title": "RegexCondition"
+              },
+              {
+                "$ref": "#/components/schemas/LiquidCondition",
+                "title": "LiquidCondition"
+              },
+              {
+                "$ref": "#/components/schemas/GroupCondition",
+                "title": "GroupCondition",
+                "description": "This is the GroupCondition object but Swagger does not display nested schemas correctly."
+              }
+            ]
+          }
+        }
+      }
+    },
+    "RegexCondition": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "This is the type discriminator for regex condition",
+          "example": "regex",
+          "enum": [
+            "regex"
+          ]
+        },
+        "regex": {
+          "type": "string",
+          "description": "This is the regular expression pattern to match against message content.\n\nNote:\n- This works by using the RegExp.test method in Node.JS. Eg. /hello/.test(\"hello there\") will return true.\n\nHot tips:\n- In JavaScript, escape \\ when sending the regex pattern. Eg. \"hello\\sthere\" will be sent over the wire as \"hellosthere\". Send \"hello\\\\sthere\" instead.\n- RegExp.test does substring matching, so /cat/.test(\"I love cats\") will return true. To do full string matching, use anchors: /^cat$/ will only match exactly \"cat\".\n- Word boundaries \\b are useful for matching whole words: /\\bcat\\b/ matches \"cat\" but not \"cats\" or \"category\".\n- Use inline flags for portability: (?i) for case insensitive, (?m) for multiline",
+          "examples": [
+            "\\\\b(cancel|stop|wait)\\\\b - Matches whole words",
+            "^yes$ - Matches exactly yes (full string match)",
+            "(?i)hello - Case insensitive match"
+          ]
+        },
+        "target": {
+          "description": "This is the target for messages to check against.\nIf not specified, the condition will run on the last message (position: -1).\nIf role is not specified, it will look at the last message regardless of role.\n@default { position: -1 }",
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/MessageTarget"
+            }
+          ]
+        },
+        "negate": {
+          "type": "boolean",
+          "description": "This is the flag that when true, the condition matches if the pattern does NOT match.\nUseful for ensuring certain words/phrases are absent.\n\n@default false",
+          "example": "true - Reject if user hasn\"t said goodbye: { regex: \"\\\\b(bye|goodbye)\\\\b\", negate: true }"
+        }
+      },
+      "required": [
+        "type",
+        "regex"
+      ]
+    },
+    "MessageTarget": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string",
+          "description": "This is the role of the message to target.\n\nIf not specified, will find the position in the message history ignoring role (effectively `any`).",
+          "example": "user",
+          "enum": [
+            "user",
+            "assistant"
+          ]
+        },
+        "position": {
+          "type": "number",
+          "description": "This is the position of the message to target.\n- Negative numbers: Count from end (-1 = most recent, -2 = second most recent)\n- 0: First/oldest message in history\n- Positive numbers: Specific position (0-indexed from start)\n\n@default -1 (most recent message)",
+          "example": -1
+        }
+      }
+    },
+    "LiquidCondition": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "This is the type discriminator for liquid condition",
+          "example": "liquid",
+          "enum": [
+            "liquid"
+          ]
+        },
+        "liquid": {
+          "type": "string",
+          "description": "This is the Liquid template that must return exactly \"true\" or \"false\" as a string.\nThe template is evaluated and the entire output must be either \"true\" or \"false\" - nothing else.\n\nAvailable variables:\n- `messages`: Array of recent messages in OpenAI chat completions format (ChatCompletionMessageParam[])\n  Each message has properties like: role ('user', 'assistant', 'system'), content (string), etc.\n- `now`: Current timestamp in milliseconds (built-in Liquid variable)\n- Any assistant variable values (e.g., `userName`, `accountStatus`)\n\nUseful Liquid filters for messages:\n- `messages | last: 5` - Get the 5 most recent messages\n- `messages | where: 'role', 'user'` - Filter to only user messages\n- `messages | reverse` - Reverse the order of messages",
+          "examples": [
+            "{% if messages.last.content contains goodbye %}true{% else %}false{% endif %}",
+            "{% assign userMessages = messages | where: role, user %}{% if userMessages.size > 3 %}true{% else %}false{% endif %}"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "liquid"
+      ]
+    },
+    "GroupCondition": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "This is the type discriminator for group condition",
+          "example": "group",
+          "enum": [
+            "group"
+          ]
+        },
+        "operator": {
+          "type": "string",
+          "description": "This is the logical operator for combining conditions in this group",
+          "examples": [
+            "AND",
+            "OR"
+          ],
+          "enum": [
+            "AND",
+            "OR"
+          ]
+        },
+        "conditions": {
+          "type": "array",
+          "description": "This is the list of nested conditions to evaluate.\nSupports recursive nesting of groups for complex logic.",
+          "examples": [
+            "[{ type: \"regex\", regex: \"(?i)stop\", target: { role: \"user\" } }]",
+            "[{ type: \"group\", operator: \"AND\", conditions: [...] }]"
+          ],
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RegexCondition",
+                "title": "RegexCondition"
+              },
+              {
+                "$ref": "#/components/schemas/LiquidCondition",
+                "title": "LiquidCondition"
+              },
+              {
+                "$ref": "#/components/schemas/GroupCondition",
+                "title": "GroupCondition",
+                "description": "This is the GroupCondition object but Swagger does not display nested schemas correctly."
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "type",
+        "operator",
+        "conditions"
       ]
     }
   },

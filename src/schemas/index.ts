@@ -260,7 +260,6 @@ const BackoffPlanSchema = z.object({
   baseDelaySeconds: apiField<number>('backoffDelay').default(1).describe('Base delay between retries in seconds'),
 });
 
-// Base tool configuration schema (reusable for both create and update)
 const BaseToolConfigSchema = z.object({
   // Common fields for all tools
   name: apiField<string>('functionName').optional().describe('Name of the function/tool'),
@@ -294,6 +293,10 @@ const BaseToolConfigSchema = z.object({
     timeoutSeconds: apiField<number>('apiTimeout').default(20).describe('Request timeout in seconds'),
   }).optional().describe('API Request tool configuration - for HTTP API integration'),
 
+  messages: apiField<unknown[]>('nativeMessages').optional().describe('Messages spoken by the assistant during the tool action'),
+  sipInfoDtmfEnabled: z.boolean().optional().describe('Send DTMF via SIP INFO'),
+  rejectionPlan: apiField<Record<string, unknown>>('nativeRejectionPlan').optional().describe('Conditions that reject a tool call'),
+
   // Documented fields the options above don't cover
   additionalFields: z
     .record(z.string(), z.any())
@@ -306,10 +309,15 @@ const BaseToolConfigSchema = z.object({
 });
 
 export const CreateToolInputSchema = BaseToolConfigSchema.extend({
-  type: apiField<'sms' | 'transferCall' | 'function' | 'apiRequest'>('toolType')
-    .describe('Type of the tool to create'),
+  type: z.enum(['sms', 'transferCall', 'function', 'apiRequest', 'dtmf', 'endCall']),
 }).superRefine((input, ctx) => {
-  if (requiredToolConfigurations.includes(input.type) && !input[input.type]) {
+  if ((input.type === 'dtmf' || input.type === 'endCall') && input.additionalFields) {
+    ctx.addIssue({ code: 'custom', path: ['additionalFields'], message: 'Use the native tool fields directly.' });
+  }
+  if (input.type === 'endCall' && input.sipInfoDtmfEnabled !== undefined) {
+    ctx.addIssue({ code: 'custom', path: ['sipInfoDtmfEnabled'], message: 'This field is only supported for DTMF tools.' });
+  }
+  if (requiredToolConfigurations.includes(input.type) && !(input as Record<string, unknown>)[input.type]) {
     ctx.addIssue({ code: 'custom', path: [input.type], message: 'This configuration is required for the selected tool type.' });
   }
   if (functionRequiresName && input.type === 'function' && (input.function || input.description) && !input.name) {
@@ -332,6 +340,9 @@ export const ToolOutputSchema = BaseResponseSchema.extend({
   description: z.string().describe('Description of the tool'),
   parameters: z.record(z.string(), z.any()).describe('Parameters of the tool'),
   server: ServerSchema.describe('Server of the tool'),
+  messages: z.array(z.any()).optional(),
+  sipInfoDtmfEnabled: z.boolean().optional(),
+  rejectionPlan: z.any().optional(),
 });
 
 // ===== API Schema Lookup =====

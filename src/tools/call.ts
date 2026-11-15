@@ -10,6 +10,7 @@ import {
 } from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
 import { createV1ListHandler } from './list.js';
+import { vapiRequestOptions } from './execution.js';
 
 export const registerCallTools = (
   server: McpServer,
@@ -23,7 +24,7 @@ export const registerCallTools = (
       inputSchema: ListInputSchema,
       annotations: readOnly('List Calls'),
     },
-    createV1ListHandler(request => vapiClient.calls.list(request), transformCallOutput)
+    createV1ListHandler((request, { signal }) => vapiClient.calls.list(request, vapiRequestOptions(signal)), transformCallOutput)
   );
 
   registerValidatedTool(
@@ -34,9 +35,9 @@ export const registerCallTools = (
       inputSchema: CallInputSchema,
       annotations: creates('Create Outbound Call', true),
     },
-    createToolHandler(async (data) => {
+    createToolHandler(async (data, { signal }) => {
       const createCallDto = transformCallInput(data);
-      const call = await vapiClient.calls.create(createCallDto);
+      const call = await vapiClient.calls.create(createCallDto, vapiRequestOptions(signal));
       return transformCallOutput(call as unknown as Vapi.Call);
     })
   );
@@ -49,8 +50,8 @@ export const registerCallTools = (
       inputSchema: GetCallInputSchema,
       annotations: readOnly('Get Call'),
     },
-    createToolHandler(async (data) => {
-      const call = await vapiClient.calls.get({ id: data.callId });
+    createToolHandler(async (data, { signal }) => {
+      const call = await vapiClient.calls.get({ id: data.callId }, vapiRequestOptions(signal));
       return transformCallOutput(call);
     })
   );

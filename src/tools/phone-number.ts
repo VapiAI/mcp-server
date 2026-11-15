@@ -7,6 +7,7 @@ import { transformPhoneNumberOutput } from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
 import { ListInputSchema, GetPhoneNumberInputSchema } from '../schemas/index.js';
 import { createV1ListHandler } from './list.js';
+import { vapiRequestOptions } from './execution.js';
 
 export const registerPhoneNumberTools = (
   server: McpServer,
@@ -20,7 +21,7 @@ export const registerPhoneNumberTools = (
       inputSchema: ListInputSchema,
       annotations: readOnly('List Phone Numbers'),
     },
-    createV1ListHandler(request => vapiClient.phoneNumbers.list(request), transformPhoneNumberOutput)
+    createV1ListHandler((request, { signal }) => vapiClient.phoneNumbers.list(request, vapiRequestOptions(signal)), transformPhoneNumberOutput)
   );
 
   registerValidatedTool(
@@ -31,11 +32,11 @@ export const registerPhoneNumberTools = (
       inputSchema: GetPhoneNumberInputSchema,
       annotations: readOnly('Get Phone Number'),
     },
-    createToolHandler(async (data) => {
+    createToolHandler(async (data, { signal }) => {
       const phoneNumberId = data.phoneNumberId;
       const phoneNumber = await vapiClient.phoneNumbers.get({
         id: phoneNumberId,
-      });
+      }, vapiRequestOptions(signal));
       return transformPhoneNumberOutput(phoneNumber);
     })
   );

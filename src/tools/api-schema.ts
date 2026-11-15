@@ -4,13 +4,14 @@ import { VapiClient, VapiEnvironment } from '@vapi-ai/server-sdk';
 import { GetApiSchemaInputSchema } from '../schemas/index.js';
 import { createToolHandler } from './utils.js';
 import { readOnly } from './annotations.js';
+import { createExecutionSignal, executeWithRetries, vapiRequestOptions } from './execution.js';
 
 type SchemaMap = Record<string, unknown>;
 
 // The OpenAPI spec is about 2 MB, so load it once per client and keep only
 // its schemas. It is fetched through the client so it comes from the same
 // API environment the other tools call.
-const schemaCache = new WeakMap<VapiClient, Promise<SchemaMap>>();
+const schemaCache = new WeakMap<VapiClient, SchemaMap>();
 
 type Supplier = string | (() => string | Promise<string>) | undefined;
 
@@ -32,26 +33,35 @@ async function resolveBaseUrl(vapiClient: VapiClient): Promise<string> {
   );
 }
 
-function loadSchemas(vapiClient: VapiClient): Promise<SchemaMap> {
+async function loadSchemas(vapiClient: VapiClient, signal: AbortSignal): Promise<SchemaMap> {
   let schemas = schemaCache.get(vapiClient);
   if (!schemas) {
-    schemas = resolveBaseUrl(vapiClient)
-      .then((baseUrl) =>
-        vapiClient.fetch(`${baseUrl.replace(/\/+$/, '')}/api-json`)
-      )
-      .then(async (response) => {
-      if (!response.ok) {
-        throw new Error(
-          `Could not load the Vapi API schema: HTTP ${response.status}`
-        );
+    const baseUrl = await resolveBaseUrl(vapiClient);
+    const configuredRetries = (vapiClient as unknown as { _options?: { maxRetries?: number } })._options?.maxRetries ?? 2;
+    const response = await executeWithRetries(signal, configuredRetries, async () => {
+      const result = await vapiClient.fetch(
+        `${baseUrl.replace(/\/+$/, '')}/api-json`, undefined,
+        { ...vapiRequestOptions(signal), maxRetries: 0 },
+      );
+      if (result.status === 408 || result.status === 429 || result.status >= 500) {
+        throw { statusCode: result.status, rawResponse: result };
       }
-      const spec = (await response.json()) as {
-        components?: { schemas?: SchemaMap };
-      };
-      return spec.components?.schemas ?? {};
+      return result;
+    }).catch((error: unknown) => {
+      if (error && typeof error === 'object' && 'rawResponse' in error) {
+        return (error as { rawResponse: Response }).rawResponse;
+      }
+      throw error;
     });
-    // Let the next call retry after a failed load.
-    schemas.catch(() => schemaCache.delete(vapiClient));
+    if (!response.ok) {
+      throw new Error(
+        `Could not load the Vapi API schema: HTTP ${response.status}`
+      );
+    }
+    const spec = (await response.json()) as {
+      components?: { schemas?: SchemaMap };
+    };
+    schemas = spec.components?.schemas ?? {};
     schemaCache.set(vapiClient, schemas);
   }
   return schemas;
@@ -81,31 +91,38 @@ export const registerApiSchemaTools = (
       inputSchema: GetApiSchemaInputSchema.shape,
       annotations: readOnly('Get API Schema'),
     },
-    createToolHandler(async (data) => {
-      const schemas = await loadSchemas(vapiClient);
+    async (data, extra) => {
+      const execution = createExecutionSignal(extra.signal);
+      try {
+        return await createToolHandler<import('zod').z.output<typeof GetApiSchemaInputSchema>>(async (data, { signal }) => {
+          const schemas = await loadSchemas(vapiClient, signal);
 
-      if (data.name) {
-        const schema = schemas[data.name];
-        if (!schema) {
-          const similar = findSchemaNames(schemas, data.name).slice(0, 10);
-          throw new Error(
-            `No schema named ${data.name}.` +
-              (similar.length > 0 ? ` Similar names: ${similar.join(', ')}` : '')
-          );
-        }
-        const referencedSchemas = [
-          ...new Set(
-            Array.from(
-              JSON.stringify(schema).matchAll(/#\/components\/schemas\/([\w.-]+)/g),
-              (match) => match[1]
-            )
-          ),
-        ];
-        return { name: data.name, schema, referencedSchemas };
+          if (data.name) {
+            const schema = schemas[data.name];
+            if (!schema) {
+              const similar = findSchemaNames(schemas, data.name).slice(0, 10);
+              throw new Error(
+                `No schema named ${data.name}.` +
+                  (similar.length > 0 ? ` Similar names: ${similar.join(', ')}` : '')
+              );
+            }
+            const referencedSchemas = [
+              ...new Set(
+                Array.from(
+                  JSON.stringify(schema).matchAll(/#\/components\/schemas\/([\w.-]+)/g),
+                  (match) => match[1]
+                )
+              ),
+            ];
+            return { name: data.name, schema, referencedSchemas };
+          }
+
+          const matches = findSchemaNames(schemas, data.search ?? '');
+          return { matches: matches.slice(0, MAX_MATCHES), total: matches.length };
+        })(data, { signal: execution.signal });
+      } finally {
+        execution.dispose();
       }
-
-      const matches = findSchemaNames(schemas, data.search ?? '');
-      return { matches: matches.slice(0, MAX_MATCHES), total: matches.length };
-    })
+    }
   );
 };

@@ -7,6 +7,7 @@ import { ListInputSchema, GetToolInputSchema, CreateToolInputSchema, UpdateToolI
 import { transformToolInput, transformUpdateToolInput, transformToolOutput } from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
 import { createV1ListHandler } from './list.js';
+import { vapiRequestOptions } from './execution.js';
 
 export const registerToolTools = (
   server: McpServer,
@@ -20,7 +21,7 @@ export const registerToolTools = (
       inputSchema: ListInputSchema,
       annotations: readOnly('List Tools'),
     },
-    createV1ListHandler(request => vapiClient.tools.list(request), transformToolOutput)
+    createV1ListHandler((request, { signal }) => vapiClient.tools.list(request, vapiRequestOptions(signal)), transformToolOutput)
   );
 
   registerValidatedTool(
@@ -31,8 +32,8 @@ export const registerToolTools = (
       inputSchema: GetToolInputSchema,
       annotations: readOnly('Get Tool'),
     },
-    createToolHandler(async (data) => {
-      const tool = await vapiClient.tools.get({ id: data.toolId });
+    createToolHandler(async (data, { signal }) => {
+      const tool = await vapiClient.tools.get({ id: data.toolId }, vapiRequestOptions(signal));
       return transformToolOutput(tool);
     })
   );
@@ -45,9 +46,9 @@ export const registerToolTools = (
       inputSchema: CreateToolInputSchema,
       annotations: creates('Create Tool'),
     },
-    createToolHandler(async (data) => {
+    createToolHandler(async (data, { signal }) => {
       const createToolDto = transformToolInput(data);
-      const tool = await vapiClient.tools.create(createToolDto);
+      const tool = await vapiClient.tools.create(createToolDto, vapiRequestOptions(signal));
       return transformToolOutput(tool);
     })
   );
@@ -60,13 +61,13 @@ export const registerToolTools = (
       inputSchema: UpdateToolInputSchema,
       annotations: updates('Update Tool'),
     },
-    createToolHandler(async (data) => {
-      const existingTool = await vapiClient.tools.get({ id: data.toolId });
+    createToolHandler(async (data, { signal }) => {
+      const existingTool = await vapiClient.tools.get({ id: data.toolId }, vapiRequestOptions(signal));
       const updateToolDto = transformUpdateToolInput(data, existingTool);
       const tool = await vapiClient.tools.update({
         id: data.toolId,
         body: updateToolDto,
-      });
+      }, vapiRequestOptions(signal));
       return transformToolOutput(tool);
     })
   );

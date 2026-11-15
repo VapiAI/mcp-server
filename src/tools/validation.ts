@@ -3,6 +3,7 @@ import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import type { ToolResponse } from './utils.js';
 import { summarizeInputSchema } from './input-schema.js';
+import { createExecutionSignal, type ToolExecutionContext } from './execution.js';
 
 type Issue = z.core.$ZodIssue;
 type FieldIssue = {
@@ -84,7 +85,7 @@ export function registerValidatedTool<Schema extends z.ZodType>(
   server: McpServer,
   name: string,
   config: { description: string; inputSchema: Schema; annotations: ToolAnnotations },
-  handler: (params: z.output<Schema>) => Promise<ToolResponse>
+  handler: (params: z.output<Schema>, context: ToolExecutionContext) => Promise<ToolResponse>
 ) {
   const schema = config.inputSchema;
   // Advertise a compact input summary, but run the full parser exactly once. This
@@ -93,17 +94,22 @@ export function registerValidatedTool<Schema extends z.ZodType>(
   const transportSchema = z.object({}).passthrough().meta(summarizeInputSchema(
     z.toJSONSchema(schema, { io: 'input', target: 'draft-07' })
   ));
-  return server.registerTool(name, { description: config.description, inputSchema: transportSchema, annotations: config.annotations }, async raw => {
-    const parsed = await schema.safeParseAsync(raw);
-    if (!parsed.success) {
-      const all = validationIssues(parsed.error.issues, raw);
-      const issues = all.slice(0, MAX_ISSUES);
-      return {
-        isError: true,
-        content: [{ type: 'text' as const, text: `Input validation error for ${name}:\n${issues.map(issue => `- ${issue.path}: ${issue.message}`).join('\n')}${all.length > MAX_ISSUES ? `\n${all.length - MAX_ISSUES} additional issues omitted.` : ''}\nCorrect the listed fields and retry.` }],
-        structuredContent: { validationError: { code: 'INVALID_ARGUMENTS', tool: name, issues, truncated: all.length > MAX_ISSUES } },
-      };
+  return server.registerTool(name, { description: config.description, inputSchema: transportSchema, annotations: config.annotations }, async (raw, extra) => {
+    const execution = createExecutionSignal(extra.signal);
+    try {
+      const parsed = await schema.safeParseAsync(raw);
+      if (!parsed.success) {
+        const all = validationIssues(parsed.error.issues, raw);
+        const issues = all.slice(0, MAX_ISSUES);
+        return {
+          isError: true,
+          content: [{ type: 'text' as const, text: `Input validation error for ${name}:\n${issues.map(issue => `- ${issue.path}: ${issue.message}`).join('\n')}${all.length > MAX_ISSUES ? `\n${all.length - MAX_ISSUES} additional issues omitted.` : ''}\nCorrect the listed fields and retry.` }],
+          structuredContent: { validationError: { code: 'INVALID_ARGUMENTS', tool: name, issues, truncated: all.length > MAX_ISSUES } },
+        };
+      }
+      return await handler(parsed.data, { signal: execution.signal });
+    } finally {
+      execution.dispose();
     }
-    return handler(parsed.data);
   });
 }

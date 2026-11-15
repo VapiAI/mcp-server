@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { ToolExecutionContext } from './execution.js';
 
 export type ToolResponse = {
   content: Array<{ type: 'text'; text: string }>;
@@ -28,11 +29,11 @@ export function createErrorResponse(error: any): ToolResponse {
 }
 
 export function createToolHandler<T>(
-  handler: (params: T) => Promise<any>
-): (params: T) => Promise<ToolResponse> {
-  return async (params: T) => {
+  handler: (params: T, context: ToolExecutionContext) => Promise<any>
+): (params: T, context: ToolExecutionContext) => Promise<ToolResponse> {
+  return async (params: T, context: ToolExecutionContext) => {
     try {
-      const result = await handler(params);
+      const result = await handler(params, context);
       return createSuccessResponse(result);
     } catch (error) {
       return createErrorResponse(error);

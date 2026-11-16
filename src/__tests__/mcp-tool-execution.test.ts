@@ -283,13 +283,126 @@ describe('MCP tool execution compatibility', () => {
     expect(page._mcp.truncatedFields).toEqual([expect.objectContaining({
       path: 'transcript', totalChars: 10, returnedChars: 4, offset: 2, nextOffset: 6,
     })]);
+
+    const apiMessages = Array.from({ length: 25 }, (_, index) => ({
+      role: 'assistant',
+      message: `message ${index}`,
+    }));
+    vapiOperations.calls.get.mockResolvedValueOnce({ ...call, messages: apiMessages } as never);
+    const firstMessagesPage = await invoke('get_call', { id: call.id, fields: ['messages'] });
+    expect(firstMessagesPage.messages).toHaveLength(20);
+    expect(firstMessagesPage.messages[0].message).toBe('message 0');
+    expect(firstMessagesPage._mcp.truncatedFields).toEqual([expect.objectContaining({
+      path: 'messages', totalItems: 25, returnedItems: 20, offset: 0, nextOffset: 20,
+    })]);
+
+    vapiOperations.calls.get.mockResolvedValueOnce({ ...call, messages: apiMessages } as never);
+    const secondMessagesPage = await invoke('get_call', {
+      id: call.id,
+      fields: ['messages'],
+      offset: 20,
+      limit: 10,
+    });
+    expect(secondMessagesPage.messages).toHaveLength(5);
+    expect(secondMessagesPage.messages[0].message).toBe('message 20');
+    expect(secondMessagesPage._mcp.truncatedFields).toEqual([expect.objectContaining({
+      path: 'messages', totalItems: 25, returnedItems: 5, offset: 20, nextOffset: null,
+    })]);
+
+    vapiOperations.calls.get.mockResolvedValueOnce({
+      ...call,
+      messages: [{ role: 'assistant', message: 'A'.repeat(9000) }],
+    } as never);
+    const nestedMessagePage = await invoke('get_call', {
+      id: call.id,
+      fields: ['messages[0].message'],
+      limit: 100,
+    });
+    expect(nestedMessagePage.messages[0].message).toBe('A'.repeat(100));
+    expect(nestedMessagePage._mcp.truncatedFields).toEqual([expect.objectContaining({
+      path: 'messages[0].message', totalChars: 9000, nextOffset: 100,
+    })]);
+
+    vapiOperations.calls.get.mockResolvedValueOnce({
+      ...call,
+      messages: [{ role: 'assistant', message: 'A'.repeat(9000) }],
+    } as never);
+    const nestedMessageContinuation = await invoke('get_call', {
+      id: call.id,
+      fields: ['messages[0].message'],
+      offset: 100,
+      limit: 100,
+    });
+    expect(nestedMessageContinuation.messages[0].message).toBe('A'.repeat(100));
+    expect(nestedMessageContinuation._mcp.truncatedFields).toEqual([expect.objectContaining({
+      path: 'messages[0].message', totalChars: 9000, offset: 100, nextOffset: 200,
+    })]);
+  });
+
+  test('reconstructs a nested message using its advertised continuation path', async () => {
+    const message = 'message-content-'.repeat(700);
+    const response = { ...call, messages: [{ role: 'assistant', message }] };
+    vapiOperations.calls.get.mockResolvedValueOnce(response as never);
+    const first = await invoke('get_call', { id: call.id, fields: ['messages'] });
+    const continuation = first._mcp.truncatedFields.find((entry: { path: string }) => entry.path === 'messages[0].message');
+    expect(continuation).toBeDefined();
+    let reconstructed = first.messages[0].message;
+    let offset = continuation.nextOffset;
+    while (offset !== null) {
+      vapiOperations.calls.get.mockResolvedValueOnce(response as never);
+      const page = await invoke('get_call', { id: call.id, fields: [continuation.path], offset });
+      reconstructed += page.messages[0].message;
+      offset = page._mcp.truncatedFields[0].nextOffset;
+    }
+    expect(reconstructed).toBe(message);
+  });
+
+  test('pages JSON-escaped transcript content within the detail budget', async () => {
+    const transcript = '\0'.repeat(4000);
+    let reconstructed = '';
+    let offset = 0;
+    do {
+      vapiOperations.calls.get.mockResolvedValueOnce({ ...call, transcript } as never);
+      const page = await invoke('get_call', { id: call.id, fields: ['transcript'], offset });
+      expect(JSON.stringify(page).length).toBeLessThanOrEqual(16000);
+      reconstructed += page.transcript;
+      offset = page._mcp?.truncatedFields?.[0]?.nextOffset ?? transcript.length;
+    } while (offset < transcript.length);
+    expect(reconstructed).toBe(transcript);
+  });
+
+  test('bounds the full response and avoids sparse array padding', async () => {
+    const messages = Array.from({ length: 5001 }, () => ({ message: 'ok' }));
+    messages[5000].message = 'tail';
+    vapiOperations.calls.get.mockResolvedValueOnce({ ...call, messages } as never);
+    const page = await invoke('get_call', { id: call.id, fields: ['messages[5000].message'] });
+    expect(page.messages['5000'].message).toBe('tail');
+    expect(JSON.stringify(page).length).toBeLessThanOrEqual(16000);
+
+    vapiOperations.calls.get.mockResolvedValueOnce({ ...call, customer: { number: 'x'.repeat(17000) } } as never);
+    const oversized = await invoke('get_call', { id: call.id });
+    expect(JSON.stringify(oversized).length).toBeLessThanOrEqual(16000);
+    expect(oversized._mcp.truncatedFields[0].reason).toBe('total-response-size-limit');
+  });
+
+  test('preserves credential-named function schema properties', async () => {
+    const parameters = { type: 'object', properties: { password: { type: 'string' }, apiKey: { type: 'string' } } };
+    vapiOperations.tools.get.mockResolvedValueOnce({ ...tool, function: { ...tool.function, parameters } } as never);
+    const result = await invoke('get_tool', { id: tool.id, fields: ['function.parameters'] });
+    expect(result.function.parameters).toEqual(parameters);
+    vapiOperations.tools.get.mockResolvedValueOnce({ ...tool, function: { ...tool.function, parameters } } as never);
+    const properties = await invoke('get_tool', { id: tool.id, fields: ['function.parameters.properties'] });
+    expect(properties.function.parameters.properties).toEqual(parameters.properties);
   });
 
   test('get_tool and get_phone_number expose selected API-nested details without secret fields', async () => {
     const apiTool = {
       ...tool,
       destinations: [{ type: 'number', number: '+15555550102', transferPlan: { mode: 'warm-transfer' } }],
-      server: { url: 'https://user:synthetic-secret@example.test', headers: { Authorization: 'synthetic-secret' } },
+      server: {
+        url: 'https://user:synthetic-secret@example.test?api_key=query-secret&region=us',
+        headers: { Authorization: 'synthetic-secret' },
+      },
     };
     const beforeTool = transformToolOutput(apiTool as never);
     vapiOperations.tools.get.mockResolvedValueOnce(apiTool as never);
@@ -302,8 +415,11 @@ describe('MCP tool execution compatibility', () => {
     ]);
     expect(beforeTool).not.toHaveProperty('destinations');
     expect(beforeTool).not.toHaveProperty('function');
-    expect(toolResult.server).toEqual({ url: 'https://[redacted]@example.test' });
+    expect(toolResult.server).toEqual({
+      url: 'https://[redacted]@example.test?api_key=[redacted]&region=us',
+    });
     expect(JSON.stringify(toolResult)).not.toContain('synthetic-secret');
+    expect(JSON.stringify(toolResult)).not.toContain('query-secret');
 
     const apiPhoneNumber = {
       ...phoneNumber,

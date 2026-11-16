@@ -803,9 +803,9 @@
       "additionalProperties": {},
       "properties": {
         "fields": {
-          "description": "Optional API field paths, such as transcript, analysis.summary, artifact.recordingUrl, or messages; use * for all safe fields.",
+          "description": "Optional API field paths, such as transcript, analysis.summary, artifact.recordingUrl, messages, or messages[0].message; use * for all safe fields.",
           "items": {
-            "pattern": "^(?:\\*|[A-Za-z][A-Za-z0-9]*(\\.[A-Za-z][A-Za-z0-9]*)*)$",
+            "pattern": "^(?:\\*|[A-Za-z][A-Za-z0-9]*(?:\\[\\d+\\])?(?:\\.[A-Za-z][A-Za-z0-9]*(?:\\[\\d+\\])?)*)$",
             "type": "string"
           },
           "maxItems": 6,
@@ -818,13 +818,13 @@
           "type": "string"
         },
         "limit": {
-          "description": "Maximum characters or array items per page, up to 8000 characters or 50 items.",
+          "description": "Page size (default 4000 characters or 20 items; maximum 8000 characters or 50 items).",
           "maximum": 8000,
           "minimum": 1,
           "type": "integer"
         },
         "offset": {
-          "description": "Offset for a paged field; use _mcp.truncatedFields[].nextOffset.",
+          "description": "Starting character or item offset; use _mcp.truncatedFields[].nextOffset.",
           "maximum": 9007199254740991,
           "minimum": 0,
           "type": "integer"
@@ -846,7 +846,7 @@
         "fields": {
           "description": "Optional API field paths for provider settings, such as provider or providerResourceId; use * for all safe fields.",
           "items": {
-            "pattern": "^(?:\\*|[A-Za-z][A-Za-z0-9]*(\\.[A-Za-z][A-Za-z0-9]*)*)$",
+            "pattern": "^(?:\\*|[A-Za-z][A-Za-z0-9]*(?:\\[\\d+\\])?(?:\\.[A-Za-z][A-Za-z0-9]*(?:\\[\\d+\\])?)*)$",
             "type": "string"
           },
           "maxItems": 6,
@@ -859,13 +859,13 @@
           "type": "string"
         },
         "limit": {
-          "description": "Maximum characters or array items per page, up to 8000 characters or 50 items.",
+          "description": "Page size (default 4000 characters or 20 items; maximum 8000 characters or 50 items).",
           "maximum": 8000,
           "minimum": 1,
           "type": "integer"
         },
         "offset": {
-          "description": "Offset for a paged field; use _mcp.truncatedFields[].nextOffset.",
+          "description": "Starting character or item offset; use _mcp.truncatedFields[].nextOffset.",
           "maximum": 9007199254740991,
           "minimum": 0,
           "type": "integer"
@@ -926,7 +926,7 @@
         "fields": {
           "description": "Optional API field paths, such as destinations, messages, function.parameters, or server.url; use * for all safe fields.",
           "items": {
-            "pattern": "^(?:\\*|[A-Za-z][A-Za-z0-9]*(\\.[A-Za-z][A-Za-z0-9]*)*)$",
+            "pattern": "^(?:\\*|[A-Za-z][A-Za-z0-9]*(?:\\[\\d+\\])?(?:\\.[A-Za-z][A-Za-z0-9]*(?:\\[\\d+\\])?)*)$",
             "type": "string"
           },
           "maxItems": 6,
@@ -939,13 +939,13 @@
           "type": "string"
         },
         "limit": {
-          "description": "Maximum characters or array items per page, up to 8000 characters or 50 items.",
+          "description": "Page size (default 4000 characters or 20 items; maximum 8000 characters or 50 items).",
           "maximum": 8000,
           "minimum": 1,
           "type": "integer"
         },
         "offset": {
-          "description": "Offset for a paged field; use _mcp.truncatedFields[].nextOffset.",
+          "description": "Starting character or item offset; use _mcp.truncatedFields[].nextOffset.",
           "maximum": 9007199254740991,
           "minimum": 0,
           "type": "integer"

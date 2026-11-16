@@ -212,26 +212,26 @@ export const CallOutputSchema = BaseResponseSchema.extend({
 
 export const GetCallInputSchema = z.object({
   id: z.string().uuid().describe('Call ID'),
-  fields: z.array(z.string().regex(/^(?:\*|[A-Za-z][A-Za-z0-9]*(\.[A-Za-z][A-Za-z0-9]*)*)$/))
+  fields: z.array(z.string().regex(/^(?:\*|[A-Za-z][A-Za-z0-9]*(?:\[\d+\])?(?:\.[A-Za-z][A-Za-z0-9]*(?:\[\d+\])?)*)$/))
     .max(6).optional()
-    .describe('Optional API field paths, such as transcript, analysis.summary, artifact.recordingUrl, or messages; use * for all safe fields.'),
+    .describe('Optional API field paths, such as transcript, analysis.summary, artifact.recordingUrl, messages, or messages[0].message; use * for all safe fields.'),
   offset: z.number().int().min(0).optional()
-    .describe('Offset for a paged field; use _mcp.truncatedFields[].nextOffset.'),
+    .describe('Starting character or item offset; use _mcp.truncatedFields[].nextOffset.'),
   limit: z.number().int().min(1).max(8000).optional()
-    .describe('Maximum characters or array items per page, up to 8000 characters or 50 items.'),
+    .describe('Page size (default 4000 characters or 20 items; maximum 8000 characters or 50 items).'),
 });
 
 // ===== Phone Number Schemas =====
 
 export const GetPhoneNumberInputSchema = z.object({
   id: z.string().uuid().describe('Phone number ID'),
-  fields: z.array(z.string().regex(/^(?:\*|[A-Za-z][A-Za-z0-9]*(\.[A-Za-z][A-Za-z0-9]*)*)$/))
+  fields: z.array(z.string().regex(/^(?:\*|[A-Za-z][A-Za-z0-9]*(?:\[\d+\])?(?:\.[A-Za-z][A-Za-z0-9]*(?:\[\d+\])?)*)$/))
     .max(6).optional()
     .describe('Optional API field paths for provider settings, such as provider or providerResourceId; use * for all safe fields.'),
   offset: z.number().int().min(0).optional()
-    .describe('Offset for a paged field; use _mcp.truncatedFields[].nextOffset.'),
+    .describe('Starting character or item offset; use _mcp.truncatedFields[].nextOffset.'),
   limit: z.number().int().min(1).max(8000).optional()
-    .describe('Maximum characters or array items per page, up to 8000 characters or 50 items.'),
+    .describe('Page size (default 4000 characters or 20 items; maximum 8000 characters or 50 items).'),
 });
 
 export const PhoneNumberOutputSchema = BaseResponseSchema.extend({
@@ -250,13 +250,13 @@ export const PhoneNumberOutputSchema = BaseResponseSchema.extend({
 
 export const GetToolInputSchema = z.object({
   id: z.string().uuid().describe('Tool ID'),
-  fields: z.array(z.string().regex(/^(?:\*|[A-Za-z][A-Za-z0-9]*(\.[A-Za-z][A-Za-z0-9]*)*)$/))
+  fields: z.array(z.string().regex(/^(?:\*|[A-Za-z][A-Za-z0-9]*(?:\[\d+\])?(?:\.[A-Za-z][A-Za-z0-9]*(?:\[\d+\])?)*)$/))
     .max(6).optional()
     .describe('Optional API field paths, such as destinations, messages, function.parameters, or server.url; use * for all safe fields.'),
   offset: z.number().int().min(0).optional()
-    .describe('Offset for a paged field; use _mcp.truncatedFields[].nextOffset.'),
+    .describe('Starting character or item offset; use _mcp.truncatedFields[].nextOffset.'),
   limit: z.number().int().min(1).max(8000).optional()
-    .describe('Maximum characters or array items per page, up to 8000 characters or 50 items.'),
+    .describe('Page size (default 4000 characters or 20 items; maximum 8000 characters or 50 items).'),
 });
 
 const TransferCallDestinationSchema = apiField<{ type: 'number'; number: string; extension?: string; callerId?: string; description?: string }>('transferDestination', { additionalProperties: true })

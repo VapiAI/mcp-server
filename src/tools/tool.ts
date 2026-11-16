@@ -1,3 +1,4 @@
+import { validateToolUpdate } from '../schemas/tool-openapi.js';
 import { registerValidatedTool } from './validation.js';
 import { creates, readOnly, updates } from './annotations.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -43,7 +44,7 @@ export const registerToolTools = (
     {
       description:
         'Creates a reusable capability a Vapi voice assistant can invoke during a conversation to act on external systems or change the state of a call. ' +
-        'Attach the returned tool ID to an assistant with create_assistant or update_assistant. ' +
+        'Pass API fields directly, without MCP wrappers or additionalFields. Discover accepted types with get_api_schema({"tool":"create_tool"}), then request a named schema with the same tool argument and follow referencedSchemas. Attach the returned tool ID to an assistant with create_assistant or update_assistant. ' +
         'For optional guidance on choosing a tool type, configuring it, and attaching it safely, load the public create-tool skill with load_skill({"name":"create-tool"}).',
       inputSchema: CreateToolInputSchema,
       annotations: creates('Create Tool'),
@@ -60,28 +61,18 @@ export const registerToolTools = (
     'update_tool',
     {
       description:
-        'Changes an existing reusable Vapi tool by toolId to configure actions on external systems or changes to call state. ' +
-        'Inspect the tool with get_tool when preparing an edit. ' +
+        'Changes an existing reusable Vapi tool by id to configure actions on external systems or changes to call state. ' +
+        'Inspect the tool with get_tool when preparing an edit. Pass id plus API update fields directly. Discover types and schemas with get_api_schema({"tool":"update_tool"}); type, if given, must match the existing tool. ' +
         'For optional guidance on safe configuration updates and assistant attachment management, load the public create-tool skill with load_skill({"name":"create-tool"}).',
       inputSchema: UpdateToolInputSchema,
       annotations: updates('Update Tool'),
     },
     createToolHandler(async (data) => {
-      const existingTool = await vapiClient.tools.get({ id: data.toolId });
-      if (existingTool.type !== 'dtmf' && data.sipInfoDtmfEnabled !== undefined) {
-        throw new Error('sipInfoDtmfEnabled is only supported for DTMF tools');
-      }
-      if ((existingTool.type === 'dtmf' || existingTool.type === 'endCall') && data.additionalFields) {
-        throw new Error('Use the native tool fields directly');
-      }
-      if ((existingTool.type === 'dtmf' || existingTool.type === 'endCall') &&
-        ['sms', 'transferCall', 'function', 'apiRequest', 'name', 'description'].some(key => (data as Record<string, unknown>)[key] !== undefined)) {
-        throw new Error('This field is not supported for native DTMF or endCall tools');
-      }
-      const updateToolDto = transformUpdateToolInput(data, existingTool);
+      const existingTool = await vapiClient.tools.get({ id: data.id });
+      const updateToolDto = validateToolUpdate(existingTool.type, transformUpdateToolInput(data, existingTool));
       const tool = await vapiClient.tools.update({
-        id: data.toolId,
-        body: updateToolDto,
+        id: data.id,
+        body: updateToolDto as unknown as Vapi.UpdateToolsRequestBody,
       });
       return transformToolOutput(tool);
     })

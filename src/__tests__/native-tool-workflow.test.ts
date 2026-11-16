@@ -122,10 +122,10 @@ test.each([
 });
 
 test.each([
-  { type: 'sms', name: 'send_sms', sms: { metadata: { from: '+15555550100' } } },
-  { type: 'transferCall', name: 'transfer', transferCall: { destinations: [{ type: 'number', number: '+15555550100' }] } },
-  { type: 'function', name: 'lookup', function: { parameters: { type: 'object', properties: {} }, server: { url: 'https://example.test/tool' } } },
-  { type: 'apiRequest', name: 'lookup', apiRequest: { url: 'https://example.test/tool' } },
+  { type: 'sms' },
+  { type: 'transferCall', destinations: [{ type: 'number', number: '+15555550100' }] },
+  { type: 'function', function: { name: 'lookup', parameters: { type: 'object', properties: {} } }, server: { url: 'https://example.test/tool' } },
+  { type: 'apiRequest', name: 'lookup', method: 'GET', url: 'https://example.test/tool' },
 ])('existing tool type $type still creates through MCP', async args => {
   await invoke('create_tool', args);
   expect(createTool).toHaveBeenCalledTimes(1);
@@ -137,7 +137,7 @@ test.each([
   { type: 'endCall', update: { messages: [{ type: 'request-start', content: 'Farewell.' }] } },
 ])('native $type update sends options to Vapi and inspection returns the updated settings', async ({ type, update }) => {
   const toolId = toolIds[type as keyof typeof toolIds];
-  await invoke('update_tool', { toolId, ...update });
+  await invoke('update_tool', { id: toolId, ...update });
   expect(getTool).toHaveBeenCalledWith({ id: toolId });
   expect(updateTool).toHaveBeenCalledWith({ id: toolId, body: update });
   const inspected = await invoke('get_tool', { toolId });
@@ -146,22 +146,11 @@ test.each([
 });
 
 test.each([
-  { type: 'dtmf', transferCall: { destinations: [{ type: 'number', number: '+15555550100' }] } },
-  { type: 'endCall', apiRequest: { url: 'https://example.test' } },
-])('rejects incompatible native create input', async args => {
-  const response = await client.callTool({ name: 'create_tool', arguments: args });
-  expect(response.isError).toBe(true);
-  expect(createTool).not.toHaveBeenCalled();
-});
-
-test.each([
-  { toolId: toolIds.dtmf, transferCall: { destinations: [{ type: 'number', number: '+15555550100' }] } },
-  { toolId: toolIds.endCall, sipInfoDtmfEnabled: true },
-  { toolId: '00000000-0000-4000-8000-000000000004', sipInfoDtmfEnabled: true },
-])('rejects incompatible updates before mutation', async args => {
+  { id: toolIds.dtmf, type: 'endCall' },
+  { id: toolIds.endCall, messages: [{ type: 'request-start', content: 42 }] },
+])('rejects invalid updates before mutation', async args => {
   nativeTools[toolIds.dtmf] = { type: 'dtmf' };
   nativeTools[toolIds.endCall] = { type: 'endCall' };
-  nativeTools['00000000-0000-4000-8000-000000000004'] = { type: 'function' };
   const result = parseToolResponse(await client.callTool({ name: 'update_tool', arguments: args }));
   expect(result.error).toBeDefined();
   expect(updateTool).not.toHaveBeenCalled();

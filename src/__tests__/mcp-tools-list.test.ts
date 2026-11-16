@@ -152,8 +152,8 @@ describe('MCP tools/list compatibility baseline', () => {
         create_assistant: { name: 'Catalog contract' }, update_assistant: { assistantId: id },
         get_assistant: { assistantId: id }, get_call: { callId: id },
         get_phone_number: { phoneNumberId: id }, get_tool: { toolId: id },
-        create_call: {}, create_tool: { type: 'apiRequest', apiRequest: { url: 'https://example.test' } },
-        update_tool: { toolId: id }, load_skill: { name: 'create-assistant' },
+        create_call: {}, create_tool: { type: 'apiRequest', method: 'GET', url: 'https://example.test' },
+        update_tool: { id }, load_skill: { name: 'create-assistant' },
         ask_vapi_docs: { question: 'How do assistant hooks work?' },
         create_simulation: { scenarioId: id, personalityId: id },
         create_simulation_personality: { name: 'Tester', assistant: {} },
@@ -166,8 +166,8 @@ describe('MCP tools/list compatibility baseline', () => {
         expect({ name: tool.name, valid: ajv.compile(tool.inputSchema)(validArguments[tool.name] ?? {}) }).toEqual({ name: tool.name, valid: true });
       }
       const createTool = ajv.compile(response.tools.find(tool => tool.name === 'create_tool')!.inputSchema);
-      expect(createTool({ type: 'apiRequest' })).toBe(false);
-      expect(createTool({ type: 'function', description: 'A definition without a name' })).toBe(false);
+      expect(createTool({ type: 'apiRequest' })).toBe(true); // Full DTO validation runs at execution.
+      expect(createTool({ type: 'function', function: { name: 'weather' } })).toBe(true);
       expect(createTool({ type: 'function', description: '' })).toBe(true);
 
       const invocationCount = Object.values(vapiOperations).reduce(

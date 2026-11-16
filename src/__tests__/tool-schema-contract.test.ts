@@ -57,86 +57,28 @@ describe.each([
   });
 });
 
-const parameters = { type: 'object', properties: { city: { type: 'string' } }, required: ['city'] };
-const configurations = [
-  {
-    input: { type: 'sms', name: 'send_sms', sms: { metadata: { from: '+15555550100' } } },
-    dto: { type: 'sms', function: { name: 'send_sms' }, metadata: { from: '+15555550100' } },
-  },
-  {
-    input: { type: 'transferCall', name: 'transfer', transferCall: { destinations: [{ type: 'number', number: '+15555550100' }] } },
-    dto: { type: 'transferCall', function: { name: 'transfer' }, destinations: [{ type: 'number', number: '+15555550100' }] },
-  },
-  {
-    input: { type: 'function', name: 'weather', function: { parameters, server: { url: 'https://example.test/tool', headers: { 'X-Region': 'us' } } } },
-    dto: { type: 'function', function: { name: 'weather', parameters }, server: { url: 'https://example.test/tool', headers: { 'X-Region': 'us' } } },
-  },
-  {
-    input: { type: 'apiRequest', name: 'weather', apiRequest: { url: 'https://example.test/weather', headers: { 'X-Region': 'us' }, body: parameters, backoffPlan: {} } },
-    dto: { type: 'apiRequest', function: { name: 'weather' }, url: 'https://example.test/weather', method: 'POST', headers: { 'X-Region': 'us' }, body: parameters, timeoutSeconds: 20, backoffPlan: { type: 'fixed', maxRetries: 3, baseDelaySeconds: 1 } },
-  },
-  {
-    input: { type: 'dtmf', messages: [{ type: 'request-start', content: 'Entering the code.' }], sipInfoDtmfEnabled: true, rejectionPlan: { conditions: [{ type: 'liquid', liquid: 'true' }] } },
-    dto: { type: 'dtmf', messages: [{ type: 'request-start', content: 'Entering the code.' }], sipInfoDtmfEnabled: true, rejectionPlan: { conditions: [{ type: 'liquid', liquid: 'true' }] } },
-  },
-  {
-    input: { type: 'endCall', messages: [{ type: 'request-start', content: 'Goodbye.' }], rejectionPlan: { conditions: [{ type: 'liquid', liquid: 'true' }] } },
-    dto: { type: 'endCall', messages: [{ type: 'request-start', content: 'Goodbye.' }], rejectionPlan: { conditions: [{ type: 'liquid', liquid: 'true' }] } },
-  },
-];
-
-test.each(configurations)('custom-tool creation preserves the $input.type mapping and MCP defaults', ({ input, dto }) => {
-  expect(transformToolInput(CreateToolInputSchema.parse(input))).toEqual(dto);
+test.each([
+  { type: 'sms' }, { type: 'dtmf', sipInfoDtmfEnabled: true }, { type: 'endCall' },
+  { type: 'transferCall', destinations: [{ type: 'number', number: '+15555550100' }] },
+  { type: 'function', function: { name: 'weather', parameters: { type: 'object', properties: {} } }, server: { url: 'https://example.test' } },
+  { type: 'apiRequest', method: 'GET', url: 'https://example.test' },
+  { type: 'google.sheets.row.append' },
+])('tool creation preserves API fields and omitted defaults: %j', input => {
+  expect(transformToolInput(CreateToolInputSchema.parse(input))).toEqual(input);
 });
 
-test('sparse tool updates do not inject create configuration defaults', () => {
-  const input = { toolId, name: 'renamed_tool' };
-  expect(UpdateToolInputSchema.parse(input)).toEqual(input);
-  expect(transformUpdateToolInput(UpdateToolInputSchema.parse(input))).toEqual({ function: { name: 'renamed_tool' } });
+test('sparse updates retain API nesting', () => {
+  expect(transformUpdateToolInput(UpdateToolInputSchema.parse({ id: toolId, function: { description: 'Changed' } })))
+    .toEqual({ function: { description: 'Changed' } });
 });
 
 test.each([
-  { toolId, sipInfoDtmfEnabled: true },
-  { toolId, messages: [{ type: 'request-start', content: 'Goodbye.' }] },
-])('native tool updates preserve API options without create defaults: %j', input => {
-  expect(transformUpdateToolInput(UpdateToolInputSchema.parse(input))).toEqual(Object.fromEntries(Object.entries(input).filter(([key]) => key !== 'toolId')));
-});
-
-test('update tool identifiers use the API UUID format', () => {
-  expect(UpdateToolInputSchema.safeParse({ toolId: 'not-a-uuid' }).success).toBe(false);
-});
-
-test.each(['PUT', 'PATCH', 'DELETE'])('API request tools accept the published %s method', method => {
-  expect(CreateToolInputSchema.safeParse({ type: 'apiRequest', apiRequest: { url: 'https://example.test', method } }).success).toBe(true);
-});
-
-test.each([
-  { type: 'unknown' },
-  { type: 'apiRequest', apiRequest: { url: 42 } },
-  { type: 'apiRequest', apiRequest: { url: 'https://example.test', headers: { Authorization: 42 } } },
-  { type: 'function', function: { parameters, server: { url: 'not-a-url' } } },
-  { type: 'transferCall', transferCall: { destinations: [{ type: 'number', number: 42 }] } },
-])('custom-tool schema rejects malformed configuration: %j', input => {
-  expect(CreateToolInputSchema.safeParse(input).success).toBe(false);
-});
-
-test.each([
-  { type: 'apiRequest', apiRequest: { url: 'https://example.test', timeoutSeconds: 301 } },
-  { type: 'apiRequest', apiRequest: { url: 'https://example.test', timeoutSeconds: 0 } },
-  { type: 'apiRequest', apiRequest: { url: 'https://example.test', backoffPlan: { maxRetries: 11 } } },
-  { type: 'apiRequest', apiRequest: { url: 'https://example.test', backoffPlan: { baseDelaySeconds: -1 } } },
-  { type: 'transferCall', transferCall: { destinations: [{ type: 'number', number: '+15555550100', extension: '1'.repeat(11) }] } },
-  { type: 'function', name: 'invalid name with spaces' },
-  { type: 'apiRequest' },
-  { type: 'function', function: { parameters: { type: 'object', properties: {} }, server: { url: 'https://example.test' } } },
+  { type: 'unknown' }, { type: 'apiRequest', method: 'GET' },
+  { type: 'apiRequest', method: 'GET', url: 'https://example.test', timeoutSeconds: 301 },
+  { type: 'function', function: { name: 'invalid name with spaces' } },
   { type: 'dtmf', sipInfoDtmfEnabled: 'true' },
-  { type: 'dtmf', messages: [{ type: 'unsupported' }] },
-  { type: 'endCall', messages: 'Goodbye.' },
-  { type: 'endCall', sipInfoDtmfEnabled: true },
-  { type: 'dtmf', additionalFields: { sipInfoDtmfEnabled: 'true' } },
-  { type: 'dtmf', messages: [{ type: 'request-start', content: 'x'.repeat(1001) }] },
-  { type: 'endCall', messages: [{ type: 'request-response-delayed', timingMilliseconds: 99 }] },
-  { type: 'dtmf', rejectionPlan: { conditions: [{ type: 'liquid' }] } },
-])('tool inputs enforce published constraints: %j', input => {
+  { type: 'endCall', messages: [{ type: 'request-start', content: 'x'.repeat(1001) }] },
+  { type: 'endCall', rejectionPlan: { conditions: [{ type: 'liquid' }] } },
+])('API tool contracts reject malformed fields: %j', input => {
   expect(CreateToolInputSchema.safeParse(input).success).toBe(false);
 });

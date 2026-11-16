@@ -28,9 +28,9 @@ beforeEach(() => { operation.mockClear(); });
 
 test.each([
   { name: 'create_assistant', args: { name: 'Test', voice: { provider: 'vapi', voiceId: 'Elliot', model: 'foreign-model' } } },
-  { name: 'create_tool', args: { type: 'function', name: 'weather', function: {
+  { name: 'create_tool', args: { type: 'function', function: { name: 'weather',
     parameters: { type: 'object', properties: { city: { type: 'not-a-type' } } },
-    server: { url: 'https://example.test' },
+
   } } },
 ])('$name retains full validation for details omitted from tools/list', async ({ name, args }) => {
   const advertised = (await client.listTools()).tools.find(tool => tool.name === name)!;
@@ -45,14 +45,14 @@ test.each([
 
 test.each([
   { name: 'create_call', args: { scheduledAt: 'tomorrow' }, path: 'scheduledAt' },
-  { name: 'create_tool', args: { type: 'apiRequest', apiRequest: { url: 'https://example.test', timeoutSeconds: 301 } }, path: 'apiRequest.timeoutSeconds' },
+  { name: 'create_tool', args: { type: 'apiRequest', method: 'GET', url: 'https://example.test', timeoutSeconds: 301 }, path: 'timeoutSeconds' },
   { name: 'create_assistant', args: { name: 'Test', voice: { provider: 'vapi', voiceId: 'Elliot', model: 'foreign-model' } }, path: 'voice.model' },
 ])('$name returns a corrective field path without making an API call', async ({ name, args, path }) => {
   const response = await client.callTool({ name, arguments: args });
   expect(response.isError).toBe(true);
   expect(response.structuredContent).toEqual({ validationError: expect.objectContaining({
     code: 'INVALID_ARGUMENTS', tool: name,
-    issues: expect.arrayContaining([expect.objectContaining({ path, ...(path === 'apiRequest.timeoutSeconds' ? { maximum: 300 } : {}) })]),
+    issues: expect.arrayContaining([expect.objectContaining({ path, ...(path === 'timeoutSeconds' ? { maximum: 300 } : {}) })]),
   }) });
   expect(operation).not.toHaveBeenCalled();
 });
@@ -96,19 +96,19 @@ test.each([{ provider: 'unknown-provider', voiceId: 'Elliot' }, { voiceId: 'Elli
 test('invalid header values do not leak credential contents', async () => {
   const secret = 'private-header-value-never-echo';
   const response = await client.callTool({ name: 'create_tool', arguments: {
-    type: 'apiRequest', apiRequest: { url: 'https://example.test', headers: { Authorization: { token: secret } } },
+    type: 'apiRequest', method: 'GET', url: 'https://example.test', timeoutSeconds: secret,
   } });
   expect(response.isError).toBe(true);
   expect(JSON.stringify(response)).not.toContain(secret);
   expect(response.structuredContent).toEqual({ validationError: expect.objectContaining({
-    issues: expect.arrayContaining([expect.objectContaining({ path: 'apiRequest.headers.Authorization' })]),
+    issues: expect.arrayContaining([expect.objectContaining({ path: 'timeoutSeconds' })]),
   }) });
   expect(operation).not.toHaveBeenCalled();
 });
 
 test('large failures report at most twelve issues and indicate truncation', async () => {
   const response = await client.callTool({ name: 'create_tool', arguments: {
-    type: 'transferCall', transferCall: { destinations: Array.from({ length: 30 }, () => ({ type: 'number', number: 42 })) },
+    type: 'transferCall', destinations: Array.from({ length: 30 }, () => ({ type: 'number', number: 42 })),
   } });
   const details = response.structuredContent as { validationError: { issues: unknown[]; truncated: boolean } };
   expect(response.isError).toBe(true);
@@ -120,7 +120,7 @@ test('large failures report at most twelve issues and indicate truncation', asyn
 test('unsupported tool types report the supported choices', async () => {
   const response = await client.callTool({ name: 'create_tool', arguments: { type: 'unknown' } });
   expect(response.structuredContent).toEqual({ validationError: expect.objectContaining({
-    issues: [expect.objectContaining({ path: 'type', allowedValues: expect.arrayContaining(['sms', 'transferCall', 'function', 'apiRequest']) })],
+    issues: [expect.objectContaining({ path: 'type', allowedValues: expect.arrayContaining(['dtmf', 'function', 'apiRequest']) })],
   }) });
   expect(operation).not.toHaveBeenCalled();
 });

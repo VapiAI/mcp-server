@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { nativeToolField } from './native-tool-openapi.js';
-import { CreateAssistantNameSchema, UpdateAssistantNameSchema, VoiceInputSchema, TranscriberInputSchema, LLMInputSchema, apiField, apiObjectField, requiredToolConfigurations, functionRequiresName } from './assistant-openapi.js';
+import { ToolCreateSchema, ToolUpdateSchema } from './tool-openapi.js';
+import { CreateAssistantNameSchema, UpdateAssistantNameSchema, VoiceInputSchema, TranscriberInputSchema, LLMInputSchema, apiField, apiObjectField } from './assistant-openapi.js';
 
 export const EmptyInputSchema = z.object({});
 
@@ -239,104 +239,10 @@ export const GetToolInputSchema = z.object({
   toolId: apiField<string>('toolId').describe('ID of the tool to get'),
 });
 
-const TransferCallDestinationSchema = apiField<{ type: 'number'; number: string; extension?: string; callerId?: string; description?: string }>('transferDestination', { additionalProperties: true })
-  .describe(
-    'Transfer destination. Other TransferDestinationNumber fields, such as transferPlan and message, are sent as given (see get_api_schema).'
-  );
-const FunctionParametersSchema = apiObjectField('functionParameters');
-const ApiBodySchema = apiObjectField('apiBody');
-// URLs and string-valued headers are retained MCP transport constraints where
-// the published DTO describes only a string/object. They are not copied API rules.
-const HeaderMapSchema = apiField<Record<string, string>>('serverHeaders').pipe(z.record(z.string(), z.string()))
-  .meta({ type: 'object', additionalProperties: { type: 'string' } });
+export const CreateToolInputSchema = ToolCreateSchema;
+export const UpdateToolInputSchema = ToolUpdateSchema;
 
-const ServerSchema = z.object({
-  url: apiField<string>('serverUrl').pipe(z.string().url()).meta({ format: 'uri' }).describe('Server URL where the function will be called'),
-  headers: HeaderMapSchema.optional().describe('Headers to send with the request'),
-});
-
-const BackoffPlanSchema = z.object({
-  type: apiField<'fixed' | 'exponential'>('backoffType').default('fixed'),
-  maxRetries: apiField<number>('backoffMaxRetries').default(3).describe('Maximum number of retries'),
-  baseDelaySeconds: apiField<number>('backoffDelay').default(1).describe('Base delay between retries in seconds'),
-});
-
-const BaseToolConfigSchema = z.object({
-  // Common fields for all tools
-  name: apiField<string>('functionName').optional().describe('Name of the function/tool'),
-  description: apiField<string>('functionDescription').optional().describe('Description of what the function/tool does'),
-  
-  // SMS tool configuration
-  sms: z.object({
-    metadata: z.object({
-      from: z.string().describe('Phone number to send SMS from (e.g., "+15551234567"). It must be a twilio number in E.164 format.'),
-    }).describe('SMS configuration metadata'),
-  }).optional().describe('SMS tool configuration - to send text messages'),
-  
-  // Transfer call tool configuration
-  transferCall: z.object({
-    destinations: z.array(TransferCallDestinationSchema).describe('Array of possible transfer destinations'),
-  }).optional().describe('Transfer call tool configuration - to transfer calls to destinations'),
-  
-  // Function tool configuration (custom functions with parameters)
-  function: z.object({
-    parameters: FunctionParametersSchema.describe('JSON schema for function parameters'),
-    server: ServerSchema.describe('Server configuration with URL where the function will be called'),
-  }).optional().describe('Custom function tool configuration - for custom server-side functions'),
-  
-  // API Request tool configuration
-  apiRequest: z.object({
-    url: apiField<string>('apiUrl').pipe(z.string().url()).meta({ format: 'uri' }).describe('URL to make the API request to'),
-    method: apiField<'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'>('apiMethod').default('POST').describe('HTTP method for the API request'),
-    headers: HeaderMapSchema.optional().describe('Headers to send with the request (key-value pairs)'),
-    body: ApiBodySchema.optional().describe('Body schema for the API request in JSON Schema format'),
-    backoffPlan: BackoffPlanSchema.optional().describe('Retry configuration for failed API requests'),
-    timeoutSeconds: apiField<number>('apiTimeout').default(20).describe('Request timeout in seconds'),
-  }).optional().describe('API Request tool configuration - for HTTP API integration'),
-
-  messages: nativeToolField<unknown[]>('messages').optional().describe('Messages spoken by the assistant during the tool action'),
-  sipInfoDtmfEnabled: z.boolean().optional().describe('Send DTMF via SIP INFO'),
-  rejectionPlan: nativeToolField<Record<string, unknown>>('rejectionPlan').optional().describe('Conditions that reject a tool call'),
-
-  // Documented fields the options above don't cover
-  additionalFields: z
-    .record(z.string(), z.any())
-    .optional()
-    .describe(
-      'Other top-level fields from the Vapi API for this tool type, such as messages or rejectionPlan, sent as given. ' +
-        'Look them up with get_api_schema, e.g. CreateTransferCallToolDTO. ' +
-        'On update_tool, each field given here replaces that whole field.'
-    ),
-});
-
-export const CreateToolInputSchema = BaseToolConfigSchema.extend({
-  type: z.enum(['sms', 'transferCall', 'function', 'apiRequest', 'dtmf', 'endCall']),
-}).superRefine((input, ctx) => {
-  if (input.type === 'dtmf' || input.type === 'endCall') {
-    for (const key of ['sms', 'transferCall', 'function', 'apiRequest', 'name', 'description'] as const) {
-      if (input[key] !== undefined) ctx.addIssue({ code: 'custom', path: [key], message: 'This field is not supported for native DTMF or endCall tools.' });
-    }
-  }
-  if (input.type !== 'dtmf' && input.sipInfoDtmfEnabled !== undefined) {
-    ctx.addIssue({ code: 'custom', path: ['sipInfoDtmfEnabled'], message: 'This field is only supported for DTMF tools.' });
-  }
-  if ((input.type === 'dtmf' || input.type === 'endCall') && input.additionalFields) {
-    ctx.addIssue({ code: 'custom', path: ['additionalFields'], message: 'Use the native tool fields directly.' });
-  }
-  if (requiredToolConfigurations.includes(input.type) && !(input as Record<string, unknown>)[input.type]) {
-    ctx.addIssue({ code: 'custom', path: [input.type], message: 'This configuration is required for the selected tool type.' });
-  }
-  if (functionRequiresName && input.type === 'function' && (input.function || input.description) && !input.name) {
-    ctx.addIssue({ code: 'custom', path: ['name'], message: 'A function name is required when providing a function definition.' });
-  }
-}).meta({ allOf: [
-  ...requiredToolConfigurations.map(type => ({ if: { properties: { type: { const: type } }, required: ['type'] }, then: { required: [type] } })),
-  ...(functionRequiresName ? [{ if: { properties: { type: { const: 'function' } }, required: ['type'], anyOf: [{ required: ['function'] }, { required: ['description'], properties: { description: { minLength: 1 } } }] }, then: { required: ['name'] } }] : []),
-] });
-
-export const UpdateToolInputSchema = BaseToolConfigSchema.extend({
-  toolId: apiField<string>('toolId').describe('ID of the tool to update'),
-});
+const ServerSchema = z.object({ url: z.string(), headers: z.record(z.string(), z.string()).optional() });
 
 export const ToolOutputSchema = BaseResponseSchema.extend({
   type: z
@@ -351,6 +257,7 @@ export const ToolOutputSchema = BaseResponseSchema.extend({
 // ===== API Schema Lookup =====
 
 export const GetApiSchemaInputSchema = z.object({
+  tool: z.enum(['create_tool', 'update_tool']).optional().describe('Discover bundled accepted tool types, or look up a named bundled schema and its examples'),
   name: z
     .string()
     .optional()

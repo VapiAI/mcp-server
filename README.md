@@ -191,6 +191,28 @@ include secrets or private customer data in docs questions.
 | `create_tool` | Create tool for API integration |
 | `update_tool` | Update tool |
 
+Tool configuration uses API field names and nesting. `create_tool` accepts the
+API request object directly; `update_tool` accepts `id` plus API update fields.
+For example, `create_tool({"type":"dtmf","sipInfoDtmfEnabled":true})` creates a
+capability the voice assistant can use during a conversation.
+
+Discover the variants supported by this MCP version with
+`get_api_schema({"tool":"create_tool"})` or `get_api_schema({"tool":"update_tool"})`.
+Then request a returned schema name, for example
+`get_api_schema({"tool":"create_tool","name":"CreateFunctionToolDTO"})`, and
+follow `referencedSchemas` using the same `tool` argument. Schema lookups include
+published examples and selected worked requests. The optional `create-tool`
+skill offers further examples in supporting files loaded on demand.
+
+These contracts are generated from the API's endpoint unions in
+`src/schemas/tool-openapi.json`; refresh them with
+`node scripts/snapshot-tool-validation.mjs` (optionally passing a saved spec).
+New API variants become available after refreshing the bundled snapshot and
+releasing the MCP server. Legacy MCP wrappers and `additionalFields` are no
+longer translated; supply the API payload directly. Sparse edits to `function`
+and `server` preserve existing object fields; explicitly supplied nested values
+such as `parameters` or `headers` replace those values.
+
 #### Public Skills
 | Tool | Description |
 |------|-------------|

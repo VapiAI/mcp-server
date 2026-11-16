@@ -8,6 +8,15 @@ import { registerAllTools } from '../tools/index.js';
 import { parseToolResponse } from '../utils/response.js';
 import { toolOperations, toolExamples, validateToolUpdate } from '../schemas/tool-openapi.js';
 import { CreateToolInputSchema } from '../schemas/index.js';
+import { Ajv } from 'ajv';
+import addFormats from 'ajv-formats';
+import { toolCreateInputContract, toolUpdateInputContract } from '../schemas/tool-openapi.js';
+import { toolDiscoveryContract } from '../schemas/tool-discovery.js';
+
+const ajv = new Ajv({ strict: false });
+addFormats.default(ajv);
+const advertisedCreate = ajv.compile(toolCreateInputContract);
+const advertisedUpdate = ajv.compile(toolUpdateInputContract);
 
 const id = '00000000-0000-4000-8000-000000000007';
 const base: Record<string, Record<string, unknown>> = {
@@ -39,17 +48,67 @@ afterAll(async () => { await client.close(); await server.close(); });
 // its published discriminator mapping) and update-only knowledgeBase.
 test.each(Object.keys(toolOperations.create_tool))('registered MCP creates API variant %s', async type => {
   const input = { type, ...base[type] };
+  expect(advertisedCreate(input)).toBe(true);
   const response = await client.callTool({ name: 'create_tool', arguments: input });
   expect(response.isError).not.toBe(true);
   expect(parseToolResponse(response).error).toBeUndefined();
   expect(create).toHaveBeenLastCalledWith(input);
 });
 test.each(Object.keys(toolOperations.update_tool))('registered MCP updates API variant %s', async type => {
+  expect(advertisedUpdate({ id, type, messages: [] })).toBe(true);
   saved = { id, type, createdAt: '', updatedAt: '', ...base[type] };
   const response = await client.callTool({ name: 'update_tool', arguments: { id, messages: [] } });
   expect(response.isError).not.toBe(true);
   expect(parseToolResponse(response).error).toBeUndefined();
   expect(update).toHaveBeenLastCalledWith({ id, body: { messages: [] } });
+});
+
+test.each([
+  {}, { type: 'unknown' }, { type: 'apiRequest', url: 'https://example.test' },
+  { type: 'apiRequest', method: 'GET', url: 'https://example.test', timeoutSeconds: 301 },
+  { type: 'function', function: { name: 'invalid name' } },
+  { type: 'dtmf', sipInfoDtmfEnabled: 'yes' },
+  { type: 'endCall', messages: [{ type: 'request-start', content: 'x'.repeat(1001) }] },
+  { type: 'computer', subType: 'computer_20241022', name: 'computer' },
+  { type: 'sipRequest', verb: 'GET' },
+])('advertised create schema and runtime reject the same invalid payload: %j', input => {
+  expect(advertisedCreate(input)).toBe(false);
+  expect(CreateToolInputSchema.safeParse(input).success).toBe(false);
+});
+
+test.each([
+  { id: 'invalid', type: 'dtmf' },
+  { id, type: 'unknown' },
+  { id, type: 'apiRequest', timeoutSeconds: 301 },
+  { id, type: 'endCall', messages: [{ type: 'request-start', content: 42 }] },
+])('advertised update schema rejects invalid typed edits: %j', input => {
+  expect(advertisedUpdate(input)).toBe(false);
+});
+
+test('tools/list carries complete reusable contracts instead of workflow instructions', async () => {
+  const catalog = await client.listTools();
+  const create = catalog.tools.find(tool => tool.name === 'create_tool')!;
+  const update = catalog.tools.find(tool => tool.name === 'update_tool')!;
+  expect(create.inputSchema).toMatchObject(toolCreateInputContract);
+  expect(update.inputSchema).toMatchObject(toolUpdateInputContract);
+  expect(create.inputSchema.properties?.type).toEqual({ type: 'string', enum: Object.keys(toolOperations.create_tool) });
+  expect(create.inputSchema.oneOf).toHaveLength(Object.keys(toolOperations.create_tool).length);
+  expect(create.inputSchema.definitions).toBeDefined();
+});
+
+test('documentation stripping preserves validation and literal property names', () => {
+  const schema = toolDiscoveryContract({ type: 'object', description: 'Long docs', properties: {
+    description: { type: 'string', maxLength: 7, description: 'Field docs' },
+    nullable: { type: 'number', nullable: true, minimum: 2 },
+    choice: { type: 'string', enum: Array.from({ length: 20 }, (_, i) => String(i)) },
+  }, required: ['description'] });
+  const validate = ajv.compile(schema);
+  expect(validate({ description: 'text', nullable: null, choice: '19' })).toBe(true);
+  expect(validate({ description: 'too long text' })).toBe(false);
+  expect(validate({ description: 'text', nullable: 1 })).toBe(false);
+  expect(validate({ nullable: null })).toBe(false);
+  expect(schema).toMatchObject({ properties: { description: { type: 'string', maxLength: 7 } } });
+  expect(schema).not.toHaveProperty('description');
 });
 test('discovery lists bundled types and resolves their exact DTO and referenced examples without network', async () => {
   const catalog = parseToolResponse(await client.callTool({ name: 'get_api_schema', arguments: { tool: 'create_tool' } }));
@@ -70,7 +129,9 @@ test('every progressively disclosed worked request validates against the bundled
 });
 test('sparse function/server updates preserve configuration while allowing explicit replacements', async () => {
   saved = { id, type: 'function', createdAt: '', updatedAt: '', function: { name: 'lookup', description: 'Old', parameters: { type: 'object', properties: {} } }, server: { url: 'https://example.test', headers: { Authorization: 'fake' }, timeoutSeconds: 12 } };
-  await client.callTool({ name: 'update_tool', arguments: { id, function: { description: 'New' }, server: { timeoutSeconds: 25 } } });
+  const input = { id, type: 'function', function: { description: 'New' }, server: { timeoutSeconds: 25 } };
+  expect(advertisedUpdate(input)).toBe(true);
+  await client.callTool({ name: 'update_tool', arguments: input });
   expect(saved.function).toMatchObject({ name: 'lookup', description: 'New', parameters: { type: 'object', properties: {} } });
   expect(saved.server).toEqual({ url: 'https://example.test', headers: { Authorization: 'fake' }, timeoutSeconds: 25 });
 });

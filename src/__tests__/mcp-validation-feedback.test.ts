@@ -36,7 +36,7 @@ test.each([
   const advertised = (await client.listTools()).tools.find(tool => tool.name === name)!;
   const ajv = new Ajv({ strict: false });
   addFormats.default(ajv);
-  expect(ajv.compile(advertised.inputSchema)(args)).toBe(true);
+  expect(ajv.compile(advertised.inputSchema)(args)).toBe(name !== 'create_tool');
   const response = await client.callTool({ name, arguments: args });
   expect(response.isError).toBe(true);
   expect(response.structuredContent).toEqual({ validationError: expect.objectContaining({ code: 'INVALID_ARGUMENTS' }) });

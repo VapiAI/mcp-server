@@ -196,6 +196,14 @@ API request object directly; `update_tool` accepts `id` plus API update fields.
 For example, `create_tool({"type":"dtmf","sipInfoDtmfEnabled":true})` creates a
 capability the voice assistant can use during a conversation.
 
+Their advertised input definitions are generated from the same API contracts
+used at runtime. Validation fields and constraints are retained, with recursive
+and repeated schemas shared through local JSON Schema references. Documentation
+annotations and examples are omitted from these definitions and are available
+through the optional schema lookups below. When an update omits `type`, runtime
+validation uses the saved tool's type; the advertised union cannot know that
+server-side state.
+
 Discover the variants supported by this MCP version with
 `get_api_schema({"tool":"create_tool"})` or `get_api_schema({"tool":"update_tool"})`.
 Then request a returned schema name, for example

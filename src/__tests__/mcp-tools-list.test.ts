@@ -107,7 +107,12 @@ describe('MCP tools/list compatibility baseline', () => {
         .map(({ name, description, inputSchema }) => ({
           name,
           description,
-          inputSchema: sortObjectKeys(inputSchema),
+          // Generated tool definitions are compared to the complete source
+          // contract and compiled in api-tool-variants.test.ts. Snapshot the
+          // envelope here without duplicating that generated graph in a fixture.
+          inputSchema: sortObjectKeys(['create_tool', 'update_tool'].includes(name)
+            ? Object.fromEntries(Object.entries(inputSchema).filter(([key]) => key !== 'definitions'))
+            : inputSchema),
         }))
         .sort(({ name: left }, { name: right }) =>
           compareStrings(left, right)
@@ -125,7 +130,7 @@ describe('MCP tools/list compatibility baseline', () => {
           properties: { provider: { type: 'string' }, voiceId: { type: 'string' }, model: { type: 'string' } },
         }));
       }
-      expect(JSON.stringify(normalizedCatalog)).not.toMatch(/"(?:definitions|\$defs|\$ref)":/);
+      expect(JSON.stringify(normalizedCatalog.filter(tool => !['create_tool', 'update_tool'].includes(tool.name)))).not.toMatch(/"(?:definitions|\$defs|\$ref)":/);
 
       // Directory review requires a title and readOnlyHint on every tool, and
       // destructiveHint on tools that change data.
@@ -166,7 +171,7 @@ describe('MCP tools/list compatibility baseline', () => {
         expect({ name: tool.name, valid: ajv.compile(tool.inputSchema)(validArguments[tool.name] ?? {}) }).toEqual({ name: tool.name, valid: true });
       }
       const createTool = ajv.compile(response.tools.find(tool => tool.name === 'create_tool')!.inputSchema);
-      expect(createTool({ type: 'apiRequest' })).toBe(true); // Full DTO validation runs at execution.
+      expect(createTool({ type: 'apiRequest' })).toBe(false);
       expect(createTool({ type: 'function', function: { name: 'weather' } })).toBe(true);
       expect(createTool({ type: 'function', description: '' })).toBe(true);
 

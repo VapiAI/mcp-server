@@ -393,18 +393,110 @@
   },
   {
     "name": "create_tool",
-    "description": "Creates a reusable capability a Vapi voice assistant can invoke during a conversation to act on external systems or change the state of a call. Pass API fields directly, without MCP wrappers or additionalFields. Discover accepted types with get_api_schema({\"tool\":\"create_tool\"}), then request a named schema with the same tool argument and follow referencedSchemas. Attach the returned tool ID to an assistant with create_assistant or update_assistant. For optional guidance on choosing a tool type, configuring it, and attaching it safely, load the public create-tool skill with load_skill({\"name\":\"create-tool\"}).",
+    "description": "Creates a reusable capability a Vapi voice assistant can invoke during a conversation to act on external systems or change the state of a call. Pass API fields directly, without MCP wrappers or additionalFields. For optional detailed documentation and worked examples, use get_api_schema({\"tool\":\"create_tool\"}) and request a returned schema name. Attach the returned tool ID to an assistant with create_assistant or update_assistant. For optional guidance on choosing a tool type, configuring it, and attaching it safely, load the public create-tool skill with load_skill({\"name\":\"create-tool\"}).",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": true,
+      "additionalProperties": {},
+      "oneOf": [
+        {
+          "$ref": "#/definitions/CreateApiRequestToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateCodeToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateDtmfToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateEndCallToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateFunctionToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateTransferCallToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateHandoffToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateBashToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateComputerToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateTextEditorToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateQueryToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateGoogleCalendarCreateEventToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateGoogleSheetsRowAppendToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateGoogleCalendarCheckAvailabilityToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateSlackSendMessageToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateSmsToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateMcpToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateGoHighLevelCalendarAvailabilityToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateGoHighLevelCalendarEventCreateToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateGoHighLevelContactCreateToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateGoHighLevelContactGetToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateSipRequestToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateVoicemailToolDTO"
+        }
+      ],
       "properties": {
         "type": {
-          "description": "API tool type; discover accepted types with get_api_schema({tool:\"create_tool\"}).",
+          "enum": [
+            "apiRequest",
+            "code",
+            "dtmf",
+            "endCall",
+            "function",
+            "transferCall",
+            "handoff",
+            "bash",
+            "computer",
+            "textEditor",
+            "query",
+            "google.calendar.event.create",
+            "google.sheets.row.append",
+            "google.calendar.availability.check",
+            "slack.message.send",
+            "sms",
+            "mcp",
+            "gohighlevel.calendar.availability.check",
+            "gohighlevel.calendar.event.create",
+            "gohighlevel.contact.create",
+            "gohighlevel.contact.get",
+            "sipRequest",
+            "voicemail"
+          ],
           "type": "string"
         }
-      },
-      "propertyNames": {
-        "type": "string"
       },
       "required": [
         "type"
@@ -974,14 +1066,116 @@
   },
   {
     "name": "update_tool",
-    "description": "Changes an existing reusable Vapi tool by id to configure actions on external systems or changes to call state. Inspect the tool with get_tool when preparing an edit. Pass id plus API update fields directly. Discover types and schemas with get_api_schema({\"tool\":\"update_tool\"}); type, if given, must match the existing tool. For optional guidance on safe configuration updates and assistant attachment management, load the public create-tool skill with load_skill({\"name\":\"create-tool\"}).",
+    "description": "Changes an existing reusable Vapi tool by id to configure actions on external systems or changes to call state. Inspect the tool with get_tool when preparing an edit. Pass id plus API update fields directly. Type, if given, must match the existing tool. Optional detailed documentation is available with get_api_schema({\"tool\":\"update_tool\"}). For optional guidance on safe configuration updates and assistant attachment management, load the public create-tool skill with load_skill({\"name\":\"create-tool\"}).",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
+      "anyOf": [
+        {
+          "$ref": "#/definitions/UpdateApiRequestToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateCodeToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateDtmfToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateEndCallToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateFunctionToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateKnowledgeBaseToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateTransferCallToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateHandoffToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateBashToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateComputerToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateTextEditorToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateQueryToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateGoogleCalendarCreateEventToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateGoogleSheetsRowAppendToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateGoogleCalendarCheckAvailabilityToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateSlackSendMessageToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateSmsToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateMcpToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateGoHighLevelCalendarAvailabilityToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateGoHighLevelCalendarEventCreateToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateGoHighLevelContactCreateToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateGoHighLevelContactGetToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateSipRequestToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateVoicemailToolDTO"
+        }
+      ],
       "properties": {
         "id": {
           "format": "uuid",
-          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "apiRequest",
+            "code",
+            "dtmf",
+            "endCall",
+            "function",
+            "knowledgeBase",
+            "transferCall",
+            "handoff",
+            "bash",
+            "computer",
+            "textEditor",
+            "query",
+            "google.calendar.event.create",
+            "google.sheets.row.append",
+            "google.calendar.availability.check",
+            "slack.message.send",
+            "sms",
+            "mcp",
+            "gohighlevel.calendar.availability.check",
+            "gohighlevel.calendar.event.create",
+            "gohighlevel.contact.create",
+            "gohighlevel.contact.get",
+            "sipRequest",
+            "voicemail"
+          ],
           "type": "string"
         }
       },

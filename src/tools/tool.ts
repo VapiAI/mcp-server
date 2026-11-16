@@ -1,4 +1,4 @@
-import { validateToolUpdate } from '../schemas/tool-openapi.js';
+import { validateToolUpdate, toolCreateInputContract, toolUpdateInputContract } from '../schemas/tool-openapi.js';
 import { registerValidatedTool } from './validation.js';
 import { creates, readOnly, updates } from './annotations.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -44,9 +44,10 @@ export const registerToolTools = (
     {
       description:
         'Creates a reusable capability a Vapi voice assistant can invoke during a conversation to act on external systems or change the state of a call. ' +
-        'Pass API fields directly, without MCP wrappers or additionalFields. Discover accepted types with get_api_schema({"tool":"create_tool"}), then request a named schema with the same tool argument and follow referencedSchemas. Attach the returned tool ID to an assistant with create_assistant or update_assistant. ' +
+        'Pass API fields directly, without MCP wrappers or additionalFields. For optional detailed documentation and worked examples, use get_api_schema({"tool":"create_tool"}) and request a returned schema name. Attach the returned tool ID to an assistant with create_assistant or update_assistant. ' +
         'For optional guidance on choosing a tool type, configuring it, and attaching it safely, load the public create-tool skill with load_skill({"name":"create-tool"}).',
       inputSchema: CreateToolInputSchema,
+      advertisedInputSchema: toolCreateInputContract,
       annotations: creates('Create Tool'),
     },
     createToolHandler(async (data) => {
@@ -62,9 +63,10 @@ export const registerToolTools = (
     {
       description:
         'Changes an existing reusable Vapi tool by id to configure actions on external systems or changes to call state. ' +
-        'Inspect the tool with get_tool when preparing an edit. Pass id plus API update fields directly. Discover types and schemas with get_api_schema({"tool":"update_tool"}); type, if given, must match the existing tool. ' +
+        'Inspect the tool with get_tool when preparing an edit. Pass id plus API update fields directly. Type, if given, must match the existing tool. Optional detailed documentation is available with get_api_schema({"tool":"update_tool"}). ' +
         'For optional guidance on safe configuration updates and assistant attachment management, load the public create-tool skill with load_skill({"name":"create-tool"}).',
       inputSchema: UpdateToolInputSchema,
+      advertisedInputSchema: toolUpdateInputContract,
       annotations: updates('Update Tool'),
     },
     createToolHandler(async (data) => {

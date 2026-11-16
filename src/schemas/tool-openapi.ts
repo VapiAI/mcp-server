@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 import { inputContract } from './assistant-openapi.js';
+import { toolInputContract } from './tool-discovery.js';
 
 type Operation = 'create_tool' | 'update_tool';
 export type ToolPayload = Record<string, unknown> & { type: string };
@@ -38,9 +39,11 @@ export function validateToolPayload(operation: Operation, type: unknown, input: 
 }
 // Validate the published DTO without using its parsed result: imports may strip
 // extension fields. The SDK receives the original API payload, without MCP defaults.
+export const toolCreateInputContract = toolInputContract(toolOperations.create_tool, toolDefinitions);
+export const toolUpdateInputContract = toolInputContract(toolOperations.update_tool, toolDefinitions, snapshot.id);
 export const ToolCreateSchema = z.record(z.string(), z.unknown()).superRefine((input, ctx) => {
   validateToolPayload('create_tool', input.type, input, ctx);
-}).meta({ type: 'object', required: ['type'], properties: { type: { type: 'string', description: 'API tool type; discover accepted types with get_api_schema({tool:"create_tool"}).' } }, additionalProperties: true }) as unknown as z.ZodType<ToolPayload>;
+}) as unknown as z.ZodType<ToolPayload>;
 export const ToolUpdateSchema = z.object({ id: z.fromJSONSchema(snapshot.id, { defaultTarget: 'openapi-3.0' }) as z.ZodType<string> }).passthrough();
 export function validateToolUpdate(type: string, input: Record<string, unknown>): Record<string, unknown> {
   return z.record(z.string(), z.unknown()).superRefine((value, ctx) => {

@@ -7,7 +7,8 @@ export const scenarios: EvalScenario[] = [
     id: 'assistant-create', split: 'development',
     prompt: 'Create a saved voice agent named Harbor Intake. It should greet callers with “Thanks for calling Harbor Dental. How can I help?”, use OpenAI gpt-4o-mini, ElevenLabs voice Sarah, and Deepgram Nova 3 transcription. Give it concise instructions to help callers book an appointment.',
     relevantTools: ['create_assistant'],
-    stateAssertions: [{ collection: 'assistants', where: { name: 'Harbor Intake', firstMessage: 'Thanks for calling Harbor Dental. How can I help?' } }],
+    stateAssertions: [{ collection: 'assistants', where: { name: 'Harbor Intake', firstMessage: 'Thanks for calling Harbor Dental. How can I help?', model: { provider: 'openai', model: 'gpt-4o-mini' }, voice: { provider: '11labs', voiceId: 'sarah' }, transcriber: { provider: 'deepgram', model: 'nova-3' } } }],
+    requiredActionPatterns: ['POST /assistant'],
     descriptionCoverage: ['create_assistant'],
   },
   {
@@ -46,7 +47,7 @@ export const scenarios: EvalScenario[] = [
   {
     id: 'simulation-for-testing', split: 'development', seed: 'simulation-ready',
     prompt: 'Before using the saved agent Test Seed Assistant with customers, test how it handles a caller who wants to reschedule. Run the prepared test and summarize whether it passed. Do not contact a phone number.',
-    relevantTools: ['list_simulations', 'list_simulation_suites', 'run_simulations', 'get_simulation_run'],
+    relevantTools: ['list_simulations', 'list_simulation_suites', 'run_simulations', 'get_simulation_run', 'get_simulation_run_item'],
     forbiddenTools: ['create_call'],
     stateAssertions: [{ collection: 'simulationRuns', where: { status: 'completed' } }],
     descriptionCoverage: ['run_simulations'],
@@ -54,7 +55,7 @@ export const scenarios: EvalScenario[] = [
   {
     id: 'simulation-suite-build-run', split: 'held-out', seed: 'existing-assistant',
     prompt: 'Set up a reusable test suite called Harbor Rescheduling Checks for Test Seed Assistant. Include a caller persona who is moving an appointment, a scenario with an observable successful reschedule criterion, pair them into a test, add that test to the suite, run it, and report the outcome.',
-    relevantTools: ['create_simulation_personality', 'create_simulation_scenario', 'create_simulation', 'create_simulation_suite', 'run_simulations', 'get_simulation_run'],
+    relevantTools: ['create_simulation_personality', 'create_simulation_scenario', 'create_simulation', 'create_simulation_suite', 'run_simulations', 'get_simulation_run', 'get_simulation_run_item'],
     stateAssertions: [
       { collection: 'simulationPersonalities', where: {} },
       { collection: 'simulationScenarios', where: {} },

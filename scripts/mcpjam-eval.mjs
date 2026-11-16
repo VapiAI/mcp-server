@@ -8,7 +8,6 @@ import process from 'node:process';
 import { MCPClientManager, HostRunner } from '@mcpjam/sdk';
 import { startFixtureApi } from '../dist/evals/fixture-api.js';
 import { scenarios } from '../dist/evals/scenarios.js';
-import { candidateDescriptions } from '../dist/evals/candidate-descriptions.js';
 import { scoreScenario } from '../dist/evals/scorer.js';
 
 const root = process.cwd();
@@ -35,6 +34,13 @@ const refs = {
   baseline: process.env.MCPJAM_BASELINE_REVISION ?? 'c0a0c0fc0c72a826ff5403f510a2e8d4b6cece45',
   candidate: process.env.MCPJAM_CANDIDATE_REVISION ?? '0e17ed47a2bb44c3cae18e7355d7c3ab42d5135d',
 };
+const expectedRefs = { baseline: 'c0a0c0fc0c72a826ff5403f510a2e8d4b6cece45', candidate: '0e17ed47a2bb44c3cae18e7355d7c3ab42d5135d' };
+if (refs.baseline !== expectedRefs.baseline || refs.candidate !== expectedRefs.candidate) throw new Error('Only the verified baseline and candidate revisions are supported.');
+const snapshot = Object.fromEntries(Object.entries(refs).map(([key, rev]) => [key, JSON.parse(execFileSync('git', ['show', `${rev}:src/__tests__/fixtures/tools-list.json`], { cwd: root, encoding: 'utf8' }))]));
+const canonical = value => JSON.stringify(value, function(key, val) { return val && typeof val === 'object' && !Array.isArray(val) ? Object.fromEntries(Object.entries(val).sort(([a], [b]) => a.localeCompare(b))) : val; });
+const withoutDescriptions = catalog => catalog.map(({ name, inputSchema }) => ({ name, inputSchema }));
+if (canonical(withoutDescriptions(snapshot.baseline)) !== canonical(withoutDescriptions(snapshot.candidate))) throw new Error('Revision snapshots differ in more than tool descriptions.');
+const candidateDescriptions = Object.fromEntries(snapshot.candidate.filter((tool, i) => tool.description !== snapshot.baseline[i].description).map(tool => [tool.name, tool.description]));
 const runId = `${new Date().toISOString().replaceAll(':', '').replaceAll('.', '')}-${randomUUID().slice(0, 8)}`;
 const runDir = path.join(outputRoot, runId);
 const credentialByProvider = {
@@ -55,9 +61,9 @@ let sourceDirty = null;
 try { sourceDirty = execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim().length > 0; } catch { /* preserve the report if git status is unavailable */ }
 const manifest = {
   runId, phase, createdAt: new Date().toISOString(), status: 'inconclusive',
-  dataset: { version: 'pal-1328-v1', cases: scenarios.length, sha256: createHash('sha256').update(JSON.stringify(scenarios)).digest('hex'), development: scenarios.filter(s => s.split === 'development').length, heldOut: scenarios.filter(s => s.split === 'held-out').length },
+  dataset: { version: 'pal-1328-v2', cases: scenarios.length, sha256: createHash('sha256').update(JSON.stringify(scenarios)).digest('hex'), development: scenarios.filter(s => s.split === 'development').length, heldOut: scenarios.filter(s => s.split === 'held-out').length },
   catalogs: { baseline: refs.baseline, candidate: refs.candidate, baselineHash: null, candidateHash: null },
-  sourceSha, sourceDirty, scorerVersion: 'pal-1328-scorer-v1', mcpjamSdkVersion: sdkVersion,
+  sourceSha, sourceDirty, scorerVersion: 'pal-1328-scorer-v2', mcpjamSdkVersion: sdkVersion,
   providerSdkVersion: providerPackageVersion,
   model: { id: model, provider, temperature, maxSteps, timeoutMs, apiKeyVariable: credentialName ?? null },
   trialPlan: { trialsPerCasePerCatalog: trials || null, comparisonTrialsRequired: phase === 'compare' },
@@ -66,6 +72,29 @@ const manifest = {
 };
 
 await mkdir(runDir, { recursive: true });
+
+// Verify the real registration before checking credentials or starting any model trial.
+const preflightFixture = await startFixtureApi();
+const preflightManager = new MCPClientManager();
+try {
+  await preflightManager.connectToServer('vapi-fixture', {
+    command: process.execPath, args: [path.join(root, 'dist/evals/stdio-server.js')], cwd: root,
+    env: { PATH: process.env.PATH ?? '', VAPI_TOKEN: 'fixture-only', MCP_EVAL_FIXTURE_URL: preflightFixture.url }, stderr: 'inherit',
+  });
+  const listed = await preflightManager.listTools('vapi-fixture');
+  const catalog = listed.tools.map(({name, description, inputSchema, annotations}) => ({name, description, inputSchema, annotations})).sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+  const normalized = catalog.map(({name, description, inputSchema}) => ({name, description, inputSchema}));
+  if (canonical(normalized) !== canonical(snapshot.baseline)) throw new Error('Discovered catalog differs from the baseline revision snapshot.');
+  for (const condition of ['baseline', 'candidate']) {
+    const effective = condition === 'candidate' ? catalog.map(tool => candidateDescriptions[tool.name] ? { ...tool, description: candidateDescriptions[tool.name] } : tool) : catalog;
+    if (canonical(effective.map(({name, description, inputSchema}) => ({name, description, inputSchema}))) !== canonical(snapshot[condition])) throw new Error(`${condition} effective catalog does not match its revision snapshot.`);
+    manifest.catalogs[`${condition}Hash`] = createHash('sha256').update(JSON.stringify(effective)).digest('hex');
+    await writeFile(path.join(runDir, `${condition}-catalog.json`), `${JSON.stringify(effective, null, 2)}\n`);
+  }
+} finally {
+  await preflightManager.disconnectServer('vapi-fixture').catch(() => undefined);
+  await preflightFixture.close();
+}
 
 if (!['pilot', 'compare'].includes(phase)) throw new Error('Use --phase pilot or --phase compare.');
 if (!Number.isInteger(trials) || trials < (phase === 'compare' ? 2 : 1)) {
@@ -96,13 +125,17 @@ if (!Number.isInteger(trials) || trials < (phase === 'compare' ? 2 : 1)) {
             });
             const tools = await manager.getToolsForAiSdk(['vapi-fixture']);
             const listed = await manager.listTools('vapi-fixture');
-            const toolsForCatalog = listed.tools.map(tool => ({ name: tool.name, description: tool.description, inputSchema: tool.inputSchema, annotations: tool.annotations }));
+            const toolsForCatalog = listed.tools.map(tool => ({ name: tool.name, description: tool.description, inputSchema: tool.inputSchema, annotations: tool.annotations })).sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+            const normalized = toolsForCatalog.map(({name, description, inputSchema}) => ({name, description, inputSchema})).sort((a,b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+            if (canonical(normalized) !== canonical(snapshot.baseline)) throw new Error('Discovered catalog differs from the baseline revision snapshot.');
             const overrides = condition === 'candidate' ? candidateDescriptions : undefined;
             const effectiveCatalog = overrides
               ? toolsForCatalog.map(tool => overrides[tool.name] ? { ...tool, description: overrides[tool.name] } : tool)
               : toolsForCatalog;
             const catalogHash = createHash('sha256').update(JSON.stringify(effectiveCatalog)).digest('hex');
-            manifest.catalogs[`${condition}Hash`] ??= catalogHash;
+            if (manifest.catalogs[`${condition}Hash`] && manifest.catalogs[`${condition}Hash`] !== catalogHash) throw new Error('Catalog changed between trials.');
+            manifest.catalogs[`${condition}Hash`] = catalogHash;
+            await writeFile(path.join(runDir, `${condition}-catalog.json`), `${JSON.stringify(effectiveCatalog, null, 2)}\n`);
             const runner = new HostRunner({
               tools, model, apiKey: process.env[credentialName], temperature, maxSteps,
               toolDescriptionOverrides: overrides,
@@ -121,16 +154,20 @@ if (!Number.isInteger(trials) || trials < (phase === 'compare' ? 2 : 1)) {
             const finalFixture = fixture.snapshot();
             const toolCalls = promptResult?.getToolCalls().map(call => ({ toolName: call.toolName, arguments: call.arguments })) ?? [];
             const toolMessages = promptResult?.getToolMessages() ?? [];
-            const validationErrors = toolMessages.flatMap(message => {
-              const content = Array.isArray(message.content) ? message.content.map(part => part.type === 'text' ? part.text : '').join('\n') : String(message.content ?? '');
-              return content.includes('Input validation error') ? [content] : [];
-            });
+            const failedIds = new Set();
+            const validationErrors = [];
+            for (const message of toolMessages) for (const part of Array.isArray(message.content) ? message.content : []) {
+              const content = JSON.stringify(part);
+              if (content.includes('Input validation error')) { validationErrors.push(content); if (part.toolCallId) failedIds.add(part.toolCallId); }
+            }
+            const callIds = (promptResult?.getAssistantMessages() ?? []).flatMap(message => Array.isArray(message.content) ? message.content.filter(part => part.type === 'tool-call').map(part => part.toolCallId) : []);
+            const validationErrorCallIndexes = callIds.flatMap((id, index) => failedIds.has(id) ? [index] : []);
             const skillCalls = toolCalls.filter(call => call.toolName === 'load_skill' || call.toolName === 'search_skills');
             const serializedSkillEvidence = JSON.stringify(toolMessages);
             const skillRevision = skillCalls.some(call => call.toolName === 'load_skill')
               ? serializedSkillEvidence.match(/\b[0-9a-f]{40}\b/i)?.[0] ?? 'not-exposed-by-tool-result'
               : null;
-            const score = scoreScenario({ scenario, toolCalls, fixture: finalFixture, answer: promptResult?.text ?? '', validationErrors, providerError });
+            const score = scoreScenario({ scenario, toolCalls, fixture: finalFixture, answer: promptResult?.text ?? '', validationErrors, validationErrorCallIndexes, providerError });
             const record = {
               runId, condition, scenarioId: scenario.id, trial, seed: scenario.seed ?? 'empty',
               model: { id: model, provider, temperature, maxSteps, timeoutMs },

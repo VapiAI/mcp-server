@@ -40,6 +40,8 @@ jobs:
       MCPJAM_CANDIDATE_REVISION: 0e17ed47a2bb44c3cae18e7355d7c3ab42d5135d
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24

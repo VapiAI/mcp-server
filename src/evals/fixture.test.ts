@@ -65,6 +65,24 @@ describe('MCPJam fixture vertical slice', () => {
     expect(fixture.snapshot().assistants[0]?.id).toBe('00000000-0000-4000-8000-000000000001');
   });
 
+  test('runs and inspects the prepared simulation through the SDK routes', async () => {
+    fixture = createFixtureFetch('simulation-ready');
+    server = new McpServer({ name: 'fixture-test', version: '1' });
+    registerAllTools(server, new VapiClient({ token: 'fixture-only', baseUrl: fixture.url, fetch: fixture.fetch, maxRetries: 0 }));
+    client = new Client({ name: 'fixture-client', version: '1' });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+    const run = await client.callTool({ name: 'run_simulations', arguments: { assistantId: '00000000-0000-4000-8000-000000000001', simulationIds: ['00000000-0000-4000-8000-000000000009'] } });
+    expect(run.isError).not.toBe(true);
+    const state = fixture.snapshot();
+    const runId = state.simulationRuns[0]?.id as string;
+    const result = await client.callTool({ name: 'get_simulation_run', arguments: { runId } });
+    expect(result.isError).not.toBe(true);
+    expect(JSON.stringify(result.content)).toContain('failed');
+    expect(fixture.snapshot().actions).toContainEqual(expect.objectContaining({ method: 'GET', path: `/eval/simulation/run/${runId}/item` }));
+  });
+
   test('get_call reports the current transcript and recording limitation through the production transformer', async () => {
     fixture = createFixtureFetch('call-history');
     server = new McpServer({ name: 'fixture-test', version: '1' });

@@ -83,12 +83,23 @@ function createRuntime(seed?: string) {
     if (path === '/__fixture/state' && method === 'GET') return { status: 200, value: state };
     if (path === '/api-json' && method === 'GET') return { status: 200, value: { openapi: '3.0.0', paths: {}, components: { schemas: {} } } };
 
-    const segments = path.split('/').filter(Boolean);
+    const rawSegments = path.split('/').filter(Boolean);
+    let segments = rawSegments;
+    if (rawSegments[0] === 'eval' && rawSegments[1] === 'simulation') {
+      const kind = rawSegments[2];
+      const names: Record<string, string> = { personality: 'simulation-personality', scenario: 'simulation-scenario', suite: 'simulation-suite', run: 'simulation-run' };
+      segments = kind && names[kind] ? [names[kind]!, ...rawSegments.slice(3)] : ['simulation', ...rawSegments.slice(2)];
+    }
     const collection = routeNames[segments[0] ?? ''];
     if (!collection) return { status: 404, value: { message: `No fixture route for ${method} ${path}` } };
     const rows = state[collection] as Record<string, unknown>[];
     state.actions.push({ method, path, ...(body ? { body } : {}) });
 
+    if (collection === 'simulationRuns' && method === 'GET' && segments[2] === 'item') {
+      const run = rows.find(row => row.id === segments[1]);
+      const items = (run?.items ?? []) as Record<string, unknown>[];
+      return { status: 200, value: segments[3] ? items.find(item => item.id === segments[3]) ?? {} : items };
+    }
     if (method === 'GET' && segments.length === 1) return { status: 200, value: rows };
     if (method === 'GET' && segments.length > 1) {
       const found = rows.find(row => row.id === segments[1]);
@@ -99,7 +110,13 @@ function createRuntime(seed?: string) {
       if (collection === 'calls') {
         created.status = 'queued';
       }
-      if (collection === 'simulationRuns') created.status = 'completed';
+      if (collection === 'simulationRuns') {
+        created.status = 'completed';
+        const selection = Array.isArray(body?.simulations) ? body.simulations[0] as Record<string, unknown> : undefined;
+        const suite = state.simulationSuites.find(row => row.id === selection?.simulationSuiteId);
+        const simulationId = selection?.simulationId ?? (Array.isArray(suite?.simulationIds) ? suite.simulationIds[0] : undefined);
+        created.items = [{ id: id(nextId++), orgId: id(99), runId: created.id, simulationId, status: 'failed', queuedAt: now, createdAt: now, updatedAt: now, results: { evaluations: [], passed: false } }];
+      }
       rows.push(created);
       return { status: 201, value: created };
     }

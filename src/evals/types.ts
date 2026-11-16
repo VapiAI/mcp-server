@@ -39,6 +39,7 @@ export interface ScorerInput {
   fixture: FixtureState;
   answer: string;
   validationErrors?: string[];
+  validationErrorCallIndexes?: number[];
   providerError?: string;
 }
 

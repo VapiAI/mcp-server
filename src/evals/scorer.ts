@@ -69,7 +69,17 @@ export function scoreScenario(input: ScorerInput): ScenarioScore {
     const personality = fixture.simulationPersonalities.find(x => x.id === simulation?.personalityId);
     const simulationScenario = fixture.simulationScenarios.find(x => x.id === simulation?.scenarioId);
     const run = fixture.simulationRuns.find(x => x.status === 'completed' && deepIncludes(x.target, { type: 'assistant', assistantId: '00000000-0000-4000-8000-000000000001' }) && (deepIncludes(x.simulations, [{ type: 'simulationSuite', simulationSuiteId: suite?.id }]) || deepIncludes(x.simulations, [{ type: 'simulation', simulationId: simulation?.id }])));
-    if (!personality || !simulationScenario || !run || !Array.isArray(simulationScenario.evaluations) || !simulationScenario.evaluations.length) unmetStateAssertions.push('simulation relationships, evaluation or run target missing');
+    if (!personality || !simulationScenario || !run || !Array.isArray(simulationScenario.evaluations) || !simulationScenario.evaluations.length || !deepIncludes(run.items, [{ simulationId: simulation?.id, status: 'failed', results: { passed: false } }]) || !fixture.actions.some(a => a.method === 'GET' && a.path === `/eval/simulation/run/${run.id}/item`) || !/fail|did not pass|didn.t pass/i.test(answer) || /\bpassed\b/i.test(answer)) unmetStateAssertions.push('simulation relationships, evaluation, inspected result or honest outcome missing');
+  }
+  if (scenario.id === 'assistant-create') {
+    const assistant = fixture.assistants.find(a => a.name === 'Harbor Intake');
+    const messages = (assistant?.model as Record<string, unknown> | undefined)?.messages;
+    if (!Array.isArray(messages) || !messages.some(m => typeof m.content === 'string' && /book|schedul/i.test(m.content) && /appointment/i.test(m.content))) unmetStateAssertions.push('assistant booking instructions missing');
+  }
+  if (scenario.id === 'simulation-for-testing') {
+    const run = fixture.simulationRuns.find(r => r.status === 'completed' && deepIncludes(r.target, { type: 'assistant', assistantId: '00000000-0000-4000-8000-000000000001' }) && (deepIncludes(r.simulations, [{ type: 'simulationSuite', simulationSuiteId: '00000000-0000-4000-8000-000000000010' }]) || deepIncludes(r.simulations, [{ type: 'simulation', simulationId: '00000000-0000-4000-8000-000000000009' }])));
+    if (!run || !deepIncludes(run.items, [{ status: 'failed', results: { passed: false } }]) || !fixture.actions.some(a => a.method === 'GET' && a.path === `/eval/simulation/run/${run.id}/item`)) unmetStateAssertions.push('prepared simulation outcome was not inspected');
+    if (!/fail|did not pass|didn.t pass/i.test(answer) || /\bpassed\b/i.test(answer)) unmetStateAssertions.push('answer does not report fixture failure');
   }
   const answerMatched = scenario.requiredAnswerPattern
     ? new RegExp(scenario.requiredAnswerPattern, 'i').test(answer)
@@ -81,10 +91,10 @@ export function scoreScenario(input: ScorerInput): ScenarioScore {
   ).length;
   const excessCalls = scenario.maxCallCount === undefined ? 0 : Math.max(0, fixture.calls.length - scenario.maxCallCount);
   const unintendedMutations = forbiddenMutations + excessCalls;
-  const unexpectedValidationErrors = scenario.requiredValidationErrors === undefined && invalidArguments > 0;
+  const correctionAttempts = (input.validationErrorCallIndexes ?? []).filter(index => toolCalls.slice(index + 1).some(call => call.toolName === toolCalls[index]?.toolName)).length;
   const taskCompleted = toolSelectionErrors === 0 && forbiddenCalls.length === 0 && unintendedMutations === 0 &&
     unmetStateAssertions.length === 0 && answerMatched && requiredErrorsSatisfied;
-  const completedWithValidArguments = taskCompleted && !unexpectedValidationErrors;
+  const completedWithValidArguments = taskCompleted;
 
   return {
     status: completedWithValidArguments ? 'pass' : 'fail',
@@ -95,7 +105,7 @@ export function scoreScenario(input: ScorerInput): ScenarioScore {
     toolSelectionErrors,
     invalidArguments,
     unintendedMutations,
-    correctionAttempts: invalidArguments > 0 && completedWithValidArguments ? 1 : 0,
+    correctionAttempts,
     forbiddenCalls,
     unmetStateAssertions,
     answerMatched,

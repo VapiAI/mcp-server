@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient, VapiEnvironment } from '@vapi-ai/server-sdk';
 
 import { GetApiSchemaInputSchema } from '../schemas/index.js';
-import { createToolHandler } from './utils.js';
+import { createErrorResponse, createSuccessResponse } from './utils.js';
 import { readOnly } from './annotations.js';
 
 type SchemaMap = Record<string, unknown>;
@@ -81,8 +81,13 @@ export const registerApiSchemaTools = (
       inputSchema: GetApiSchemaInputSchema.shape,
       annotations: readOnly('Get API Schema'),
     },
-    createToolHandler(async (data) => {
-      const schemas = await loadSchemas(vapiClient);
+    async (data) => {
+      let schemas: SchemaMap;
+      try {
+        schemas = await loadSchemas(vapiClient);
+      } catch (error) {
+        return createErrorResponse(error, { tool: 'get_api_schema' });
+      }
 
       if (data.name) {
         const schema = schemas[data.name];
@@ -101,11 +106,11 @@ export const registerApiSchemaTools = (
             )
           ),
         ];
-        return { name: data.name, schema, referencedSchemas };
+        return createSuccessResponse({ name: data.name, schema, referencedSchemas });
       }
 
       const matches = findSchemaNames(schemas, data.search ?? '');
-      return { matches: matches.slice(0, MAX_MATCHES), total: matches.length };
-    })
+      return createSuccessResponse({ matches: matches.slice(0, MAX_MATCHES), total: matches.length });
+    }
   );
 };

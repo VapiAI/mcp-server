@@ -72,6 +72,7 @@ function recoveryFor(status: number | undefined, write: boolean, retryAfterMs?: 
     : 'Retry the read later.';
   if (status === 409) return 'Inspect the current resource state and resolve the conflict before retrying.';
   if (status === 422) return 'Correct the request fields before trying again.';
+  if (status === 429 && write) return 'Check whether the operation completed before retrying; observe any indicated retry delay.';
   if (status === 429) return retryAfterMs === undefined
     ? 'Wait for the rate limit to clear before trying again.'
     : 'Wait for the indicated retry delay before trying again.';
@@ -116,7 +117,7 @@ export function createErrorResponse(error: unknown, context: ErrorResponseContex
   const requestId = requestIdFrom(details?.rawResponse?.headers);
   const recovery = recoveryFor(status, context.write === true, retryAfterMs);
   const outcome = context.write === true && (
-    status === undefined || status === 408 || status >= 500
+    status === undefined || status === 408 || status === 429 || status >= 500
   ) ? 'uncertain' : 'failed';
   const action = outcome === 'uncertain'
     ? `The request may have reached Vapi. ${recovery}`

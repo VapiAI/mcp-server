@@ -4,6 +4,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient } from '@vapi-ai/server-sdk';
 import { registerCallTools } from '../tools/call.js';
+import { registerApiSchemaTools } from '../tools/api-schema.js';
 
 const upstreamBody = JSON.stringify({
   message: 'synthetic error with customer-secret-123',
@@ -16,7 +17,7 @@ describe('execution error semantics across the MCP and Vapi SDK boundary', () =>
   let client: Client;
   let requests: Array<{ method: string | undefined; path: string | undefined }>;
   let nextResponse:
-    | { status?: number; dropConnection?: boolean }
+    | { status?: number; dropConnection?: boolean; timeout?: boolean }
     | undefined;
 
   beforeAll(async () => {
@@ -26,8 +27,13 @@ describe('execution error semantics across the MCP and Vapi SDK boundary', () =>
       requests.push({ method: init?.method, path: `${requestUrl.pathname}${requestUrl.search}` });
       const behavior = nextResponse;
       nextResponse = undefined;
+      if (behavior?.timeout) {
+        await new Promise<void>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(Object.assign(new Error('timeout'), { name: 'AbortError' })), { once: true });
+        });
+      }
       if (behavior?.dropConnection) {
-        throw new TypeError('fetch failed');
+        throw new TypeError('Authorization: Bearer SEEDED_SECRET');
       }
       const body = behavior?.status !== undefined && behavior.status >= 400
         ? upstreamBody
@@ -48,10 +54,11 @@ describe('execution error semantics across the MCP and Vapi SDK boundary', () =>
       baseUrl,
       fetch,
       maxRetries: 0,
-      timeoutInSeconds: 1,
+      timeoutInSeconds: 0.05,
     });
     mcpServer = new McpServer({ name: 'error-test-server', version: 'test' });
     registerCallTools(mcpServer, vapi);
+    registerApiSchemaTools(mcpServer, vapi);
     client = new Client({ name: 'error-test-client', version: 'test' });
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     await mcpServer.connect(serverTransport);
@@ -113,7 +120,9 @@ describe('execution error semantics across the MCP and Vapi SDK boundary', () =>
 
   test.each<[string, NonNullable<typeof nextResponse>]>([
     ['HTTP 503', { status: 503 }],
+    ['HTTP 429', { status: 429 }],
     ['a transport failure', { dropConnection: true }],
+    ['a timeout', { timeout: true }],
   ])('marks create_call outcome uncertain after %s', async (_label, behavior) => {
     nextResponse = behavior;
     const before = requests.length;
@@ -129,12 +138,24 @@ describe('execution error semantics across the MCP and Vapi SDK boundary', () =>
       error: expect.objectContaining({
         tool: 'create_call',
         outcome: 'uncertain',
-        recovery: behavior.dropConnection
+        recovery: behavior.dropConnection || behavior.timeout
           ? 'Check whether the operation completed before retrying.'
-          : 'Retry reads later; verify resource state before retrying a write.',
+          : behavior.status === 429
+            ? 'Check whether the operation completed before retrying; observe any indicated retry delay.'
+            : 'Retry reads later; verify resource state before retrying a write.',
       }),
     });
     expect(JSON.stringify(result)).not.toContain('customer-secret-123');
+  });
+
+  test('sanitizes schema fetch failures through a real MCP client and SDK', async () => {
+    nextResponse = { dropConnection: true };
+    const before = requests.length;
+    const result = await callTool({ name: 'get_api_schema', arguments: { search: 'call' } });
+    expect(requests).toHaveLength(before + 1);
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toEqual({ error: expect.objectContaining({ tool: 'get_api_schema', outcome: 'failed' }) });
+    expect(JSON.stringify(result)).not.toContain('SEEDED_SECRET');
   });
 
   test('keeps ordinary successful MCP results successful', async () => {

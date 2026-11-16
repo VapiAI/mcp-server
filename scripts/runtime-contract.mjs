@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 export const contractCases = [
   'initialize',
   'tools/list',
-  'invalid_get_tool_arguments',
+  'invalid_run_iterations',
   'invalid_nested_simulation_arguments',
 ];
 
@@ -28,8 +28,8 @@ export function verifyContract(observation, expected) {
   check('tools/list', catalogMatches,
     `tool catalog differed (${actualToolNames.length} tools; ${expected.allowExtraTools ? 'missing required names' : 'expected exact catalog'})`);
 
-  check('invalid_get_tool_arguments', isValidationFailure(observation.invalidGetTool, 'toolId'),
-    'invalid get_tool input did not return structured field validation');
+  check('invalid_run_iterations', isValidationFailure(observation.invalidRun, 'iterations'),
+    'invalid run_simulations input did not return structured field validation');
   check('invalid_nested_simulation_arguments', isValidationFailure(observation.invalidSimulation, 'assistant.maxDurationSeconds'),
     'invalid nested simulation input did not return structured field validation');
 

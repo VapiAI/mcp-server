@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { readSseResponse } from './runtime-sse.mjs';
 
 import { spawn } from 'node:child_process';
 import {
@@ -220,7 +221,7 @@ function startHttpProbe(endpoint, token) {
     sessionId ??= response.headers.get('mcp-session-id') ?? undefined;
     const contentType = response.headers.get('content-type') ?? '';
     const body = contentType.includes('text/event-stream')
-      ? await readSseResponse(response)
+      ? await readSseResponse(response, id)
       : await response.json();
     if (method === 'initialize') {
       protocolVersion = body.result?.protocolVersion;
@@ -251,42 +252,6 @@ function startHttpProbe(endpoint, token) {
   return { request, notify, close: async () => {} };
 }
 
-async function readSseResponse(response) {
-  if (!response.body) throw new Error('Hosted MCP returned an empty event stream');
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let pending = '';
-  let dataLines = [];
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      pending += decoder.decode(value, { stream: !done });
-      const lines = pending.split(/\r?\n/);
-      pending = lines.pop() ?? '';
-      for (const line of lines) {
-        if (line === '') {
-          if (dataLines.length > 0) {
-            const data = dataLines.join('\n');
-            if (data !== '[DONE]') return JSON.parse(data);
-            dataLines = [];
-          }
-        } else if (line.startsWith('data:')) {
-          dataLines.push(line.slice(5).trimStart());
-        }
-      }
-      if (done) break;
-    }
-    if (pending.startsWith('data:')) {
-      dataLines.push(pending.slice(5).trimStart());
-    }
-    if (dataLines.length > 0 && dataLines.join('\n') !== '[DONE]') {
-      return JSON.parse(dataLines.join('\n'));
-    }
-  } finally {
-    void reader.cancel().catch(() => {});
-  }
-  throw new Error('Hosted MCP returned no JSON-RPC result in its event stream');
-}
 
 async function collectContract(probe, expected) {
   const initialize = await probe.request('initialize', {
@@ -296,14 +261,14 @@ async function collectContract(probe, expected) {
   });
   await probe.notify('notifications/initialized');
   const toolsList = await probe.request('tools/list', {});
-  const invalidGetTool = await probe.request('tools/call', {
-    name: 'get_tool', arguments: { toolId: 'not-a-uuid' },
+  const invalidRun = await probe.request('tools/call', {
+    name: 'run_simulations', arguments: { assistantId: '00000000-0000-4000-8000-000000000001', simulationIds: ['00000000-0000-4000-8000-000000000002'], iterations: 11 },
   });
   const invalidSimulation = await probe.request('tools/call', {
     name: 'create_simulation_personality',
     arguments: { name: 'Contract', assistant: { maxDurationSeconds: 1 } },
   });
-  return { initialize, toolsList, invalidGetTool, invalidSimulation };
+  return { initialize, toolsList, invalidRun, invalidSimulation };
 }
 
 function runtimeMetadata() {
@@ -312,7 +277,7 @@ function runtimeMetadata() {
     cases: contractCases,
     protocolVersion: '2025-11-25',
     toolNames: expectedToolNames,
-    validationPaths: ['toolId', 'assistant.maxDurationSeconds'],
+    validationPaths: ['iterations', 'assistant.maxDurationSeconds'],
   };
   return {
     packageVersion,
@@ -322,6 +287,7 @@ function runtimeMetadata() {
       .update(JSON.stringify(contractDefinition))
       .update(readFileSync(fileURLToPath(import.meta.url)))
       .update(readFileSync(new URL('./runtime-contract.mjs', import.meta.url)))
+      .update(readFileSync(new URL('./runtime-sse.mjs', import.meta.url)))
       .digest('hex'),
   };
 }
@@ -510,10 +476,10 @@ try {
     );
   }
 
-  const invalidInput = observation.invalidGetTool;
+  const invalidInput = observation.invalidRun;
   const validation = invalidInput.result?.structuredContent?.validationError;
   if (invalidInput.error || invalidInput.result?.isError !== true ||
-      validation?.code !== 'INVALID_ARGUMENTS' || validation.issues?.[0]?.path !== 'toolId') {
+      validation?.code !== 'INVALID_ARGUMENTS' || validation.issues?.[0]?.path !== 'iterations') {
     throw new Error('Packed consumer did not return the expected field-level validation error');
   }
 

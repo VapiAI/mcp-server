@@ -15,7 +15,7 @@ npm run test:package
 
 `MCP_CONTRACT_HOST_ENV` must be `local`, `staging`, or `preview`. The production `mcp.vapi.ai` hostname is rejected. HTTP is accepted only for loopback. Supply the deployed host revision from the deployment record; the current hosted protocol does not expose a build SHA, so the report labels this revision as operator-supplied. Do not put credentials in the endpoint URL. The bearer token is passed only to the selected endpoint and never written to the report.
 
-The hosted check initializes the server, lists tools, and submits only malformed arguments to `get_tool` and `create_simulation_personality`. These requests fail input validation before any Vapi API operation; the check does not create or modify customer resources, place calls, or run simulations. The package-side smoke uses a dummy token and performs the same validation-only requests.
+The hosted check initializes the server, lists tools, and submits only malformed arguments to `run_simulations` and `create_simulation_personality`. These requests fail input validation before any Vapi API operation; the check does not create or modify customer resources, place calls, or run simulations. The package-side smoke uses a dummy token and performs the same validation-only requests.
 
 The hosted catalog must contain every packaged tool name. Additional host-only tools are recorded separately because the hosted wrapper may add capabilities such as feedback. Both targets must return `INVALID_ARGUMENTS` with the expected field path for the invalid calls. This is a safe baseline contract; cases for execution failures, read-only policy, cancellation/deadlines, and retry behavior remain pending their owning PAL tickets.
 

@@ -3,7 +3,9 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient } from '@vapi-ai/server-sdk';
+import { getEventListeners } from 'node:events';
 import { registerAllTools } from '../tools/index.js';
+import { createExecutionSignal, vapiRequestOptions, withAbortableRetries } from '../tools/execution.js';
 
 const callId = '00000000-0000-4000-8000-000000000002';
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -137,6 +139,77 @@ describe('MCP cancellation reaches the Vapi SDK request', () => {
     expect(accepted).toBe(1);
   });
 
+  test('a deadline after write acceptance reports an uncertain outcome', async () => {
+    let accepted = 0;
+    const api = new VapiClient({ token: 'synthetic-test-token', baseUrl: 'https://vapi.test',
+      fetch: async (_input, init) => new Promise<Response>((_resolve, reject) => {
+        accepted++;
+        init?.signal?.addEventListener('abort', () => reject(init.signal?.reason), { once: true });
+      }),
+    });
+    const mcp = await connect(api);
+    jest.useFakeTimers();
+    try {
+      const request = mcp.callTool({ name: 'create_assistant', arguments: { name: 'Synthetic assistant' } }, undefined, { timeout: 60_000 });
+      await jest.advanceTimersByTimeAsync(0);
+      expect(accepted).toBe(1);
+      await jest.advanceTimersByTimeAsync(30_001);
+      const response = await request;
+      expect(response.isError).toBe(true);
+      expect(JSON.stringify(response)).toMatch(/outcome.*unknown/i);
+      expect(JSON.stringify(response)).toMatch(/check.*before retry/i);
+      expect(accepted).toBe(1);
+    } finally { jest.useRealTimers(); }
+  });
+
+  test.each(['success', 'failure', 'cancel', 'deadline'] as const)('%s releases request timers', async (mode) => {
+    let attempts = 0;
+    const api = new VapiClient({ token: 'synthetic-test-token', baseUrl: 'https://vapi.test', maxRetries: 0,
+      fetch: async (_input, init) => {
+        attempts++;
+        if (mode === 'failure') throw new Error('synthetic network failure');
+        if (mode === 'success') return new Response(JSON.stringify({ id: callId, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', status: 'ended' }), { headers: { 'content-type': 'application/json' } });
+        return new Promise<Response>((_resolve, reject) => init?.signal?.addEventListener('abort', () => reject(init.signal?.reason), { once: true }));
+      },
+    });
+    const mcp = await connect(api);
+    const caller = new AbortController();
+    jest.useFakeTimers();
+    try {
+      const request = mcp.callTool({ name: 'get_call', arguments: { callId } }, undefined, { signal: caller.signal, timeout: 60_000 });
+      const settled = request.catch(() => undefined);
+      await jest.advanceTimersByTimeAsync(0);
+      expect(attempts).toBe(1);
+      if (mode === 'cancel') caller.abort();
+      if (mode === 'deadline') await jest.advanceTimersByTimeAsync(30_000);
+      await settled;
+      await jest.advanceTimersByTimeAsync(0);
+      await client?.close();
+      await server?.close();
+      expect(jest.getTimerCount()).toBe(0);
+    } finally { jest.useRealTimers(); }
+  });
+
+  test.each(['success', 'failure', 'cancel', 'deadline'] as const)('%s releases SDK and caller signal listeners', async (mode) => {
+    const caller = new AbortController();
+    const execution = createExecutionSignal(caller.signal, 30);
+    const api = withAbortableRetries(new VapiClient({
+      token: 'synthetic-test-token', baseUrl: 'https://vapi.test', maxRetries: 0,
+      fetch: async (_input, init) => {
+        if (mode === 'failure') throw new Error('synthetic network failure');
+        if (mode === 'success') return new Response('{}', { headers: { 'content-type': 'application/json' } });
+        if (init?.signal?.aborted) throw init.signal.reason;
+        return new Promise<Response>((_resolve, reject) => init?.signal?.addEventListener('abort', () => reject(init.signal?.reason), { once: true }));
+      },
+    }));
+    const request = api.calls.get({ id: callId }, vapiRequestOptions(execution.signal));
+    if (mode === 'cancel') caller.abort();
+    await Promise.resolve(request).catch(() => undefined);
+    execution.dispose();
+    expect(getEventListeners(caller.signal, 'abort')).toHaveLength(0);
+    expect(getEventListeners(execution.signal, 'abort')).toHaveLength(0);
+  });
+
   test('a retryable response still retries and returns the upstream result', async () => {
     let attempts = 0;
     const api = new VapiClient({
@@ -152,5 +225,17 @@ describe('MCP cancellation reaches the Vapi SDK request', () => {
     const result = await mcp.callTool({ name: 'get_call', arguments: { callId } });
     expect(attempts).toBe(2);
     expect(JSON.stringify(result)).toContain(callId);
+  });
+
+  test('network failures retain the SDK transport error and cause', async () => {
+    const failure = new TypeError('synthetic fetch failure');
+    const api = withAbortableRetries(new VapiClient({ token: 'synthetic-test-token', baseUrl: 'https://vapi.test', maxRetries: 0,
+      fetch: async () => { throw failure; },
+    }));
+    const execution = createExecutionSignal();
+    try {
+      await expect(Promise.resolve(api.calls.get({ id: callId }, vapiRequestOptions(execution.signal))))
+        .rejects.toMatchObject({ name: 'VapiError', cause: failure, rawResponse: { status: 0 } });
+    } finally { execution.dispose(); }
   });
 });

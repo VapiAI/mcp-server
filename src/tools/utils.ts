@@ -3,6 +3,7 @@ import type { ToolExecutionContext } from './execution.js';
 
 export type ToolResponse = {
   content: Array<{ type: 'text'; text: string }>;
+  isError?: boolean;
 };
 
 export function createSuccessResponse(data: any): ToolResponse {
@@ -36,6 +37,9 @@ export function createToolHandler<T>(
       const result = await handler(params, context);
       return createSuccessResponse(result);
     } catch (error) {
+      if (context.write && context.signal.reason?.name === 'TimeoutError') {
+        return { ...createErrorResponse(new Error('The request exceeded its deadline. The write outcome is unknown; check the resource state before retrying.')), isError: true };
+      }
       return createErrorResponse(error);
     }
   };

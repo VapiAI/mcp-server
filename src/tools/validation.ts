@@ -107,7 +107,7 @@ export function registerValidatedTool<Schema extends z.ZodType>(
           structuredContent: { validationError: { code: 'INVALID_ARGUMENTS', tool: name, issues, truncated: all.length > MAX_ISSUES } },
         };
       }
-      return await handler(parsed.data, { signal: execution.signal });
+      return await handler(parsed.data, { signal: execution.signal, write: config.annotations.readOnlyHint === false });
     } finally {
       execution.dispose();
     }

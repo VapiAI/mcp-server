@@ -4,7 +4,7 @@ import { VapiClient, VapiEnvironment } from '@vapi-ai/server-sdk';
 import { GetApiSchemaInputSchema } from '../schemas/index.js';
 import { createToolHandler } from './utils.js';
 import { readOnly } from './annotations.js';
-import { createExecutionSignal, executeWithRetries, vapiRequestOptions } from './execution.js';
+import { callWithCleanFetch, createExecutionSignal, executeWithRetries, vapiRequestOptions } from './execution.js';
 
 type SchemaMap = Record<string, unknown>;
 
@@ -39,10 +39,10 @@ async function loadSchemas(vapiClient: VapiClient, signal: AbortSignal): Promise
     const baseUrl = await resolveBaseUrl(vapiClient);
     const configuredRetries = (vapiClient as unknown as { _options?: { maxRetries?: number } })._options?.maxRetries ?? 2;
     const response = await executeWithRetries(signal, configuredRetries, async () => {
-      const result = await vapiClient.fetch(
+      const result = await callWithCleanFetch(vapiClient, vapiClient.fetch, [
         `${baseUrl.replace(/\/+$/, '')}/api-json`, undefined,
         { ...vapiRequestOptions(signal), maxRetries: 0 },
-      );
+      ]);
       if (result.status === 408 || result.status === 429 || result.status >= 500) {
         throw { statusCode: result.status, rawResponse: result };
       }

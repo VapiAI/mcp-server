@@ -5,6 +5,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient } from '@vapi-ai/server-sdk';
 import { registerCallTools } from '../tools/call.js';
 import { registerApiSchemaTools } from '../tools/api-schema.js';
+import { withToolErrorHandling } from '../tools/utils.js';
 
 const upstreamBody = JSON.stringify({
   message: 'synthetic error with customer-secret-123',
@@ -59,6 +60,14 @@ describe('execution error semantics across the MCP and Vapi SDK boundary', () =>
     mcpServer = new McpServer({ name: 'error-test-server', version: 'test' });
     registerCallTools(mcpServer, vapi);
     registerApiSchemaTools(mcpServer, vapi);
+    mcpServer.registerTool('result_passthrough', { inputSchema: {} }, withToolErrorHandling((_args, extra) => ({
+      content: [{ type: 'image', data: 'AA==', mimeType: 'image/png' }],
+      structuredContent: { contextReceived: extra.signal instanceof AbortSignal },
+      _meta: { fixture: true },
+    })));
+    mcpServer.registerTool('synchronous_failure', { inputSchema: {} }, withToolErrorHandling(() => {
+      throw new Error('Authorization: Bearer SEEDED_SECRET');
+    }, { tool: 'synchronous_failure' }));
     client = new Client({ name: 'error-test-client', version: 'test' });
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     await mcpServer.connect(serverTransport);
@@ -168,5 +177,19 @@ describe('execution error semantics across the MCP and Vapi SDK boundary', () =>
     expect(result.content).toEqual(
       expect.arrayContaining([expect.objectContaining({ type: 'text' })])
     );
+  });
+
+  test('preserves SDK content variants, metadata and request context through the wrapper', async () => {
+    const result = await callTool({ name: 'result_passthrough', arguments: {} });
+    expect(result.content).toEqual([{ type: 'image', data: 'AA==', mimeType: 'image/png' }]);
+    expect(result.structuredContent).toEqual({ contextReceived: true });
+    expect(result._meta).toEqual({ fixture: true });
+  });
+
+  test('sanitizes synchronous failures at the shared boundary', async () => {
+    const result = await callTool({ name: 'synchronous_failure', arguments: {} });
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toEqual({ error: expect.objectContaining({ tool: 'synchronous_failure' }) });
+    expect(JSON.stringify(result)).not.toContain('SEEDED_SECRET');
   });
 });

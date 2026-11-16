@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient, VapiEnvironment } from '@vapi-ai/server-sdk';
 
 import { GetApiSchemaInputSchema } from '../schemas/index.js';
-import { createErrorResponse, createSuccessResponse } from './utils.js';
+import { createSuccessResponse, withToolErrorHandling } from './utils.js';
 import { readOnly } from './annotations.js';
 
 type SchemaMap = Record<string, unknown>;
@@ -81,22 +81,18 @@ export const registerApiSchemaTools = (
       inputSchema: GetApiSchemaInputSchema.shape,
       annotations: readOnly('Get API Schema'),
     },
-    async (data) => {
-      let schemas: SchemaMap;
-      try {
-        schemas = await loadSchemas(vapiClient);
-      } catch (error) {
-        return createErrorResponse(error, { tool: 'get_api_schema' });
-      }
+    withToolErrorHandling(async (data) => {
+      const schemas = await loadSchemas(vapiClient);
 
       if (data.name) {
         const schema = schemas[data.name];
         if (!schema) {
           const similar = findSchemaNames(schemas, data.name).slice(0, 10);
-          throw new Error(
-            `No schema named ${data.name}.` +
-              (similar.length > 0 ? ` Similar names: ${similar.join(', ')}` : '')
-          );
+          return {
+            isError: true,
+            content: [{ type: 'text', text: `No schema named ${data.name}.` +
+              (similar.length > 0 ? ` Similar names: ${similar.join(', ')}` : '') }],
+          };
         }
         const referencedSchemas = [
           ...new Set(
@@ -111,6 +107,6 @@ export const registerApiSchemaTools = (
 
       const matches = findSchemaNames(schemas, data.search ?? '');
       return createSuccessResponse({ matches: matches.slice(0, MAX_MATCHES), total: matches.length });
-    }
+    }, { tool: 'get_api_schema' })
   );
 };

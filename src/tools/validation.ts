@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
+import type { CallToolResult, ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { createErrorResponse, type ToolResponse } from './utils.js';
+import { withToolErrorHandling } from './utils.js';
 import { summarizeInputSchema } from './input-schema.js';
 
 type Issue = z.core.$ZodIssue;
@@ -84,9 +84,13 @@ export function registerValidatedTool<Schema extends z.ZodType>(
   server: McpServer,
   name: string,
   config: { description: string; inputSchema: Schema; annotations: ToolAnnotations },
-  handler: (params: z.output<Schema>) => Promise<ToolResponse>
+  handler: (params: z.output<Schema>) => Promise<CallToolResult>
 ) {
   const schema = config.inputSchema;
+  const execute = withToolErrorHandling(handler, {
+    tool: name,
+    write: config.annotations.readOnlyHint === false,
+  });
   // Advertise a compact input summary, but run the full parser exactly once. This
   // boundary lets us format validation failures before the SDK stringifies a
   // raw ZodError. No request reaches the API handler before parsing succeeds.
@@ -104,13 +108,6 @@ export function registerValidatedTool<Schema extends z.ZodType>(
         structuredContent: { validationError: { code: 'INVALID_ARGUMENTS', tool: name, issues, truncated: all.length > MAX_ISSUES } },
       };
     }
-    try {
-      return await handler(parsed.data);
-    } catch (error) {
-      return createErrorResponse(error, {
-        tool: name,
-        write: config.annotations.readOnlyHint === false,
-      });
-    }
+    return execute(parsed.data);
   });
 }

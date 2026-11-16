@@ -1,12 +1,7 @@
 import { z } from 'zod';
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
-export type ToolResponse = {
-  content: Array<{ type: 'text'; text: string }>;
-  isError?: boolean;
-  structuredContent?: Record<string, unknown>;
-};
-
-export function createSuccessResponse(data: any): ToolResponse {
+export function createSuccessResponse(data: unknown): CallToolResult {
   return {
     content: [
       {
@@ -18,6 +13,17 @@ export function createSuccessResponse(data: any): ToolResponse {
 }
 
 type ErrorResponseContext = { tool?: string; write?: boolean };
+
+type ExecutionErrorDescriptor = {
+  source: 'vapi_api' | 'transport' | 'unknown';
+  code: string;
+  status?: number;
+  tool?: string;
+  outcome: 'uncertain' | 'failed';
+  recovery: string;
+  retryAfterMs?: number;
+  requestId?: string;
+};
 
 const statusCodes: Record<number, string> = {
   400: 'HTTP_BAD_REQUEST',
@@ -92,7 +98,7 @@ function statusCodeFrom(error: unknown): number | undefined {
     : undefined;
 }
 
-export function createErrorResponse(error: unknown, context: ErrorResponseContext = {}): ToolResponse {
+export function createErrorResponse(error: unknown, context: ErrorResponseContext = {}): CallToolResult {
   const details = error && typeof error === 'object'
     ? error as { name?: unknown; rawResponse?: { status?: unknown; headers?: unknown } }
     : undefined;
@@ -129,7 +135,7 @@ export function createErrorResponse(error: unknown, context: ErrorResponseContex
     : status === undefined
       ? `Vapi tool execution failed. ${action}`
       : `Vapi returned an error (HTTP ${status}). ${action}`;
-  const errorDescriptor = {
+  const errorDescriptor: ExecutionErrorDescriptor = {
     source,
     code,
     ...(status === undefined ? {} : { status }),
@@ -151,9 +157,25 @@ export function createErrorResponse(error: unknown, context: ErrorResponseContex
   };
 }
 
+// The same safety boundary works for validated registrations and direct SDK
+// registrations. Preserve all callback arguments, including SDK request context.
+export function withToolErrorHandling<Args extends unknown[]>(
+  handler: (...args: Args) => CallToolResult | Promise<CallToolResult>,
+  context: ErrorResponseContext = {}
+): (...args: Args) => Promise<CallToolResult> {
+  return async (...args) => {
+    try {
+      return await handler(...args);
+    } catch (error) {
+      return createErrorResponse(error, context);
+    }
+  };
+}
+
+// Success serialization only; registration owns the execution safety boundary.
 export function createToolHandler<T>(
   handler: (params: T) => Promise<any>
-): (params: T) => Promise<ToolResponse> {
+): (params: T) => Promise<CallToolResult> {
   return async (params: T) => createSuccessResponse(await handler(params));
 }
 
@@ -180,10 +202,8 @@ export function createIdParamSchema(
 
 export const withErrorHandling = <T>(
   handler: () => Promise<T>
-): Promise<ToolResponse> => {
-  return handler()
-    .then((result) => createSuccessResponse(result))
-    .catch((error) => createErrorResponse(error));
+): Promise<CallToolResult> => {
+  return withToolErrorHandling(async () => createSuccessResponse(await handler()))();
 };
 
 export const filterResponseWithSchema = <T>(
@@ -199,11 +219,6 @@ export const filterResponseWithSchema = <T>(
 export const withSchemaFiltering = <T>(
   handler: () => Promise<any>,
   schema: z.ZodType<T>
-): Promise<ToolResponse> => {
-  return handler()
-    .then((result) => {
-      const filtered = filterResponseWithSchema(result, schema);
-      return createSuccessResponse(filtered);
-    })
-    .catch((error) => createErrorResponse(error));
+): Promise<CallToolResult> => {
+  return withErrorHandling(async () => filterResponseWithSchema(await handler(), schema));
 };

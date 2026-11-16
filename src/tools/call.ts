@@ -16,6 +16,7 @@ export function uncertainCallError(error: unknown): Error {
     'Call creation outcome is unknown after one request. Check Vapi call history before retrying.',
     { cause: error }
   );
+  Object.assign(uncertain, { outcome: 'uncertain' });
   if (error && typeof error === 'object') {
     Object.assign(uncertain, {
       statusCode: (error as { statusCode?: unknown }).statusCode,

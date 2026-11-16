@@ -36,8 +36,9 @@ describe('create_call SDK retry policy', () => {
   test('retains SDK status and response metadata without exposing its body', () => {
     const rawResponse = new Response('secret', { status: 429, headers: { 'retry-after': '3', 'x-request-id': 'request-1' } });
     const upstream = Object.assign(new Error('secret'), { statusCode: 429, rawResponse });
-    const wrapped = uncertainCallError(upstream) as Error & { statusCode: number; rawResponse: Response };
+    const wrapped = uncertainCallError(upstream) as Error & { statusCode: number; rawResponse: Response; outcome: string };
     expect(wrapped.cause).toBe(upstream);
+    expect(wrapped.outcome).toBe('uncertain');
     expect(wrapped.statusCode).toBe(429);
     expect(wrapped.rawResponse.headers.get('retry-after')).toBe('3');
     expect(wrapped.rawResponse.headers.get('x-request-id')).toBe('request-1');

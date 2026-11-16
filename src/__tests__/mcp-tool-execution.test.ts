@@ -9,11 +9,15 @@ import { redactCredentials, redactErrorMessage } from '../utils/redact.js';
 
 const timestamp = '2026-01-01T00:00:00.000Z';
 
-test('real Vapi SDK error body is redacted across MCP and stderr', async () => {
+test.each([
+  { nested: { password: 'a"sdk-secret\\tail' }, message: 'failed' },
+  { nested: { server: { headers: { Cookie: 'session=sdk-secret; auth=tail' } } } },
+  { url: 'https://example.test/?a%70i_key=sdk-secret&API_KEY=tail&region=us' },
+])('real Vapi SDK error body is redacted across MCP and stderr: %j', async (body) => {
   let attempts = 0;
   const vapi = new VapiClient({ token: 'test-token', fetch: async () => {
     attempts++;
-    return new Response(JSON.stringify({ nested: { password: 'a"sdk-secret\\tail' }, message: 'failed' }), { status: 400, headers: { 'content-type': 'application/json' } });
+    return new Response(JSON.stringify(body), { status: 400, headers: { 'content-type': 'application/json' } });
   } });
   const server = new McpServer({ name: 'sdk-redaction', version: '0' });
   registerAllTools(server, vapi);
@@ -548,7 +552,7 @@ describe('MCP tool execution compatibility', () => {
     vapiOperations.tools.list.mockResolvedValueOnce([{
       ...tool,
       server: {
-        url: 'https://example.test/tools?api_key=list-query-secret&region=us',
+        url: 'https://example.test/tools?a%70i_key=list-query-secret&API_KEY=list-query-secret&region=us',
         headers: { Authorization: `Bearer ${secret}`, 'X-Region': 'us-east' },
       },
     }] as any);
@@ -593,14 +597,27 @@ describe('MCP tool execution compatibility', () => {
   });
 
   test('rejects echoed redaction markers before an update', async () => {
+    const source = { ...tool, server: { ...tool.server, headers: { Authorization: 'Bearer stored-secret' } } };
+    vapiOperations.tools.get.mockResolvedValueOnce(source as any);
+    const read = parseToolResponse(await client.callTool({ name: 'get_tool', arguments: { toolId: tool.id } }));
     const beforeGet = vapiOperations.tools.get.mock.calls.length;
     const beforeUpdate = vapiOperations.tools.update.mock.calls.length;
     const response = await client.callTool({ name: 'update_tool', arguments: {
-      toolId: tool.id, function: { parameters: { type: 'object', properties: {} }, server: { url: 'https://example.test', headers: { Authorization: '[REDACTED]' } } },
+      toolId: tool.id, function: { parameters: read.parameters, server: read.server },
     } });
     expect(JSON.stringify(response)).toContain('supply replacement credentials');
     expect(vapiOperations.tools.get).toHaveBeenCalledTimes(beforeGet);
     expect(vapiOperations.tools.update).toHaveBeenCalledTimes(beforeUpdate);
+    expect(source.server.headers.Authorization).toBe('Bearer stored-secret');
+  });
+
+  test('accepts a real replacement credential', async () => {
+    await client.callTool({ name: 'update_tool', arguments: {
+      toolId: tool.id, function: { parameters: tool.function.parameters, server: { url: tool.server.url, headers: { Authorization: 'Bearer replacement-secret' } } },
+    } });
+    expect(vapiOperations.tools.update).toHaveBeenLastCalledWith(expect.objectContaining({
+      body: expect.objectContaining({ server: expect.objectContaining({ headers: { Authorization: 'Bearer replacement-secret' } }) }),
+    }));
   });
 
   test('upstream error credentials are absent from MCP text and diagnostics', async () => {

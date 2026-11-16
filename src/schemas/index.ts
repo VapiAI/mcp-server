@@ -211,13 +211,27 @@ export const CallOutputSchema = BaseResponseSchema.extend({
 });
 
 export const GetCallInputSchema = z.object({
-  callId: apiField<string>('callId').describe('ID of the call to get'),
+  id: z.string().uuid().describe('Call ID'),
+  fields: z.array(z.string().regex(/^(?:\*|[A-Za-z][A-Za-z0-9]*(?:\[\d+\])?(?:\.[A-Za-z][A-Za-z0-9]*(?:\[\d+\])?)*)$/))
+    .max(6).optional()
+    .describe('Optional API field paths, such as transcript, analysis.summary, artifact.recordingUrl, messages, or messages[0].message; use * for all safe fields.'),
+  offset: z.number().int().min(0).optional()
+    .describe('Starting character or item offset; use _mcp.truncatedFields[].nextOffset.'),
+  limit: z.number().int().min(1).max(8000).optional()
+    .describe('Page size (default 4000 characters or 20 items; maximum 8000 characters or 50 items).'),
 });
 
 // ===== Phone Number Schemas =====
 
 export const GetPhoneNumberInputSchema = z.object({
-  phoneNumberId: apiField<string>('phoneNumberId').describe('ID of the phone number to get'),
+  id: z.string().uuid().describe('Phone number ID'),
+  fields: z.array(z.string().regex(/^(?:\*|[A-Za-z][A-Za-z0-9]*(?:\[\d+\])?(?:\.[A-Za-z][A-Za-z0-9]*(?:\[\d+\])?)*)$/))
+    .max(6).optional()
+    .describe('Optional API field paths for provider settings, such as provider or providerResourceId; use * for all safe fields.'),
+  offset: z.number().int().min(0).optional()
+    .describe('Starting character or item offset; use _mcp.truncatedFields[].nextOffset.'),
+  limit: z.number().int().min(1).max(8000).optional()
+    .describe('Page size (default 4000 characters or 20 items; maximum 8000 characters or 50 items).'),
 });
 
 export const PhoneNumberOutputSchema = BaseResponseSchema.extend({
@@ -235,7 +249,14 @@ export const PhoneNumberOutputSchema = BaseResponseSchema.extend({
 // ===== Tool Schemas =====
 
 export const GetToolInputSchema = z.object({
-  toolId: apiField<string>('toolId').describe('ID of the tool to get'),
+  id: z.string().uuid().describe('Tool ID'),
+  fields: z.array(z.string().regex(/^(?:\*|[A-Za-z][A-Za-z0-9]*(?:\[\d+\])?(?:\.[A-Za-z][A-Za-z0-9]*(?:\[\d+\])?)*)$/))
+    .max(6).optional()
+    .describe('Optional API field paths, such as destinations, messages, function.parameters, or server.url; use * for all safe fields.'),
+  offset: z.number().int().min(0).optional()
+    .describe('Starting character or item offset; use _mcp.truncatedFields[].nextOffset.'),
+  limit: z.number().int().min(1).max(8000).optional()
+    .describe('Page size (default 4000 characters or 20 items; maximum 8000 characters or 50 items).'),
 });
 
 const TransferCallDestinationSchema = apiField<{ type: 'number'; number: string; extension?: string; callerId?: string; description?: string }>('transferDestination', { additionalProperties: true })

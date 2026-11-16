@@ -155,12 +155,12 @@ describe('stdio MCP protocol compatibility', () => {
         expect(catalog.result?.tools.map((tool: { name: string }) => tool.name).sort()).toEqual(expectedToolNames);
 
         const invalid = await server.request('tools/call', {
-          name: 'get_tool', arguments: { toolId: 'not-a-uuid' },
+          name: 'get_tool', arguments: { id: 'not-a-uuid' },
         });
         expect(invalid.error).toBeUndefined();
         expect(invalid.result?.isError).toBe(true);
         expect(invalid.result?.structuredContent).toEqual({ validationError: expect.objectContaining({
-          code: 'INVALID_ARGUMENTS', issues: [expect.objectContaining({ path: 'toolId' })],
+          code: 'INVALID_ARGUMENTS', issues: [expect.objectContaining({ path: 'id' })],
         }) });
         const simulation = await server.request('tools/call', {
           name: 'run_simulations', arguments: {

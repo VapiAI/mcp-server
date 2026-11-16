@@ -4,6 +4,11 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { VapiClient } from '@vapi-ai/server-sdk';
 import { registerAllTools } from '../tools/index.js';
+import {
+  transformCallOutput,
+  transformPhoneNumberOutput,
+  transformToolOutput,
+} from '../transformers/index.js';
 import { parseToolResponse } from '../utils/response.js';
 
 const timestamp = '2026-01-01T00:00:00.000Z';
@@ -203,14 +208,14 @@ describe('MCP tool execution compatibility', () => {
       vapiOperations.assistants.get,
       assistant.id,
     ],
-    ['get_call', { callId: call.id }, vapiOperations.calls.get, call.id],
+    ['get_call', { id: call.id }, vapiOperations.calls.get, call.id],
     [
       'get_phone_number',
-      { phoneNumberId: phoneNumber.id },
+      { id: phoneNumber.id },
       vapiOperations.phoneNumbers.get,
       phoneNumber.id,
     ],
-    ['get_tool', { toolId: tool.id }, vapiOperations.tools.get, tool.id],
+    ['get_tool', { id: tool.id }, vapiOperations.tools.get, tool.id],
   ])('%s forwards its identifier and returns a transformed result', async (
     name,
     args,
@@ -220,6 +225,245 @@ describe('MCP tool execution compatibility', () => {
     const result = await invoke(name, args);
     expect(result.id).toBe(expectedId);
     expect(getOperation).toHaveBeenLastCalledWith({ id: expectedId });
+  });
+
+  test('get_call returns a compact API-shaped result by default', async () => {
+    vapiOperations.calls.get.mockResolvedValueOnce({
+      ...call,
+      schedulePlan: { earliestAt: '2026-01-02T00:00:00.000Z' },
+      transcript: 'large transcript should remain opt-in',
+      analysis: { summary: 'private note' },
+    } as never);
+
+    const result = await invoke('get_call', { id: call.id });
+
+    expect(result).toEqual(expect.objectContaining({
+      id: call.id,
+      schedulePlan: { earliestAt: '2026-01-02T00:00:00.000Z' },
+      customer: { number: '+15555550100' },
+    }));
+    expect(result.transcript).toBeUndefined();
+    expect(result.analysis).toBeUndefined();
+    expect(result.scheduledAt).toBeUndefined();
+  });
+
+  test('get_call pages selected details and reports absent fields', async () => {
+    const apiCall = {
+      ...call,
+      transcript: 'abcdefghij',
+      analysis: { summary: 'complete summary' },
+      messages: [{ role: 'assistant', message: 'one' }, { role: 'user', message: 'two' }],
+    };
+    const before = transformCallOutput(apiCall as never);
+    vapiOperations.calls.get.mockResolvedValueOnce(apiCall as never);
+
+    const result = await invoke('get_call', {
+      id: call.id,
+      fields: ['transcript', 'analysis.summary', 'artifact.recordingUrl', 'messages'],
+    });
+
+    expect(result.transcript).toBe('abcdefghij');
+    expect(result.analysis).toEqual({ summary: 'complete summary' });
+    expect(result.messages).toEqual([{ role: 'assistant', message: 'one' }, { role: 'user', message: 'two' }]);
+    expect(before).not.toHaveProperty('transcript');
+    expect(before).not.toHaveProperty('analysis');
+    expect(result.artifact).toBeUndefined();
+    expect(result._mcp).toEqual(expect.objectContaining({
+      unavailableFields: ['artifact.recordingUrl'],
+    }));
+
+    vapiOperations.calls.get.mockResolvedValueOnce({ ...call, transcript: 'abcdefghij' } as never);
+    const page = await invoke('get_call', {
+      id: call.id,
+      fields: ['transcript'],
+      offset: 2,
+      limit: 4,
+    });
+    expect(page.transcript).toBe('cdef');
+    expect(page._mcp.truncatedFields).toEqual([expect.objectContaining({
+      path: 'transcript', totalChars: 10, returnedChars: 4, offset: 2, nextOffset: 6,
+    })]);
+
+    const apiMessages = Array.from({ length: 25 }, (_, index) => ({
+      role: 'assistant',
+      message: `message ${index}`,
+    }));
+    vapiOperations.calls.get.mockResolvedValueOnce({ ...call, messages: apiMessages } as never);
+    const firstMessagesPage = await invoke('get_call', { id: call.id, fields: ['messages'] });
+    expect(firstMessagesPage.messages).toHaveLength(20);
+    expect(firstMessagesPage.messages[0].message).toBe('message 0');
+    expect(firstMessagesPage._mcp.truncatedFields).toEqual([expect.objectContaining({
+      path: 'messages', totalItems: 25, returnedItems: 20, offset: 0, nextOffset: 20,
+    })]);
+
+    vapiOperations.calls.get.mockResolvedValueOnce({ ...call, messages: apiMessages } as never);
+    const secondMessagesPage = await invoke('get_call', {
+      id: call.id,
+      fields: ['messages'],
+      offset: 20,
+      limit: 10,
+    });
+    expect(secondMessagesPage.messages).toHaveLength(5);
+    expect(secondMessagesPage.messages[0].message).toBe('message 20');
+    expect(secondMessagesPage._mcp.truncatedFields).toEqual([expect.objectContaining({
+      path: 'messages', totalItems: 25, returnedItems: 5, offset: 20, nextOffset: null,
+    })]);
+
+    vapiOperations.calls.get.mockResolvedValueOnce({
+      ...call,
+      messages: [{ role: 'assistant', message: 'A'.repeat(9000) }],
+    } as never);
+    const nestedMessagePage = await invoke('get_call', {
+      id: call.id,
+      fields: ['messages[0].message'],
+      limit: 100,
+    });
+    expect(nestedMessagePage.messages[0].message).toBe('A'.repeat(100));
+    expect(nestedMessagePage._mcp.truncatedFields).toEqual([expect.objectContaining({
+      path: 'messages[0].message', totalChars: 9000, nextOffset: 100,
+    })]);
+
+    vapiOperations.calls.get.mockResolvedValueOnce({
+      ...call,
+      messages: [{ role: 'assistant', message: 'A'.repeat(9000) }],
+    } as never);
+    const nestedMessageContinuation = await invoke('get_call', {
+      id: call.id,
+      fields: ['messages[0].message'],
+      offset: 100,
+      limit: 100,
+    });
+    expect(nestedMessageContinuation.messages[0].message).toBe('A'.repeat(100));
+    expect(nestedMessageContinuation._mcp.truncatedFields).toEqual([expect.objectContaining({
+      path: 'messages[0].message', totalChars: 9000, offset: 100, nextOffset: 200,
+    })]);
+  });
+
+  test('reconstructs a nested message using its advertised continuation path', async () => {
+    const message = 'message-content-'.repeat(700);
+    const response = { ...call, messages: [{ role: 'assistant', message }] };
+    vapiOperations.calls.get.mockResolvedValueOnce(response as never);
+    const first = await invoke('get_call', { id: call.id, fields: ['messages'] });
+    const continuation = first._mcp.truncatedFields.find((entry: { path: string }) => entry.path === 'messages[0].message');
+    expect(continuation).toBeDefined();
+    let reconstructed = first.messages[0].message;
+    let offset = continuation.nextOffset;
+    while (offset !== null) {
+      vapiOperations.calls.get.mockResolvedValueOnce(response as never);
+      const page = await invoke('get_call', { id: call.id, fields: [continuation.path], offset });
+      reconstructed += page.messages[0].message;
+      offset = page._mcp.truncatedFields[0].nextOffset;
+    }
+    expect(reconstructed).toBe(message);
+  });
+
+  test('pages JSON-escaped transcript content within the detail budget', async () => {
+    const transcript = '\0'.repeat(4000);
+    let reconstructed = '';
+    let offset = 0;
+    do {
+      vapiOperations.calls.get.mockResolvedValueOnce({ ...call, transcript } as never);
+      const page = await invoke('get_call', { id: call.id, fields: ['transcript'], offset });
+      expect(JSON.stringify(page).length).toBeLessThanOrEqual(16000);
+      reconstructed += page.transcript;
+      offset = page._mcp?.truncatedFields?.[0]?.nextOffset ?? transcript.length;
+    } while (offset < transcript.length);
+    expect(reconstructed).toBe(transcript);
+  });
+
+  test('bounds the full response and avoids sparse array padding', async () => {
+    const messages = Array.from({ length: 5001 }, () => ({ message: 'ok' }));
+    messages[5000].message = 'tail';
+    vapiOperations.calls.get.mockResolvedValueOnce({ ...call, messages } as never);
+    const page = await invoke('get_call', { id: call.id, fields: ['messages[5000].message'] });
+    expect(page.messages['5000'].message).toBe('tail');
+    expect(JSON.stringify(page).length).toBeLessThanOrEqual(16000);
+
+    vapiOperations.calls.get.mockResolvedValueOnce({ ...call, customer: { number: 'x'.repeat(17000) } } as never);
+    const oversized = await invoke('get_call', { id: call.id });
+    expect(JSON.stringify(oversized).length).toBeLessThanOrEqual(16000);
+    expect(oversized._mcp.truncatedFields[0].reason).toBe('total-response-size-limit');
+  });
+
+  test('preserves credential-named function schema properties', async () => {
+    const parameters = { type: 'object', properties: { password: { type: 'string' }, apiKey: { type: 'string' } } };
+    vapiOperations.tools.get.mockResolvedValueOnce({ ...tool, function: { ...tool.function, parameters } } as never);
+    const result = await invoke('get_tool', { id: tool.id, fields: ['function.parameters'] });
+    expect(result.function.parameters).toEqual(parameters);
+    vapiOperations.tools.get.mockResolvedValueOnce({ ...tool, function: { ...tool.function, parameters } } as never);
+    const properties = await invoke('get_tool', { id: tool.id, fields: ['function.parameters.properties'] });
+    expect(properties.function.parameters.properties).toEqual(parameters.properties);
+  });
+
+  test('get_tool and get_phone_number expose selected API-nested details without secret fields', async () => {
+    const apiTool = {
+      ...tool,
+      destinations: [{ type: 'number', number: '+15555550102', transferPlan: { mode: 'warm-transfer' } }],
+      server: {
+        url: 'https://user:synthetic-secret@example.test?api_key=query-secret&region=us',
+        headers: { Authorization: 'synthetic-secret' },
+      },
+    };
+    const beforeTool = transformToolOutput(apiTool as never);
+    vapiOperations.tools.get.mockResolvedValueOnce(apiTool as never);
+    const toolResult = await invoke('get_tool', {
+      id: tool.id,
+      fields: ['destinations', 'server.url', 'server.headers'],
+    });
+    expect(toolResult.destinations).toEqual([
+      { type: 'number', number: '+15555550102', transferPlan: { mode: 'warm-transfer' } },
+    ]);
+    expect(beforeTool).not.toHaveProperty('destinations');
+    expect(beforeTool).not.toHaveProperty('function');
+    expect(toolResult.server).toEqual({
+      url: 'https://[redacted]@example.test?api_key=[redacted]&region=us',
+    });
+    expect(JSON.stringify(toolResult)).not.toContain('synthetic-secret');
+    expect(JSON.stringify(toolResult)).not.toContain('query-secret');
+
+    const apiPhoneNumber = {
+      ...phoneNumber,
+      provider: 'twilio',
+      providerResourceId: 'PN00000001',
+      assistantId: assistant.id,
+      credentialId: 'credential-1',
+      providerSettings: 'x'.repeat(6000),
+      backupProviderSettings: 'y'.repeat(6000),
+      fallbackProviderSettings: 'z'.repeat(6000),
+      customProviderSettings: 'a'.repeat(6000),
+      trailingProviderSettings: 'b'.repeat(6000),
+    };
+    const beforePhoneNumber = transformPhoneNumberOutput(apiPhoneNumber);
+    vapiOperations.phoneNumbers.get.mockResolvedValueOnce(apiPhoneNumber as never);
+    const phoneResult = await invoke('get_phone_number', {
+      id: phoneNumber.id,
+      fields: ['*'],
+    });
+    expect(phoneResult).toEqual(expect.objectContaining({
+      provider: 'twilio',
+      providerResourceId: 'PN00000001',
+      assistantId: assistant.id,
+    }));
+    expect(beforePhoneNumber).not.toHaveProperty('provider');
+    expect(beforePhoneNumber).not.toHaveProperty('assistantId');
+    expect(phoneResult.credentialId).toBeUndefined();
+    expect(phoneResult._mcp.excludedSensitiveFields).toEqual(['credentialId']);
+    expect(phoneResult.providerSettings).toBe('x'.repeat(4000));
+    expect(phoneResult._mcp.truncatedFields).toEqual(expect.arrayContaining([expect.objectContaining({
+      path: 'providerSettings', totalChars: 6000, nextOffset: 4000,
+    })]));
+    expect(JSON.stringify(phoneResult).length).toBeLessThan(17_000);
+    expect(phoneResult._mcp.truncatedFields).toEqual(expect.arrayContaining([
+      expect.objectContaining({ reason: 'total-response-size-limit' }),
+    ]));
+
+    vapiOperations.phoneNumbers.get.mockResolvedValueOnce(apiPhoneNumber as never);
+    const providerSettingsPage = await invoke('get_phone_number', {
+      id: phoneNumber.id,
+      fields: ['providerSettings'],
+      offset: 4000,
+    });
+    expect(providerSettingsPage.providerSettings).toHaveLength(2000);
   });
 
   test('create_assistant preserves schema defaults and calls Vapi', async () => {

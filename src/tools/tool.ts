@@ -68,6 +68,16 @@ export const registerToolTools = (
     },
     createToolHandler(async (data) => {
       const existingTool = await vapiClient.tools.get({ id: data.toolId });
+      if (existingTool.type !== 'dtmf' && data.sipInfoDtmfEnabled !== undefined) {
+        throw new Error('sipInfoDtmfEnabled is only supported for DTMF tools');
+      }
+      if ((existingTool.type === 'dtmf' || existingTool.type === 'endCall') && data.additionalFields) {
+        throw new Error('Use the native tool fields directly');
+      }
+      if ((existingTool.type === 'dtmf' || existingTool.type === 'endCall') &&
+        ['sms', 'transferCall', 'function', 'apiRequest', 'name', 'description'].some(key => (data as Record<string, unknown>)[key] !== undefined)) {
+        throw new Error('This field is not supported for native DTMF or endCall tools');
+      }
       const updateToolDto = transformUpdateToolInput(data, existingTool);
       const tool = await vapiClient.tools.update({
         id: data.toolId,

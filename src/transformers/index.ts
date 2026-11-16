@@ -422,10 +422,6 @@ export function transformToolOutput(
     name: toolFunction?.name || '',
     description: toolFunction?.description || '',
     parameters: toolFunction?.parameters || {},
-    ...(tool.type === 'dtmf' && 'messages' in tool && tool.messages ? { messages: tool.messages } : {}),
-    ...(tool.type === 'dtmf' && 'sipInfoDtmfEnabled' in tool && tool.sipInfoDtmfEnabled !== undefined ? { sipInfoDtmfEnabled: tool.sipInfoDtmfEnabled } : {}),
-    ...((tool.type === 'dtmf' || tool.type === 'endCall') && 'rejectionPlan' in tool && tool.rejectionPlan ? { rejectionPlan: tool.rejectionPlan } : {}),
-    ...(tool.type === 'endCall' && 'messages' in tool && tool.messages ? { messages: tool.messages } : {}),
     server: {
       url: toolServer?.url || '',
       headers: toolServer?.headers as Record<string, string> || {},

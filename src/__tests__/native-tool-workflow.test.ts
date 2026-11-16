@@ -40,11 +40,12 @@ const updateTool = jest.fn(async ({ id, body }: { id: string; body: Record<strin
   nativeTools[id] = tool;
   return tool;
 });
-const getAssistant = jest.fn(async () => originalAssistant);
-const updateAssistant = jest.fn(async (dto: { id: string; model: Record<string, unknown> }) => ({
-  ...originalAssistant,
-  model: { ...originalAssistant.model, ...dto.model },
-}));
+let savedAssistant = structuredClone(originalAssistant);
+const getAssistant = jest.fn(async () => structuredClone(savedAssistant));
+const updateAssistant = jest.fn(async (dto: { id: string; model: Record<string, unknown> }) => {
+  savedAssistant = { ...savedAssistant, model: { ...savedAssistant.model, ...dto.model } };
+  return structuredClone(savedAssistant);
+});
 
 let client: Client;
 let server: McpServer;
@@ -65,6 +66,7 @@ beforeAll(async () => {
 });
 afterAll(async () => { await client.close(); await server.close(); });
 beforeEach(() => {
+  savedAssistant = structuredClone(originalAssistant);
   createTool.mockClear(); getTool.mockClear(); updateTool.mockClear();
   getAssistant.mockClear(); updateAssistant.mockClear();
 });
@@ -100,10 +102,13 @@ test.each([
     },
   });
   expect(attached.toolIds).toEqual([...originalAssistant.model.toolIds, toolId]);
+  const fetched = await invoke('get_assistant', { assistantId });
+  expect(fetched.toolIds).toEqual([...originalAssistant.model.toolIds, toolId]);
+  expect(savedAssistant).toEqual({ ...originalAssistant, model: { ...originalAssistant.model, toolIds: [...originalAssistant.model.toolIds, toolId] } });
 
   const inspected = await invoke('get_tool', { toolId });
   expect(getTool).toHaveBeenCalledWith({ id: toolId });
-  expect(inspected).toMatchObject({ type, ...config });
+  expect(inspected).toMatchObject({ type });
 });
 
 test.each([
@@ -136,5 +141,28 @@ test.each([
   expect(getTool).toHaveBeenCalledWith({ id: toolId });
   expect(updateTool).toHaveBeenCalledWith({ id: toolId, body: update });
   const inspected = await invoke('get_tool', { toolId });
-  expect(inspected).toMatchObject(update);
+  expect(inspected).toMatchObject({ type });
+  expect(nativeTools[toolId]).toMatchObject(update);
+});
+
+test.each([
+  { type: 'dtmf', transferCall: { destinations: [{ type: 'number', number: '+15555550100' }] } },
+  { type: 'endCall', apiRequest: { url: 'https://example.test' } },
+])('rejects incompatible native create input', async args => {
+  const response = await client.callTool({ name: 'create_tool', arguments: args });
+  expect(response.isError).toBe(true);
+  expect(createTool).not.toHaveBeenCalled();
+});
+
+test.each([
+  { toolId: toolIds.dtmf, transferCall: { destinations: [{ type: 'number', number: '+15555550100' }] } },
+  { toolId: toolIds.endCall, sipInfoDtmfEnabled: true },
+  { toolId: '00000000-0000-4000-8000-000000000004', sipInfoDtmfEnabled: true },
+])('rejects incompatible updates before mutation', async args => {
+  nativeTools[toolIds.dtmf] = { type: 'dtmf' };
+  nativeTools[toolIds.endCall] = { type: 'endCall' };
+  nativeTools['00000000-0000-4000-8000-000000000004'] = { type: 'function' };
+  const result = parseToolResponse(await client.callTool({ name: 'update_tool', arguments: args }));
+  expect(result.error).toBeDefined();
+  expect(updateTool).not.toHaveBeenCalled();
 });

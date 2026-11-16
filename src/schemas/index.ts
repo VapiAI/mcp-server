@@ -311,11 +311,16 @@ const BaseToolConfigSchema = z.object({
 export const CreateToolInputSchema = BaseToolConfigSchema.extend({
   type: z.enum(['sms', 'transferCall', 'function', 'apiRequest', 'dtmf', 'endCall']),
 }).superRefine((input, ctx) => {
+  if (input.type === 'dtmf' || input.type === 'endCall') {
+    for (const key of ['sms', 'transferCall', 'function', 'apiRequest', 'name', 'description'] as const) {
+      if (input[key] !== undefined) ctx.addIssue({ code: 'custom', path: [key], message: 'This field is not supported for native DTMF or endCall tools.' });
+    }
+  }
+  if (input.type !== 'dtmf' && input.sipInfoDtmfEnabled !== undefined) {
+    ctx.addIssue({ code: 'custom', path: ['sipInfoDtmfEnabled'], message: 'This field is only supported for DTMF tools.' });
+  }
   if ((input.type === 'dtmf' || input.type === 'endCall') && input.additionalFields) {
     ctx.addIssue({ code: 'custom', path: ['additionalFields'], message: 'Use the native tool fields directly.' });
-  }
-  if (input.type === 'endCall' && input.sipInfoDtmfEnabled !== undefined) {
-    ctx.addIssue({ code: 'custom', path: ['sipInfoDtmfEnabled'], message: 'This field is only supported for DTMF tools.' });
   }
   if (requiredToolConfigurations.includes(input.type) && !(input as Record<string, unknown>)[input.type]) {
     ctx.addIssue({ code: 'custom', path: [input.type], message: 'This configuration is required for the selected tool type.' });
@@ -340,9 +345,6 @@ export const ToolOutputSchema = BaseResponseSchema.extend({
   description: z.string().describe('Description of the tool'),
   parameters: z.record(z.string(), z.any()).describe('Parameters of the tool'),
   server: ServerSchema.describe('Server of the tool'),
-  messages: z.array(z.any()).optional(),
-  sipInfoDtmfEnabled: z.boolean().optional(),
-  rejectionPlan: z.any().optional(),
 });
 
 // ===== API Schema Lookup =====

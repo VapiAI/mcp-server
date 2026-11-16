@@ -35,7 +35,10 @@ export const registerAssistantTools = (
     server,
     'create_assistant',
     {
-      description: 'Creates a new Vapi assistant',
+      description:
+        'Creates a saved Vapi voice agent configuration: its instructions, language model, voice, transcription settings, opening message, and callable tools. ' +
+        'Reuse the returned assistant ID with create_call to start conversations. ' +
+        'For optional guidance on designing the agent and planning its configuration, load the public create-assistant skill with load_skill({"name":"create-assistant"}).',
       inputSchema: CreateAssistantInputSchema,
       annotations: creates('Create Assistant'),
     },
@@ -75,7 +78,10 @@ export const registerAssistantTools = (
     server,
     'update_assistant',
     {
-      description: 'Updates an existing Vapi assistant',
+      description:
+        'Updates a saved Vapi voice agent\'s instructions, language model, voice, transcription settings, opening message, or attached tool IDs. ' +
+        'Use this to refine an existing agent\'s configuration for future calls. ' +
+        'For optional guidance on agent design, provider choices, and configuration, load the public create-assistant skill with load_skill({"name":"create-assistant"}).',
       inputSchema: UpdateAssistantInputSchema,
       annotations: updates('Update Assistant'),
     },

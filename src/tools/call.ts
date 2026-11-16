@@ -30,7 +30,11 @@ export const registerCallTools = (
     server,
     'create_call',
     {
-      description: 'Creates a outbound call',
+      description:
+        'Places an outbound phone call from a saved Vapi voice assistant to a recipient, immediately or at scheduledAt. ' +
+        'Choose the assistant, originating phone number, and destination; check that the agent\'s opening message and tools fit the task. ' +
+        'Returns a call ID; use get_call to check progress. ' +
+        'For optional guidance on call setup and scheduling, load the public create-call skill with load_skill({"name":"create-call"}).',
       inputSchema: CallInputSchema,
       annotations: creates('Create Outbound Call', true),
     },

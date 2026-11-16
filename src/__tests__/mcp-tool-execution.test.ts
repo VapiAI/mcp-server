@@ -292,7 +292,6 @@ describe('MCP tool execution compatibility', () => {
       expect(catalog.tools.every(tool => tool.annotations?.readOnlyHint === true)).toBe(true);
 
       const listCallsBefore = vapiOperations.assistants.list.mock.calls.length;
-      const createCallsBefore = vapiOperations.assistants.create.mock.calls.length;
       const reads = await readOnlyClient.callTool({
         name: 'list_assistants',
         arguments: {},
@@ -300,24 +299,37 @@ describe('MCP tool execution compatibility', () => {
       expect(reads.isError).not.toBe(true);
       expect(vapiOperations.assistants.list).toHaveBeenCalledTimes(listCallsBefore + 1);
 
-      // Every current mutation must fail by name, before validation or handlers.
-      for (const name of [
-        'create_assistant', 'update_assistant', 'create_call', 'create_tool',
-        'update_tool', 'create_simulation', 'create_simulation_personality',
-        'create_simulation_scenario', 'create_simulation_suite', 'run_simulations',
-      ]) {
-        const denied = await readOnlyClient.callTool({ name, arguments: {} });
-        expect({ name, isError: denied.isError, content: denied.content }).toEqual({
-          name, isError: true, content: expect.arrayContaining([
-            expect.objectContaining({ type: 'text', text: expect.stringMatching(/not found/i) }),
-          ]),
-        });
+      for (const [name, args] of [
+        ['list_assistants', {}], ['list_calls', {}], ['list_phone_numbers', {}], ['list_tools', {}],
+        ['get_assistant', { assistantId: assistant.id }], ['get_call', { callId: call.id }],
+        ['get_phone_number', { phoneNumberId: phoneNumber.id }], ['get_tool', { toolId: tool.id }],
+        ['get_api_schema', { search: 'transfer' }],
+      ] as const) {
+        const response = await readOnlyClient.callTool({ name, arguments: args });
+        expect(response.isError).not.toBe(true);
+        expect(JSON.stringify(response.content)).not.toContain('Error:');
       }
-      expect(vapiOperations.assistants.create).toHaveBeenCalledTimes(createCallsBefore);
-      // The already connected default server remains writable.
-      const defaultResult = await client.callTool({ name: 'create_assistant', arguments: { name: 'Default mode' } });
-      expect(defaultResult.isError).not.toBe(true);
-      expect(vapiOperations.assistants.create).toHaveBeenCalledTimes(createCallsBefore + 1);
+
+      const writes = [
+        ['create_assistant', { name: 'Policy fixture' }, vapiOperations.assistants.create],
+        ['update_assistant', { assistantId: assistant.id, name: 'Updated' }, vapiOperations.assistants.update],
+        ['create_call', { assistantId: assistant.id, phoneNumberId: phoneNumber.id, customer: { number: '+15555550100' } }, vapiOperations.calls.create],
+        ['create_tool', { type: 'apiRequest', apiRequest: { url: 'https://example.test' } }, vapiOperations.tools.create],
+        ['update_tool', { toolId: tool.id, name: 'updated' }, vapiOperations.tools.update],
+      ] as const;
+      for (const [name, args, sink] of writes) {
+        const counts = writes.map(([, , operation]) => operation.mock.calls.length);
+        const before = sink.mock.calls.length;
+        const denied = await readOnlyClient.callTool({ name, arguments: args });
+        expect(denied.isError).toBe(true);
+        expect(denied.content).toEqual(expect.arrayContaining([
+          expect.objectContaining({ text: expect.stringMatching(/not found/i) }),
+        ]));
+        expect(writes.map(([, , operation]) => operation.mock.calls.length)).toEqual(counts);
+        const allowed = await client.callTool({ name, arguments: args });
+        expect(JSON.stringify(allowed.content)).not.toContain('Error:');
+        expect(sink).toHaveBeenCalledTimes(before + 1);
+      }
     } finally {
       await readOnlyClient.close();
       await readOnlyServer.close();

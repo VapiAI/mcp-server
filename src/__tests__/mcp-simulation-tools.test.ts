@@ -114,6 +114,53 @@ describe('simulation tools', () => {
     expect(operation).toHaveBeenLastCalledWith(expected);
   });
 
+  test('read-only policy executes simulation reads and denies every valid mutation', async () => {
+    const server = new McpServer({ name: 'read-only-simulation', version: '0' });
+    const ro = new Client({ name: 'read-only-client', version: '0' });
+    registerAllTools(server, vapiOperations as unknown as VapiClient, { readOnly: true });
+    const [ct, st] = InMemoryTransport.createLinkedPair();
+    await server.connect(st);
+    await ro.connect(ct);
+    const id = '00000000-0000-4000-8000-000000000001';
+    try {
+      for (const [name, args, expected] of [
+        ['list_simulation_personalities', {}, '00000000-0000-4000-8000-000000000006'],
+        ['list_simulation_scenarios', {}, '00000000-0000-4000-8000-000000000005'],
+        ['list_simulations', {}, '00000000-0000-4000-8000-000000000003'],
+        ['list_simulation_suites', {}, '00000000-0000-4000-8000-000000000004'],
+        ['list_simulation_runs', {}, run.id],
+        ['get_simulation_run', { runId: id }, run.id],
+        ['get_simulation_run_item', { runId: id, itemId: id }, runItem.id],
+      ] as const) {
+        const response = await ro.callTool({ name, arguments: args });
+        expect(response.isError).not.toBe(true);
+        expect(JSON.stringify(response.content)).toContain(expected);
+      }
+      const writes = [
+        ['create_simulation_personality', { name: 'Tester', assistant: {} }, vapiOperations.simulationPersonalities.personalityControllerCreate],
+        ['create_simulation_scenario', { name: 'Test', instructions: 'Ask', evaluations: [] }, vapiOperations.simulationScenarios.scenarioControllerCreate],
+        ['create_simulation', { scenarioId: id, personalityId: id }, vapiOperations.simulations.simulationControllerCreate],
+        ['create_simulation_suite', { name: 'Suite', simulationIds: [id] }, vapiOperations.simulationSuites.simulationSuiteControllerCreate],
+        ['run_simulations', { assistantId: id, simulationIds: [id] }, vapiOperations.simulationRuns.simulationRunControllerCreate],
+      ] as const;
+      for (const [name, args, sink] of writes) {
+        const counts = writes.map(([, , operation]) => operation.mock.calls.length);
+        const before = sink.mock.calls.length;
+        const denied = await ro.callTool({ name, arguments: args });
+        expect(denied.isError).toBe(true);
+        expect(denied.content).toEqual(expect.arrayContaining([expect.objectContaining({ text: expect.stringMatching(/not found/i) })]));
+        expect(writes.map(([, , operation]) => operation.mock.calls.length)).toEqual(counts);
+        const allowed = await client.callTool({ name, arguments: args });
+        expect(allowed.isError).not.toBe(true);
+        expect(JSON.stringify(allowed.content)).not.toContain('Error:');
+        expect(sink).toHaveBeenCalledTimes(before + 1);
+      }
+    } finally {
+      await ro.close();
+      await server.close();
+    }
+  });
+
   test('create_simulation_personality sends the tester assistant', async () => {
     const assistant = {
       model: {

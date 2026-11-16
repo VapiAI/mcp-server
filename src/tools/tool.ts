@@ -42,7 +42,7 @@ export const registerToolTools = (
     'create_tool',
     {
       description:
-        'Creates a reusable capability a Vapi voice assistant can invoke during a conversation, such as a custom function, HTTP API request, SMS, or call transfer. ' +
+        'Creates a reusable capability a Vapi voice assistant can invoke during a conversation to act on external systems or change the state of a call. ' +
         'Attach the returned tool ID to an assistant with create_assistant or update_assistant. ' +
         'For optional guidance on choosing a tool type, configuring it, and attaching it safely, load the public create-tool skill with load_skill({"name":"create-tool"}).',
       inputSchema: CreateToolInputSchema,
@@ -60,7 +60,7 @@ export const registerToolTools = (
     'update_tool',
     {
       description:
-        'Changes an existing reusable Vapi tool by toolId, such as its description, function endpoint, or transfer destinations. ' +
+        'Changes an existing reusable Vapi tool by toolId to configure actions on external systems or changes to call state. ' +
         'Inspect the tool with get_tool when preparing an edit. ' +
         'For optional guidance on safe configuration updates and assistant attachment management, load the public create-tool skill with load_skill({"name":"create-tool"}).',
       inputSchema: UpdateToolInputSchema,

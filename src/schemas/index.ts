@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { nativeToolField } from './native-tool-openapi.js';
 import { CreateAssistantNameSchema, UpdateAssistantNameSchema, VoiceInputSchema, TranscriberInputSchema, LLMInputSchema, apiField, apiObjectField, requiredToolConfigurations, functionRequiresName } from './assistant-openapi.js';
 
 export const EmptyInputSchema = z.object({});
@@ -293,9 +294,9 @@ const BaseToolConfigSchema = z.object({
     timeoutSeconds: apiField<number>('apiTimeout').default(20).describe('Request timeout in seconds'),
   }).optional().describe('API Request tool configuration - for HTTP API integration'),
 
-  messages: apiField<unknown[]>('nativeMessages').optional().describe('Messages spoken by the assistant during the tool action'),
+  messages: nativeToolField<unknown[]>('messages').optional().describe('Messages spoken by the assistant during the tool action'),
   sipInfoDtmfEnabled: z.boolean().optional().describe('Send DTMF via SIP INFO'),
-  rejectionPlan: apiField<Record<string, unknown>>('nativeRejectionPlan').optional().describe('Conditions that reject a tool call'),
+  rejectionPlan: nativeToolField<Record<string, unknown>>('rejectionPlan').optional().describe('Conditions that reject a tool call'),
 
   // Documented fields the options above don't cover
   additionalFields: z

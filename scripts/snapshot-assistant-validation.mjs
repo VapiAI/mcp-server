@@ -55,8 +55,6 @@ const apiFields = {
   backoffType: property('BackoffPlan', 'type'),
   backoffMaxRetries: property('BackoffPlan', 'maxRetries'),
   backoffDelay: property('BackoffPlan', 'baseDelaySeconds'),
-  nativeMessages: property('CreateDtmfToolDTO', 'messages'),
-  nativeRejectionPlan: property('CreateDtmfToolDTO', 'rejectionPlan'),
 };
 const transferProperties = ['type', 'number', 'extension', 'callerId', 'description'];
 apiFields.transferDestination = {

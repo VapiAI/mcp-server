@@ -15,6 +15,7 @@ import {
 } from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
 import { createV1ListHandler } from './list.js';
+import { vapiRequestOptions } from './execution.js';
 
 export const registerAssistantTools = (
   server: McpServer,
@@ -28,7 +29,7 @@ export const registerAssistantTools = (
       inputSchema: ListInputSchema,
       annotations: readOnly('List Assistants'),
     },
-    createV1ListHandler(request => vapiClient.assistants.list(request), transformAssistantOutput)
+    createV1ListHandler((request, { signal }) => vapiClient.assistants.list(request, vapiRequestOptions(signal)), transformAssistantOutput)
   );
 
   registerValidatedTool(
@@ -42,10 +43,10 @@ export const registerAssistantTools = (
       inputSchema: CreateAssistantInputSchema,
       annotations: creates('Create Assistant'),
     },
-    createToolHandler(async (data) => {
+    createToolHandler(async (data, { signal }) => {
       //   console.log('create_assistant', data);
       const createAssistantDto = transformAssistantInput(data);
-      const assistant = await vapiClient.assistants.create(createAssistantDto);
+      const assistant = await vapiClient.assistants.create(createAssistantDto, vapiRequestOptions(signal));
       return transformAssistantOutput(assistant);
     })
   );
@@ -58,11 +59,11 @@ export const registerAssistantTools = (
       inputSchema: GetAssistantInputSchema,
       annotations: readOnly('Get Assistant'),
     },
-    createToolHandler(async (data) => {
+    createToolHandler(async (data, { signal }) => {
       //   console.log('get_assistant', data);
       const assistantId = data.assistantId;
       try {
-        const assistant = await vapiClient.assistants.get({ id: assistantId });
+        const assistant = await vapiClient.assistants.get({ id: assistantId }, vapiRequestOptions(signal));
         if (!assistant) {
           throw new Error(`Assistant with ID ${assistantId} not found`);
         }
@@ -85,13 +86,13 @@ export const registerAssistantTools = (
       inputSchema: UpdateAssistantInputSchema,
       annotations: updates('Update Assistant'),
     },
-    createToolHandler(async (data) => {
+    createToolHandler(async (data, { signal }) => {
       const assistantId = data.assistantId;
       try {
         // First check if the assistant exists
         const existingAssistant = await vapiClient.assistants.get({
           id: assistantId,
-        });
+        }, vapiRequestOptions(signal));
         if (!existingAssistant) {
           throw new Error(`Assistant with ID ${assistantId} not found`);
         }
@@ -106,7 +107,7 @@ export const registerAssistantTools = (
         const updatedAssistant = await vapiClient.assistants.update({
           ...updateAssistantDto,
           id: assistantId,
-        });
+        }, vapiRequestOptions(signal));
 
         return transformAssistantOutput(updatedAssistant);
       } catch (error: any) {

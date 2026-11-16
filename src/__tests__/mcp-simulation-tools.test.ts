@@ -7,6 +7,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient } from '@vapi-ai/server-sdk';
 import { registerAllTools } from '../tools/index.js';
 import { parseToolResponse } from '../utils/response.js';
+import { ignoreSdkRequestOptions } from './helpers/ignore-sdk-options.js';
 
 const run = {
   id: '00000000-0000-4000-8000-000000000008',
@@ -57,7 +58,7 @@ describe('simulation tools', () => {
 
   beforeAll(async () => {
     server = new McpServer({ name: 'simulation-test-server', version: '0.0.0' });
-    registerAllTools(server, vapiOperations as unknown as VapiClient);
+    registerAllTools(server, ignoreSdkRequestOptions(vapiOperations) as unknown as VapiClient);
     client = new Client({ name: 'simulation-test-client', version: '0.0.0' });
     const [clientTransport, serverTransport] =
       InMemoryTransport.createLinkedPair();
@@ -338,7 +339,7 @@ describe('simulation OpenAPI validation feedback', () => {
   const id = '00000000-0000-4000-8000-000000000001';
   beforeAll(async () => {
     server = new McpServer({ name: 'simulation-validation', version: '0' });
-    registerAllTools(server, vapiOperations as unknown as VapiClient);
+    registerAllTools(server, ignoreSdkRequestOptions(vapiOperations) as unknown as VapiClient);
     client = new Client({ name: 'simulation-validation-client', version: '0' });
     const [ct, st] = InMemoryTransport.createLinkedPair();
     await server.connect(st); await client.connect(ct);

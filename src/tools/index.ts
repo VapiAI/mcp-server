@@ -9,8 +9,10 @@ import { registerSimulationTools } from './simulation.js';
 import { registerToolTools } from './tool.js';
 import { registerSkillTools } from './skills.js';
 import { registerApiSchemaTools } from './api-schema.js';
+import { withAbortableRetries } from './execution.js';
 
 export const registerAllTools = (server: McpServer, vapiClient: VapiClient) => {
+  vapiClient = withAbortableRetries(vapiClient);
   registerDocsTools(server);
   registerAssistantTools(server, vapiClient);
   registerCallTools(server, vapiClient);

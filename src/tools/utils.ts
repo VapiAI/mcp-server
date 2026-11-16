@@ -1,7 +1,9 @@
 import { z } from 'zod';
+import type { ToolExecutionContext } from './execution.js';
 
 export type ToolResponse = {
   content: Array<{ type: 'text'; text: string }>;
+  isError?: boolean;
 };
 
 export function createSuccessResponse(data: any): ToolResponse {
@@ -28,13 +30,16 @@ export function createErrorResponse(error: any): ToolResponse {
 }
 
 export function createToolHandler<T>(
-  handler: (params: T) => Promise<any>
-): (params: T) => Promise<ToolResponse> {
-  return async (params: T) => {
+  handler: (params: T, context: ToolExecutionContext) => Promise<any>
+): (params: T, context: ToolExecutionContext) => Promise<ToolResponse> {
+  return async (params: T, context: ToolExecutionContext) => {
     try {
-      const result = await handler(params);
+      const result = await handler(params, context);
       return createSuccessResponse(result);
     } catch (error) {
+      if (context.write && context.signal.reason?.name === 'TimeoutError') {
+        return { ...createErrorResponse(new Error('The request exceeded its deadline. The write outcome is unknown; check the resource state before retrying.')), isError: true };
+      }
       return createErrorResponse(error);
     }
   };

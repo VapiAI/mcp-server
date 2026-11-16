@@ -16,6 +16,7 @@ import {
 import { registerValidatedTool } from './validation.js';
 import { creates, readOnly } from './annotations.js';
 import { createToolHandler } from './utils.js';
+import { vapiRequestOptions } from './execution.js';
 
 const DEFAULT_LIMIT = 50;
 
@@ -56,10 +57,10 @@ export const registerSimulationTools = (
       inputSchema: ListSimulationResourcesInputSchema,
       annotations: readOnly('List Simulation Personalities'),
     },
-    createToolHandler(async (data) =>
+    createToolHandler(async (data, { signal }) =>
       vapiClient.simulationPersonalities.personalityControllerFindAll({
         limit: data.limit ?? DEFAULT_LIMIT,
-      })
+      }, vapiRequestOptions(signal))
     )
   );
 
@@ -74,9 +75,10 @@ export const registerSimulationTools = (
       inputSchema: CreateSimulationPersonalityInputSchema,
       annotations: creates('Create Simulation Personality'),
     },
-    createToolHandler(async (data) =>
+    createToolHandler(async (data, { signal }) =>
       vapiClient.simulationPersonalities.personalityControllerCreate(
-        data as unknown as Vapi.CreatePersonalityDto
+        data as unknown as Vapi.CreatePersonalityDto,
+        vapiRequestOptions(signal)
       )
     )
   );
@@ -90,11 +92,11 @@ export const registerSimulationTools = (
       inputSchema: ListSimulationScenariosInputSchema,
       annotations: readOnly('List Simulation Scenarios'),
     },
-    createToolHandler(async (data) =>
+    createToolHandler(async (data, { signal }) =>
       vapiClient.simulationScenarios.scenarioControllerFindAll({
         limit: data.limit ?? DEFAULT_LIMIT,
         ...(data.name && { name: data.name }),
-      })
+      }, vapiRequestOptions(signal))
     )
   );
 
@@ -109,11 +111,11 @@ export const registerSimulationTools = (
       inputSchema: CreateSimulationScenarioInputSchema,
       annotations: creates('Create Simulation Scenario'),
     },
-    createToolHandler(async ({ additionalFields, ...data }) =>
+    createToolHandler(async ({ additionalFields, ...data }, { signal }) =>
       vapiClient.simulationScenarios.scenarioControllerCreate({
         ...data,
         ...additionalFields,
-      } as unknown as Vapi.CreateScenarioDto)
+      } as unknown as Vapi.CreateScenarioDto, vapiRequestOptions(signal))
     )
   );
 
@@ -126,10 +128,10 @@ export const registerSimulationTools = (
       inputSchema: ListSimulationResourcesInputSchema,
       annotations: readOnly('List Simulations'),
     },
-    createToolHandler(async (data) =>
+    createToolHandler(async (data, { signal }) =>
       vapiClient.simulations.simulationControllerFindAll({
         limit: data.limit ?? DEFAULT_LIMIT,
-      })
+      }, vapiRequestOptions(signal))
     )
   );
 
@@ -144,8 +146,8 @@ export const registerSimulationTools = (
       inputSchema: CreateSimulationInputSchema,
       annotations: creates('Create Simulation'),
     },
-    createToolHandler(async (data) =>
-      vapiClient.simulations.simulationControllerCreate(data)
+    createToolHandler(async (data, { signal }) =>
+      vapiClient.simulations.simulationControllerCreate(data, vapiRequestOptions(signal))
     )
   );
 
@@ -157,10 +159,10 @@ export const registerSimulationTools = (
       inputSchema: ListSimulationResourcesInputSchema,
       annotations: readOnly('List Simulation Suites'),
     },
-    createToolHandler(async (data) =>
+    createToolHandler(async (data, { signal }) =>
       vapiClient.simulationSuites.simulationSuiteControllerFindAll({
         limit: data.limit ?? DEFAULT_LIMIT,
-      })
+      }, vapiRequestOptions(signal))
     )
   );
 
@@ -175,11 +177,11 @@ export const registerSimulationTools = (
       inputSchema: CreateSimulationSuiteInputSchema,
       annotations: creates('Create Simulation Suite'),
     },
-    createToolHandler(async ({ additionalFields, ...data }) =>
+    createToolHandler(async ({ additionalFields, ...data }, { signal }) =>
       vapiClient.simulationSuites.simulationSuiteControllerCreate({
         ...data,
         ...additionalFields,
-      } as unknown as Vapi.CreateSimulationSuiteDto)
+      } as unknown as Vapi.CreateSimulationSuiteDto, vapiRequestOptions(signal))
     )
   );
 
@@ -195,7 +197,7 @@ export const registerSimulationTools = (
       inputSchema: RunSimulationsInputSchema,
       annotations: creates('Run Simulations'),
     },
-    createToolHandler(async (data) => {
+    createToolHandler(async (data, { signal }) => {
       const simulations = [
         ...(data.simulationIds ?? []).map((simulationId) => ({
           type: 'simulation' as const,
@@ -217,8 +219,8 @@ export const registerSimulationTools = (
           ...(data.transport && { transport: { provider: data.transport } }),
         },
         data.idempotencyKey
-          ? { headers: { 'Idempotency-Key': data.idempotencyKey } }
-          : undefined
+          ? { ...vapiRequestOptions(signal), headers: { 'Idempotency-Key': data.idempotencyKey } }
+          : vapiRequestOptions(signal)
       );
     })
   );
@@ -231,12 +233,12 @@ export const registerSimulationTools = (
       inputSchema: ListSimulationRunsInputSchema,
       annotations: readOnly('List Simulation Runs'),
     },
-    createToolHandler(async (data) =>
+    createToolHandler(async (data, { signal }) =>
       vapiClient.simulationRuns.simulationRunControllerFindAll({
         limit: data.limit ?? DEFAULT_LIMIT,
         ...(data.status && { status: data.status }),
         ...(data.targetId && { targetId: data.targetId }),
-      })
+      }, vapiRequestOptions(signal))
     )
   );
 
@@ -251,15 +253,15 @@ export const registerSimulationTools = (
       inputSchema: GetSimulationRunInputSchema,
       annotations: readOnly('Get Simulation Run'),
     },
-    createToolHandler(async (data) => {
+    createToolHandler(async (data, { signal }) => {
       const [run, response] = await Promise.all([
         vapiClient.simulationRuns.simulationRunControllerFindOne({
           id: data.runId,
-        }),
+        }, vapiRequestOptions(signal)),
         vapiClient.simulationRuns.simulationRunControllerFindItems({
           id: data.runId,
           limit: 100,
-        }),
+        }, vapiRequestOptions(signal)),
       ]);
       const page = response as RunItemsResponse;
       const items = Array.isArray(page) ? page : page.results;
@@ -281,11 +283,11 @@ export const registerSimulationTools = (
       inputSchema: GetSimulationRunItemInputSchema,
       annotations: readOnly('Get Simulation Run Item'),
     },
-    createToolHandler(async (data) =>
+    createToolHandler(async (data, { signal }) =>
       vapiClient.simulationRuns.simulationRunControllerFindItem({
         id: data.runId,
         itemId: data.itemId,
-      })
+      }, vapiRequestOptions(signal))
     )
   );
 };

@@ -5,6 +5,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { VapiClient } from '@vapi-ai/server-sdk';
 import { registerAllTools } from '../tools/index.js';
 import { parseToolResponse } from '../utils/response.js';
+import { ignoreSdkRequestOptions } from './helpers/ignore-sdk-options.js';
 
 const timestamp = '2026-01-01T00:00:00.000Z';
 
@@ -118,7 +119,7 @@ describe('MCP tool execution compatibility', () => {
       name: 'tool-execution-test-server',
       version: '0.0.0',
     });
-    registerAllTools(server, vapiOperations as unknown as VapiClient);
+    registerAllTools(server, ignoreSdkRequestOptions(vapiOperations) as unknown as VapiClient);
 
     client = new Client({
       name: 'tool-execution-test-client',

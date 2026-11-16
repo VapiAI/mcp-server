@@ -1,4 +1,5 @@
 import { createErrorResponse, createSuccessResponse } from './utils.js';
+import type { ToolExecutionContext } from './execution.js';
 
 const PAGE_SIZE = 10;
 const TIE_WARNING = 'V1 cannot safely continue: more than 10 items share the same creation timestamp. No continuation is provided because it would skip items.';
@@ -26,15 +27,15 @@ export function v1ListPage<T extends { createdAt: string }>(rows: T[]) {
 }
 
 export function createV1ListHandler<T extends { createdAt: string }, R>(
-  list: (request: { limit: number; createdAtLt?: string }) => Promise<T[]>,
+  list: (request: { limit: number; createdAtLt?: string }, context: ToolExecutionContext) => Promise<T[]>,
   transform: (row: T) => R,
 ) {
-  return async (data: { before?: string }) => {
+  return async (data: { before?: string }, context: ToolExecutionContext) => {
     try {
       const page = v1ListPage(await list({
         limit: PAGE_SIZE + 1,
         ...(data.before ? { createdAtLt: data.before } : {}),
-      }));
+      }, context));
       const results = page.results.map(transform);
       const response = createSuccessResponse(results);
       return {

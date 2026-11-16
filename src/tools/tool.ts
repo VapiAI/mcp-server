@@ -6,6 +6,7 @@ import { VapiClient, Vapi } from '@vapi-ai/server-sdk';
 import { ListInputSchema, GetToolInputSchema, CreateToolInputSchema, UpdateToolInputSchema } from '../schemas/index.js';
 import { transformToolInput, transformUpdateToolInput, transformToolOutput } from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
+import { containsRedactionMarker } from '../utils/redact.js';
 import { createV1ListHandler } from './list.js';
 
 export const registerToolTools = (
@@ -67,6 +68,9 @@ export const registerToolTools = (
       annotations: updates('Update Tool'),
     },
     createToolHandler(async (data) => {
+      if (containsRedactionMarker(data)) {
+        throw new Error('Redacted display values cannot be used in an update. Omit them or supply replacement credentials.');
+      }
       const existingTool = await vapiClient.tools.get({ id: data.toolId });
       const updateToolDto = transformUpdateToolInput(data, existingTool);
       const tool = await vapiClient.tools.update({

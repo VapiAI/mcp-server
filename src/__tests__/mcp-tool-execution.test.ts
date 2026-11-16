@@ -2,12 +2,38 @@ import { afterAll, beforeAll, describe, expect, jest, test } from '@jest/globals
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { VapiClient } from '@vapi-ai/server-sdk';
+import { VapiClient } from '@vapi-ai/server-sdk';
 import { registerAllTools } from '../tools/index.js';
 import { parseToolResponse } from '../utils/response.js';
 import { redactCredentials, redactErrorMessage } from '../utils/redact.js';
 
 const timestamp = '2026-01-01T00:00:00.000Z';
+
+test('real Vapi SDK error body is redacted across MCP and stderr', async () => {
+  let attempts = 0;
+  const vapi = new VapiClient({ token: 'test-token', fetch: async () => {
+    attempts++;
+    return new Response(JSON.stringify({ nested: { password: 'a"sdk-secret\\tail' }, message: 'failed' }), { status: 400, headers: { 'content-type': 'application/json' } });
+  } });
+  const server = new McpServer({ name: 'sdk-redaction', version: '0' });
+  registerAllTools(server, vapi);
+  const client = new Client({ name: 'sdk-redaction-client', version: '0' });
+  const [ct, st] = InMemoryTransport.createLinkedPair();
+  await server.connect(st);
+  await client.connect(ct);
+  const diagnostic = jest.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    const result = await client.callTool({ name: 'get_assistant', arguments: { assistantId: '00000000-0000-4000-8000-000000000001' } });
+    const output = JSON.stringify(result) + JSON.stringify(diagnostic.mock.calls);
+    expect(output).not.toContain('sdk-secret');
+    expect(output).not.toContain('tail');
+    expect(attempts).toBe(1);
+  } finally {
+    diagnostic.mockRestore();
+    await client.close();
+    await server.close();
+  }
+});
 
 const assistant = {
   id: '00000000-0000-4000-8000-000000000001',
@@ -116,6 +142,15 @@ describe('MCP tool execution compatibility', () => {
     expect(text).not.toContain('synthetic-one');
     expect(text).not.toContain('synthetic-two');
     expect(redactCredentials({ credentialId: 'safe-id', credentialIds: ['safe-id'] })).toEqual({ credentialId: 'safe-id', credentialIds: ['safe-id'] });
+  });
+
+  test('redacts encoded URL keys and escaped JSON credential values', () => {
+    const url = 'https://example.test/?a%70i_key=secret-one&API_KEY=secret-two&region=us';
+    expect(JSON.stringify(redactCredentials({ url }))).not.toMatch(/secret-one|secret-two/);
+    const body = JSON.stringify({ nested: { password: 'abc"TOPSECRET\\suffix' } });
+    const result = redactErrorMessage(new Error(`${url} ${body}`));
+    expect(result).not.toMatch(/secret-one|secret-two|TOPSECRET|suffix/);
+    expect(result).toContain('region=us');
   });
   let server: McpServer;
   let client: Client;
@@ -555,6 +590,17 @@ describe('MCP tool execution compatibility', () => {
       },
     });
     expect(JSON.stringify(vapiOperations.tools.update.mock.lastCall)).not.toContain('[REDACTED]');
+  });
+
+  test('rejects echoed redaction markers before an update', async () => {
+    const beforeGet = vapiOperations.tools.get.mock.calls.length;
+    const beforeUpdate = vapiOperations.tools.update.mock.calls.length;
+    const response = await client.callTool({ name: 'update_tool', arguments: {
+      toolId: tool.id, function: { parameters: { type: 'object', properties: {} }, server: { url: 'https://example.test', headers: { Authorization: '[REDACTED]' } } },
+    } });
+    expect(JSON.stringify(response)).toContain('supply replacement credentials');
+    expect(vapiOperations.tools.get).toHaveBeenCalledTimes(beforeGet);
+    expect(vapiOperations.tools.update).toHaveBeenCalledTimes(beforeUpdate);
   });
 
   test('upstream error credentials are absent from MCP text and diagnostics', async () => {

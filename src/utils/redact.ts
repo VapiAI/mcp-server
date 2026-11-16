@@ -1,6 +1,12 @@
 const SECRET_FIELD = /^(?:authorization|proxy-authorization|cookie|set-cookie|x-vapi-secret|(?:x[-_])?api[-_]?key|access[-_]?token|refresh[-_]?token|client[-_]?secret|password|passwd|secret|credential|private[-_]?key)$/i;
 const REDACTED = '[REDACTED]';
 
+export function containsRedactionMarker(value: unknown): boolean {
+  if (typeof value === 'string') return value.includes(REDACTED);
+  if (Array.isArray(value)) return value.some(containsRedactionMarker);
+  return !!value && typeof value === 'object' && Object.values(value).some(containsRedactionMarker);
+}
+
 function isSecretField(key: string): boolean {
   // Keep credential references/IDs useful for support and reconciliation.
   return SECRET_FIELD.test(key);
@@ -53,10 +59,14 @@ function redactCredentialText(text: string, redactInlineCredentials: boolean): s
     // Credentials embedded in URL userinfo.
     .replace(/(https?:\/\/)[^\s/@]+@/gi, `$1${REDACTED}@`)
     // Secret query parameters, preserving the URL and all ordinary parameters.
-    .replace(
-      /([?&](?:authorization|proxy-authorization|cookie|set-cookie|x-vapi-secret|api[-_]?key|access[-_]?token|refresh[-_]?token|client[-_]?secret|password|passwd|secret|credential|private[-_]?key)=)[^&#\s]*/gi,
-      `$1${REDACTED}`
-    );
+    .replace(/([?&])([^=&#\s]+)=([^&#\s]*)/g, (match, separator: string, key: string) => {
+      try {
+        return isSecretField(decodeURIComponent(key.replace(/\+/g, ' ')))
+          ? `${separator}${key}=${REDACTED}` : match;
+      } catch {
+        return match;
+      }
+    });
 
   if (redactInlineCredentials) {
     safeText = safeText
@@ -65,7 +75,7 @@ function redactCredentialText(text: string, redactInlineCredentials: boolean): s
       // Common authorization values in upstream error messages and bodies.
       .replace(/\b(Bearer|Basic)\s+[^\s,;"']+/gi, `$1 ${REDACTED}`)
       .replace(
-        /((?:authorization|proxy-authorization|cookie|set-cookie|x-vapi-secret|api[-_]?key|access[-_]?token|refresh[-_]?token|client[-_]?secret|password|passwd|secret|credential|private[-_]?key)["']?\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;}&]+)/gi,
+        /((?:authorization|proxy-authorization|cookie|set-cookie|x-vapi-secret|api[-_]?key|access[-_]?token|refresh[-_]?token|client[-_]?secret|password|passwd|secret|credential|private[-_]?key)["']?\s*[:=]\s*)(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s,;}&]+)/gi,
         `$1${REDACTED}`
       );
   }

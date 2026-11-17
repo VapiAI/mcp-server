@@ -173,9 +173,24 @@ include secrets or private customer data in docs questions.
 #### Calls
 | Tool | Description |
 |------|-------------|
-| `list_calls` | List call history in pages of up to 10 |
+| `list_calls` | Filter call history; default 10, up to 100 per page |
 | `get_call` | Get call details |
 | `create_call` | Start outbound call (immediate or scheduled) |
+
+`list_calls` accepts `id`, `assistantId`, `phoneNumberId`, and ISO timestamp
+bounds `createdAtGt`, `createdAtLt`, `createdAtGe`, `createdAtLe`, `updatedAtGt`,
+`updatedAtLt`, `updatedAtGe`, and `updatedAtLe`. `Gt`/`Lt` are exclusive;
+`Ge`/`Le` are inclusive. Optional `limit` is an integer from 1 to 100 (default 10).
+For example: `list_calls({"phoneNumberId":"00000000-0000-4000-8000-000000000001","limit":25})`.
+
+Continue with `before: pagination.nextBefore`, repeating the same filters and
+limit. If `createdAtLt` is also supplied, the earlier upper bound applies.
+Pagination metadata is in the second text block and `structuredContent`; the
+first text block remains the results array. A page can be shorter than `limit`
+to keep calls with the same creation timestamp together. If more than `limit`
+calls share one timestamp, pagination returns a warning and no continuation to
+avoid skipping calls. Status and metadata filters are not exposed by the
+deployed v1 API/SDK contract.
 
 #### Phone Numbers
 | Tool | Description |

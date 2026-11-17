@@ -1,4 +1,5 @@
 import { createErrorResponse, createSuccessResponse } from './utils.js';
+import { redactCredentials } from '../utils/redact.js';
 
 const PAGE_SIZE = 10;
 const TIE_WARNING = 'V1 cannot safely continue: more than 10 items share the same creation timestamp. No continuation is provided because it would skip items.';
@@ -35,7 +36,7 @@ export function createV1ListHandler<T extends { createdAt: string }, R>(
         limit: PAGE_SIZE + 1,
         ...(data.before ? { createdAtLt: data.before } : {}),
       }));
-      const results = page.results.map(transform);
+      const results = redactCredentials(page.results.map(transform));
       const response = createSuccessResponse(results);
       return {
         // Preserve the original array in the first text block for existing clients.

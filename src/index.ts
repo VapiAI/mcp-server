@@ -5,6 +5,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { registerAllTools } from './tools/index.js';
 import { createVapiClient } from './client.js';
+import { redactErrorMessage } from './utils/redact.js';
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -40,7 +41,7 @@ async function main() {
 
     setupShutdownHandler(mcpServer);
   } catch (err) {
-    console.error('Failed to start MCP server:', err);
+    console.error('Failed to start MCP server:', redactErrorMessage(err));
     process.exit(1);
   }
 }
@@ -57,7 +58,7 @@ function setupShutdownHandler(mcpServer: McpServer) {
 }
 
 main().catch((err) => {
-  console.error('Fatal error:', err);
+  console.error('Fatal error:', redactErrorMessage(err));
   process.exit(1);
 });
 

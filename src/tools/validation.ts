@@ -3,6 +3,7 @@ import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import type { ToolResponse } from './utils.js';
 import { summarizeInputSchema } from './input-schema.js';
+import { isReadOnlyExecutionPolicy } from './execution-policy.js';
 
 type Issue = z.core.$ZodIssue;
 type FieldIssue = {
@@ -86,6 +87,11 @@ export function registerValidatedTool<Schema extends z.ZodType>(
   config: { description: string; inputSchema: Schema; annotations: ToolAnnotations },
   handler: (params: z.output<Schema>) => Promise<ToolResponse>
 ) {
+  // Tool annotations are descriptive for clients. Enforce the server policy
+  // here, before registration, so writes disappear from discovery and a
+  // direct tools/call by name is rejected by the MCP SDK as an unknown tool.
+  if (isReadOnlyExecutionPolicy(server) && !config.annotations.readOnlyHint) return;
+
   const schema = config.inputSchema;
   // Advertise a compact input summary, but run the full parser exactly once. This
   // boundary lets us format validation failures before the SDK stringifies a

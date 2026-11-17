@@ -114,6 +114,8 @@ npx -y @vapi-ai/mcp-server
 
 Set `VAPI_TOKEN` to your Vapi API key in the server environment. MCP client configuration formats vary, but the server definition generally looks like this:
 
+Set `VAPI_MCP_READ_ONLY=true` in the server environment to hide write tools and reject direct calls to them. The option is off by default. Embedding hosts, including the hosted server, use the same setting when running a package version that includes this policy.
+
 ```json
 {
   "mcpServers": {

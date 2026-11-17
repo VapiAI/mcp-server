@@ -249,6 +249,123 @@ describe('MCP tool execution compatibility', () => {
     );
   });
 
+  test('read-only policy keeps reads available and rejects direct writes before Vapi', async () => {
+    const readOnlyServer = new McpServer({
+      name: 'read-only-policy-test-server',
+      version: '0.0.0',
+    });
+    const readOnlyClient = new Client({
+      name: 'read-only-policy-test-client',
+      version: '0.0.0',
+    });
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+    registerAllTools(readOnlyServer, vapiOperations as unknown as VapiClient, {
+      readOnly: true,
+    });
+    await readOnlyServer.connect(serverTransport);
+    await readOnlyClient.connect(clientTransport);
+
+    try {
+      const catalog = await readOnlyClient.listTools();
+      expect(catalog.tools.map(tool => tool.name).sort()).toEqual([
+        'ask_vapi_docs',
+        'get_api_schema',
+        'get_assistant',
+        'get_call',
+        'get_phone_number',
+        'get_simulation_run',
+        'get_simulation_run_item',
+        'get_tool',
+        'list_assistants',
+        'list_calls',
+        'list_phone_numbers',
+        'list_simulation_personalities',
+        'list_simulation_runs',
+        'list_simulation_scenarios',
+        'list_simulation_suites',
+        'list_simulations',
+        'list_tools',
+        'load_skill',
+        'search_skills',
+      ].sort());
+      expect(catalog.tools.every(tool => tool.annotations?.readOnlyHint === true)).toBe(true);
+
+      const listCallsBefore = vapiOperations.assistants.list.mock.calls.length;
+      const reads = await readOnlyClient.callTool({
+        name: 'list_assistants',
+        arguments: {},
+      });
+      expect(reads.isError).not.toBe(true);
+      expect(vapiOperations.assistants.list).toHaveBeenCalledTimes(listCallsBefore + 1);
+
+      for (const [name, args] of [
+        ['list_assistants', {}], ['list_calls', {}], ['list_phone_numbers', {}], ['list_tools', {}],
+        ['get_assistant', { assistantId: assistant.id }], ['get_call', { callId: call.id }],
+        ['get_phone_number', { phoneNumberId: phoneNumber.id }], ['get_tool', { toolId: tool.id }],
+        ['get_api_schema', { search: 'transfer' }],
+      ] as const) {
+        const response = await readOnlyClient.callTool({ name, arguments: args });
+        expect(response.isError).not.toBe(true);
+        expect(JSON.stringify(response.content)).not.toContain('Error:');
+      }
+
+      const writes = [
+        ['create_assistant', { name: 'Policy fixture' }, vapiOperations.assistants.create],
+        ['update_assistant', { assistantId: assistant.id, name: 'Updated' }, vapiOperations.assistants.update],
+        ['create_call', { assistantId: assistant.id, phoneNumberId: phoneNumber.id, customer: { number: '+15555550100' } }, vapiOperations.calls.create],
+        ['create_tool', { type: 'apiRequest', apiRequest: { url: 'https://example.test' } }, vapiOperations.tools.create],
+        ['update_tool', { toolId: tool.id, name: 'updated' }, vapiOperations.tools.update],
+      ] as const;
+      for (const [name, args, sink] of writes) {
+        const counts = writes.map(([, , operation]) => operation.mock.calls.length);
+        const before = sink.mock.calls.length;
+        const denied = await readOnlyClient.callTool({ name, arguments: args });
+        expect(denied.isError).toBe(true);
+        expect(denied.content).toEqual(expect.arrayContaining([
+          expect.objectContaining({ text: expect.stringMatching(/not found/i) }),
+        ]));
+        expect(writes.map(([, , operation]) => operation.mock.calls.length)).toEqual(counts);
+        const allowed = await client.callTool({ name, arguments: args });
+        expect(JSON.stringify(allowed.content)).not.toContain('Error:');
+        expect(sink).toHaveBeenCalledTimes(before + 1);
+      }
+    } finally {
+      await readOnlyClient.close();
+      await readOnlyServer.close();
+    }
+  });
+
+  test('environment policy and explicit override remain isolated and preserve upstream authorization', async () => {
+    const previous = process.env.VAPI_MCP_READ_ONLY;
+    process.env.VAPI_MCP_READ_ONLY = 'true';
+    const attempts = jest.fn(async () => { throw new Error('credential denied'); });
+    const restricted = { assistants: { list: attempts } } as unknown as VapiClient;
+    const servers = [new McpServer({ name: 'env', version: '0' }), new McpServer({ name: 'override', version: '0' })];
+    const clients = [new Client({ name: 'env', version: '0' }), new Client({ name: 'override', version: '0' })];
+    try {
+      registerAllTools(servers[0], restricted);
+      registerAllTools(servers[1], restricted, { readOnly: false });
+      for (let i = 0; i < servers.length; i++) {
+        const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+        await servers[i].connect(serverTransport);
+        await clients[i].connect(clientTransport);
+      }
+      expect((await clients[0].listTools()).tools.some(tool => tool.name === 'create_assistant')).toBe(false);
+      expect((await clients[1].listTools()).tools.some(tool => tool.name === 'create_assistant')).toBe(true);
+      const result = await clients[0].callTool({ name: 'list_assistants', arguments: {} });
+      expect(result.content).toEqual(expect.arrayContaining([
+        expect.objectContaining({ type: 'text', text: expect.stringContaining('credential denied') }),
+      ]));
+      expect(attempts).toHaveBeenCalledTimes(1);
+    } finally {
+      if (previous === undefined) delete process.env.VAPI_MCP_READ_ONLY;
+      else process.env.VAPI_MCP_READ_ONLY = previous;
+      await Promise.all(clients.map(client => client.close()));
+      await Promise.all(servers.map(server => server.close()));
+    }
+  });
+
   test('create_assistant accepts a JSON-string LLM and an explicit first message mode', async () => {
     await invoke('create_assistant', {
       name: 'JSON LLM Assistant',

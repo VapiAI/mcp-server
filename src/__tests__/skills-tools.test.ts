@@ -1,3 +1,5 @@
+import { registerAllTools } from '../tools/index.js';
+import type { VapiClient } from '@vapi-ai/server-sdk';
 import { afterEach, describe, expect, jest, test } from '@jest/globals';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
@@ -121,14 +123,14 @@ describe('agent-visible skill tools', () => {
     const fetcher = fixtureFetch();
     jest.spyOn(globalThis, 'fetch').mockImplementation(fetcher);
     const server = new McpServer({ name: 'knowledge-fixture', version: '0' });
-    registerSkillTools(server);
+    registerAllTools(server, {} as VapiClient, { readOnly: true });
     const client = new Client({ name: 'knowledge-client', version: '0' });
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     await server.connect(serverTransport);
     await client.connect(clientTransport);
     try {
       const catalog = await client.listTools();
-      expect(catalog.tools.map(tool => tool.name).sort()).toEqual(['load_skill', 'search_skills']);
+      expect(catalog.tools.map(tool => tool.name)).toEqual(expect.arrayContaining(['load_skill', 'search_skills']));
       expect(fetcher).not.toHaveBeenCalled();
       expect(catalog.tools.every(tool => tool.annotations?.readOnlyHint)).toBe(true);
       const browse = await client.callTool({ name: 'search_skills', arguments: {} });

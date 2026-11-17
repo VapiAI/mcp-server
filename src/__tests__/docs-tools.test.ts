@@ -1,3 +1,5 @@
+import { registerAllTools } from '../tools/index.js';
+import type { VapiClient } from '@vapi-ai/server-sdk';
 import { afterEach, describe, expect, jest, test } from '@jest/globals';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
@@ -51,7 +53,7 @@ describe('Fern docs MCP proxy', () => {
       return Response.json({ jsonrpc: '2.0', id: message.id, result });
     });
     const server = new McpServer({ name: 'proxy-test', version: '0' });
-    registerDocsTools(server);
+    registerAllTools(server, {} as VapiClient, { readOnly: true });
     const client = new Client({ name: 'proxy-client', version: '0' });
     const [ct, st] = InMemoryTransport.createLinkedPair();
     await server.connect(st);

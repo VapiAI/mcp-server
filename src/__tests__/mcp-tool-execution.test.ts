@@ -264,46 +264,10 @@ describe('MCP tool execution compatibility', () => {
     );
   });
 
-  test('create_tool validates records, preserves defaults and strips unknown fields', async () => {
-    const parameters = {
-      type: 'object',
-      properties: {
-        city: { type: 'string', description: 'Destination city' },
-        options: { type: 'object', properties: { units: { type: 'string' } } },
-      },
-      required: ['city'],
-    };
-    await invoke('create_tool', {
-      type: 'apiRequest',
-      apiRequest: {
-        url: 'https://example.test/weather',
-        headers: { 'X-Region': 'us' },
-        body: { ...parameters, unknownField: 'stripped' },
-        backoffPlan: {},
-        unknownField: 'stripped',
-      },
-    });
-
-    expect(vapiOperations.tools.create).toHaveBeenLastCalledWith({
-      type: 'apiRequest',
-      url: 'https://example.test/weather',
-      method: 'POST',
-      timeoutSeconds: 20,
-      headers: { 'X-Region': 'us' },
-      body: parameters,
-      backoffPlan: { type: 'fixed', maxRetries: 3, baseDelaySeconds: 1 },
-    });
-
-    const callsBefore = vapiOperations.tools.create.mock.calls.length;
-    const response = await client.callTool({
-      name: 'create_tool',
-      arguments: {
-        type: 'apiRequest',
-        apiRequest: { url: 'https://example.test/weather', headers: { 'X-Region': 42 } },
-      },
-    });
-    expect(response.isError).toBe(true);
-    expect(vapiOperations.tools.create).toHaveBeenCalledTimes(callsBefore);
+  test('create_tool forwards API payloads without MCP defaults', async () => {
+    const input = { type: 'apiRequest', method: 'GET', url: 'https://example.test/weather', body: { type: 'object', properties: { city: { type: 'string' } } } };
+    await invoke('create_tool', input);
+    expect(vapiOperations.tools.create).toHaveBeenLastCalledWith(input);
   });
 
   test('update_assistant preserves the identifier and update payload', async () => {
@@ -392,10 +356,8 @@ describe('MCP tool execution compatibility', () => {
       type: 'apiRequest',
       name: 'compatibility_tool',
       description: 'Compatibility tool',
-      apiRequest: {
-        url: 'https://example.test/tools',
-        method: 'GET',
-      },
+      url: 'https://example.test/tools',
+      method: 'GET',
     });
 
     expect(result.id).toBe(tool.id);
@@ -410,8 +372,8 @@ describe('MCP tool execution compatibility', () => {
 
   test('update_tool preserves the identifier and update payload', async () => {
     const result = await invoke('update_tool', {
-      toolId: tool.id,
-      name: 'updated_compatibility_tool',
+      id: tool.id,
+      function: { name: 'updated_compatibility_tool' },
     });
 
     expect(result.id).toBe(tool.id);
@@ -425,8 +387,8 @@ describe('MCP tool execution compatibility', () => {
 
   test('update_tool with only a description keeps the function name', async () => {
     await invoke('update_tool', {
-      toolId: tool.id,
-      description: 'Updated description',
+      id: tool.id,
+      function: { description: 'Updated description' },
     });
 
     expect(vapiOperations.tools.get).toHaveBeenLastCalledWith({ id: tool.id });
@@ -440,11 +402,9 @@ describe('MCP tool execution compatibility', () => {
 
   test('update_tool with new parameters keeps the existing server headers', async () => {
     await invoke('update_tool', {
-      toolId: tool.id,
-      function: {
-        parameters: { type: 'object', properties: { a: { type: 'string' } } },
-        server: { url: 'https://example.test/v2' },
-      },
+      id: tool.id,
+      function: { parameters: { type: 'object', properties: { a: { type: 'string' } } } },
+      server: { url: 'https://example.test/v2' },
     });
 
     expect(vapiOperations.tools.update).toHaveBeenLastCalledWith({
@@ -578,48 +538,15 @@ describe('MCP tool execution compatibility', () => {
     });
   });
 
-  test('create_tool sends destination and additional fields it does not model', async () => {
-    await invoke('create_tool', {
-      type: 'transferCall',
-      name: 'transfer_to_sales',
-      transferCall: {
-        destinations: [
-          {
-            type: 'number',
-            number: '+15555550102',
-            transferPlan: { mode: 'warm-transfer-say-summary' },
-          },
-        ],
-      },
-      additionalFields: {
-        messages: [{ type: 'request-start', content: 'Transferring you now' }],
-      },
-    });
-
-    expect(vapiOperations.tools.create).toHaveBeenLastCalledWith({
-      type: 'transferCall',
-      function: { name: 'transfer_to_sales' },
-      destinations: [
-        {
-          type: 'number',
-          number: '+15555550102',
-          transferPlan: { mode: 'warm-transfer-say-summary' },
-        },
-      ],
-      messages: [{ type: 'request-start', content: 'Transferring you now' }],
-    });
+  test('create_tool sends API destinations and messages unchanged', async () => {
+    const input = { type: 'transferCall', destinations: [{ type: 'number', number: '+15555550102', transferPlan: { mode: 'warm-transfer-say-summary' } }], messages: [{ type: 'request-start', content: 'Transferring you now' }] };
+    await invoke('create_tool', input);
+    expect(vapiOperations.tools.create).toHaveBeenLastCalledWith(input);
   });
 
-  test('update_tool sends additional fields as given', async () => {
-    await invoke('update_tool', {
-      toolId: tool.id,
-      additionalFields: { rejectionPlan: { conditions: [] } },
-    });
-
-    expect(vapiOperations.tools.update).toHaveBeenLastCalledWith({
-      id: tool.id,
-      body: { rejectionPlan: { conditions: [] } },
-    });
+  test('update_tool sends API rejectionPlan directly', async () => {
+    await invoke('update_tool', { id: tool.id, rejectionPlan: { conditions: [] } });
+    expect(vapiOperations.tools.update).toHaveBeenLastCalledWith({ id: tool.id, body: { rejectionPlan: { conditions: [] } } });
   });
 
 });

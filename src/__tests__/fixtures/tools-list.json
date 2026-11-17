@@ -393,362 +393,109 @@
   },
   {
     "name": "create_tool",
-    "description": "Creates a reusable capability a Vapi voice assistant can invoke during a conversation, such as a custom function, HTTP API request, SMS, or call transfer. Attach the returned tool ID to an assistant with create_assistant or update_assistant. For optional guidance on choosing a tool type, configuring it, and attaching it safely, load the public create-tool skill with load_skill({\"name\":\"create-tool\"}).",
+    "description": "Creates a reusable capability a Vapi voice assistant can invoke during a conversation to act on external systems or change the state of a call. Pass API fields directly, without MCP wrappers or additionalFields. For optional detailed documentation and worked examples, use get_api_schema({\"tool\":\"create_tool\"}) and request a returned schema name. Attach the returned tool ID to an assistant with create_assistant or update_assistant. For optional guidance on choosing a tool type, configuring it, and attaching it safely, load the public create-tool skill with load_skill({\"name\":\"create-tool\"}).",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
-      "allOf": [
+      "oneOf": [
         {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "apiRequest"
-              }
-            },
-            "required": [
-              "type"
-            ]
-          },
-          "then": {
-            "required": [
-              "apiRequest"
-            ]
-          }
+          "$ref": "#/definitions/CreateApiRequestToolDTO"
         },
         {
-          "if": {
-            "anyOf": [
-              {
-                "required": [
-                  "function"
-                ]
-              },
-              {
-                "properties": {
-                  "description": {
-                    "minLength": 1
-                  }
-                },
-                "required": [
-                  "description"
-                ]
-              }
-            ],
-            "properties": {
-              "type": {
-                "const": "function"
-              }
-            },
-            "required": [
-              "type"
-            ]
-          },
-          "then": {
-            "required": [
-              "name"
-            ]
-          }
+          "$ref": "#/definitions/CreateCodeToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateDtmfToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateEndCallToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateFunctionToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateTransferCallToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateHandoffToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateBashToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateComputerToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateTextEditorToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateQueryToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateGoogleCalendarCreateEventToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateGoogleSheetsRowAppendToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateGoogleCalendarCheckAvailabilityToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateSlackSendMessageToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateSmsToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateMcpToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateGoHighLevelCalendarAvailabilityToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateGoHighLevelCalendarEventCreateToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateGoHighLevelContactCreateToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateGoHighLevelContactGetToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateSipRequestToolDTO"
+        },
+        {
+          "$ref": "#/definitions/CreateVoicemailToolDTO"
         }
       ],
       "properties": {
-        "additionalFields": {
-          "additionalProperties": {},
-          "propertyNames": {
-            "type": "string"
-          },
-          "type": "object"
-        },
-        "apiRequest": {
-          "description": "API Request tool configuration - for HTTP API integration",
-          "properties": {
-            "backoffPlan": {
-              "description": "Retry configuration for failed API requests",
-              "properties": {
-                "baseDelaySeconds": {
-                  "default": 1,
-                  "description": "Base delay between retries in seconds",
-                  "maximum": 10,
-                  "minimum": 0,
-                  "type": "number"
-                },
-                "maxRetries": {
-                  "default": 3,
-                  "description": "Maximum number of retries",
-                  "maximum": 10,
-                  "minimum": 0,
-                  "type": "number"
-                },
-                "type": {
-                  "default": "fixed",
-                  "description": "This is the type of backoff plan to use. Defaults to fixed.\n\n@default fixed",
-                  "enum": [
-                    "fixed",
-                    "exponential"
-                  ],
-                  "type": "string"
-                }
-              },
-              "type": "object"
-            },
-            "body": {
-              "description": "Body schema for the API request in JSON Schema format",
-              "properties": {
-                "description": {
-                  "description": "This is the description to help the model understand what it needs to output.",
-                  "type": "string"
-                },
-                "enum": {
-                  "description": "This array specifies the allowed values that can be used to restrict the output of the model.",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                },
-                "format": {
-                  "type": "string"
-                },
-                "items": {},
-                "pattern": {
-                  "type": "string"
-                },
-                "properties": {
-                  "additionalProperties": {
-                    "allOf": [
-                      {}
-                    ]
-                  },
-                  "description": "This is required if the type is \"object\". This specifies the properties of the object. This is a map of property names to JsonSchema objects.",
-                  "properties": {},
-                  "type": "object"
-                },
-                "required": {
-                  "description": "This is a list of properties that are required.\n\nThis only makes sense if the type is \"object\".",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                },
-                "title": {
-                  "description": "This is the title of the schema.",
-                  "type": "string"
-                },
-                "type": {
-                  "enum": [
-                    "string",
-                    "number",
-                    "integer",
-                    "boolean",
-                    "array",
-                    "object"
-                  ],
-                  "type": "string"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "type": "object"
-            },
-            "headers": {
-              "additionalProperties": {
-                "type": "string"
-              },
-              "description": "Headers to send with the request (key-value pairs)",
-              "properties": {},
-              "type": "object"
-            },
-            "method": {
-              "default": "POST",
-              "description": "HTTP method for the API request",
-              "enum": [
-                "POST",
-                "GET",
-                "PUT",
-                "PATCH",
-                "DELETE"
-              ],
-              "type": "string"
-            },
-            "timeoutSeconds": {
-              "default": 20,
-              "description": "Request timeout in seconds",
-              "maximum": 300,
-              "minimum": 1,
-              "type": "number"
-            },
-            "url": {
-              "description": "URL to make the API request to",
-              "format": "uri",
-              "type": "string"
-            }
-          },
-          "required": [
-            "url"
-          ],
-          "type": "object"
-        },
-        "description": {
-          "description": "Description of what the function/tool does",
-          "type": "string"
-        },
-        "function": {
-          "description": "Custom function tool configuration - for custom server-side functions",
-          "properties": {
-            "parameters": {
-              "description": "JSON schema for function parameters",
-              "properties": {
-                "properties": {
-                  "additionalProperties": {},
-                  "properties": {},
-                  "type": "object"
-                },
-                "required": {
-                  "description": "This specifies the properties that are required by the function.",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                },
-                "type": {
-                  "const": "object",
-                  "description": "This must be set to 'object'. It instructs the model to return a JSON object containing the function call properties.",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "type",
-                "properties"
-              ],
-              "type": "object"
-            },
-            "server": {
-              "description": "Server configuration with URL where the function will be called",
-              "properties": {
-                "headers": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "description": "Headers to send with the request",
-                  "properties": {},
-                  "type": "object"
-                },
-                "url": {
-                  "description": "Server URL where the function will be called",
-                  "format": "uri",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "url"
-              ],
-              "type": "object"
-            }
-          },
-          "required": [
-            "parameters",
-            "server"
-          ],
-          "type": "object"
-        },
-        "name": {
-          "description": "Name of the function/tool",
-          "maxLength": 64,
-          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
-          "type": "string"
-        },
-        "sms": {
-          "description": "SMS tool configuration - to send text messages",
-          "properties": {
-            "metadata": {
-              "description": "SMS configuration metadata",
-              "properties": {
-                "from": {
-                  "description": "Phone number to send SMS from (e.g., \"+15551234567\"). It must be a twilio number in E.164 format.",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "from"
-              ],
-              "type": "object"
-            }
-          },
-          "required": [
-            "metadata"
-          ],
-          "type": "object"
-        },
-        "transferCall": {
-          "description": "Transfer call tool configuration - to transfer calls to destinations",
-          "properties": {
-            "destinations": {
-              "description": "Array of possible transfer destinations",
-              "items": {
-                "additionalProperties": {},
-                "description": "Transfer destination. Other TransferDestinationNumber fields, such as transferPlan and message, are sent as given (see get_api_schema).",
-                "properties": {
-                  "callerId": {
-                    "maxLength": 40,
-                    "type": "string"
-                  },
-                  "description": {
-                    "description": "This is the description of the destination, used by the AI to choose when and how to transfer the call.",
-                    "type": "string"
-                  },
-                  "extension": {
-                    "description": "This is the extension to dial after transferring the call to the `number`.",
-                    "maxLength": 10,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "number": {
-                    "description": "This is the phone number to transfer the call to.",
-                    "maxLength": 40,
-                    "minLength": 3,
-                    "type": "string"
-                  },
-                  "type": {
-                    "const": "number",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "type",
-                  "number"
-                ],
-                "type": "object"
-              },
-              "type": "array"
-            }
-          },
-          "required": [
-            "destinations"
-          ],
-          "type": "object"
-        },
         "type": {
-          "anyOf": [
-            {
-              "const": "sms",
-              "description": "The type of tool. \"sms\" for Twilio SMS sending tool.",
-              "type": "string"
-            },
-            {
-              "const": "transferCall",
-              "type": "string"
-            },
-            {
-              "const": "function",
-              "description": "The type of tool. \"function\" for Function tool.",
-              "type": "string"
-            },
-            {
-              "const": "apiRequest",
-              "description": "The type of tool. \"apiRequest\" for API request tool.",
-              "type": "string"
-            }
+          "enum": [
+            "apiRequest",
+            "code",
+            "dtmf",
+            "endCall",
+            "function",
+            "transferCall",
+            "handoff",
+            "bash",
+            "computer",
+            "textEditor",
+            "query",
+            "google.calendar.event.create",
+            "google.sheets.row.append",
+            "google.calendar.availability.check",
+            "slack.message.send",
+            "sms",
+            "mcp",
+            "gohighlevel.calendar.availability.check",
+            "gohighlevel.calendar.event.create",
+            "gohighlevel.contact.create",
+            "gohighlevel.contact.get",
+            "sipRequest",
+            "voicemail"
           ],
-          "description": "Type of the tool to create"
+          "type": "string"
         }
       },
       "required": [
@@ -759,7 +506,7 @@
   },
   {
     "name": "get_api_schema",
-    "description": "Looks up a schema in the Vapi API reference (the OpenAPI spec the Vapi SDKs are generated from). Pass `search` to find schema names, then `name` to get one schema. References to other schemas are left as \"#/components/schemas/<Name>\" and listed in referencedSchemas, so look those up next if you need them. Use it to find fields that other tools accept through additionalFields.",
+    "description": "Looks up a schema in the Vapi API reference (the OpenAPI spec the Vapi SDKs are generated from). Pass `search` to find schema names, then `name` to get one schema. References to other schemas are left as \"#/components/schemas/<Name>\" and listed in referencedSchemas, so look those up next if you need them. For the exact tool configuration contracts accepted by this MCP version, pass tool=\"create_tool\" or \"update_tool\". Without name, that returns supported types and their schema names; with name, it returns that bundled schema, including published examples. Follow referencedSchemas with the same tool argument. Other lookups use the live API schema.",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "properties": {
@@ -769,6 +516,14 @@
         },
         "search": {
           "description": "Case-insensitive text to find schema names, e.g. \"transfer\". Used when name is not given.",
+          "type": "string"
+        },
+        "tool": {
+          "description": "Discover bundled accepted tool types, or look up a named bundled schema and its examples",
+          "enum": [
+            "create_tool",
+            "update_tool"
+          ],
           "type": "string"
         }
       },
@@ -1311,295 +1066,121 @@
   },
   {
     "name": "update_tool",
-    "description": "Changes an existing reusable Vapi tool by toolId, such as its description, function endpoint, or transfer destinations. Inspect the tool with get_tool when preparing an edit. For optional guidance on safe configuration updates and assistant attachment management, load the public create-tool skill with load_skill({\"name\":\"create-tool\"}).",
+    "description": "Changes an existing reusable Vapi tool by id to configure actions on external systems or changes to call state. Inspect the tool with get_tool when preparing an edit. Pass id plus API update fields directly. Type, if given, must match the existing tool. Optional detailed documentation is available with get_api_schema({\"tool\":\"update_tool\"}). For optional guidance on safe configuration updates and assistant attachment management, load the public create-tool skill with load_skill({\"name\":\"create-tool\"}).",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
+      "anyOf": [
+        {
+          "$ref": "#/definitions/UpdateApiRequestToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateCodeToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateDtmfToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateEndCallToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateFunctionToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateKnowledgeBaseToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateTransferCallToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateHandoffToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateBashToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateComputerToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateTextEditorToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateQueryToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateGoogleCalendarCreateEventToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateGoogleSheetsRowAppendToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateGoogleCalendarCheckAvailabilityToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateSlackSendMessageToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateSmsToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateMcpToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateGoHighLevelCalendarAvailabilityToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateGoHighLevelCalendarEventCreateToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateGoHighLevelContactCreateToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateGoHighLevelContactGetToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateSipRequestToolDTO"
+        },
+        {
+          "$ref": "#/definitions/UpdateVoicemailToolDTO"
+        }
+      ],
       "properties": {
-        "additionalFields": {
-          "additionalProperties": {},
-          "propertyNames": {
-            "type": "string"
-          },
-          "type": "object"
-        },
-        "apiRequest": {
-          "description": "API Request tool configuration - for HTTP API integration",
-          "properties": {
-            "backoffPlan": {
-              "description": "Retry configuration for failed API requests",
-              "properties": {
-                "baseDelaySeconds": {
-                  "default": 1,
-                  "description": "Base delay between retries in seconds",
-                  "maximum": 10,
-                  "minimum": 0,
-                  "type": "number"
-                },
-                "maxRetries": {
-                  "default": 3,
-                  "description": "Maximum number of retries",
-                  "maximum": 10,
-                  "minimum": 0,
-                  "type": "number"
-                },
-                "type": {
-                  "default": "fixed",
-                  "description": "This is the type of backoff plan to use. Defaults to fixed.\n\n@default fixed",
-                  "enum": [
-                    "fixed",
-                    "exponential"
-                  ],
-                  "type": "string"
-                }
-              },
-              "type": "object"
-            },
-            "body": {
-              "description": "Body schema for the API request in JSON Schema format",
-              "properties": {
-                "description": {
-                  "description": "This is the description to help the model understand what it needs to output.",
-                  "type": "string"
-                },
-                "enum": {
-                  "description": "This array specifies the allowed values that can be used to restrict the output of the model.",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                },
-                "format": {
-                  "type": "string"
-                },
-                "items": {},
-                "pattern": {
-                  "type": "string"
-                },
-                "properties": {
-                  "additionalProperties": {
-                    "allOf": [
-                      {}
-                    ]
-                  },
-                  "description": "This is required if the type is \"object\". This specifies the properties of the object. This is a map of property names to JsonSchema objects.",
-                  "properties": {},
-                  "type": "object"
-                },
-                "required": {
-                  "description": "This is a list of properties that are required.\n\nThis only makes sense if the type is \"object\".",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                },
-                "title": {
-                  "description": "This is the title of the schema.",
-                  "type": "string"
-                },
-                "type": {
-                  "enum": [
-                    "string",
-                    "number",
-                    "integer",
-                    "boolean",
-                    "array",
-                    "object"
-                  ],
-                  "type": "string"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "type": "object"
-            },
-            "headers": {
-              "additionalProperties": {
-                "type": "string"
-              },
-              "description": "Headers to send with the request (key-value pairs)",
-              "properties": {},
-              "type": "object"
-            },
-            "method": {
-              "default": "POST",
-              "description": "HTTP method for the API request",
-              "enum": [
-                "POST",
-                "GET",
-                "PUT",
-                "PATCH",
-                "DELETE"
-              ],
-              "type": "string"
-            },
-            "timeoutSeconds": {
-              "default": 20,
-              "description": "Request timeout in seconds",
-              "maximum": 300,
-              "minimum": 1,
-              "type": "number"
-            },
-            "url": {
-              "description": "URL to make the API request to",
-              "format": "uri",
-              "type": "string"
-            }
-          },
-          "required": [
-            "url"
-          ],
-          "type": "object"
-        },
-        "description": {
-          "description": "Description of what the function/tool does",
-          "type": "string"
-        },
-        "function": {
-          "description": "Custom function tool configuration - for custom server-side functions",
-          "properties": {
-            "parameters": {
-              "description": "JSON schema for function parameters",
-              "properties": {
-                "properties": {
-                  "additionalProperties": {},
-                  "properties": {},
-                  "type": "object"
-                },
-                "required": {
-                  "description": "This specifies the properties that are required by the function.",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                },
-                "type": {
-                  "const": "object",
-                  "description": "This must be set to 'object'. It instructs the model to return a JSON object containing the function call properties.",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "type",
-                "properties"
-              ],
-              "type": "object"
-            },
-            "server": {
-              "description": "Server configuration with URL where the function will be called",
-              "properties": {
-                "headers": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "description": "Headers to send with the request",
-                  "properties": {},
-                  "type": "object"
-                },
-                "url": {
-                  "description": "Server URL where the function will be called",
-                  "format": "uri",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "url"
-              ],
-              "type": "object"
-            }
-          },
-          "required": [
-            "parameters",
-            "server"
-          ],
-          "type": "object"
-        },
-        "name": {
-          "description": "Name of the function/tool",
-          "maxLength": 64,
-          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
-          "type": "string"
-        },
-        "sms": {
-          "description": "SMS tool configuration - to send text messages",
-          "properties": {
-            "metadata": {
-              "description": "SMS configuration metadata",
-              "properties": {
-                "from": {
-                  "description": "Phone number to send SMS from (e.g., \"+15551234567\"). It must be a twilio number in E.164 format.",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "from"
-              ],
-              "type": "object"
-            }
-          },
-          "required": [
-            "metadata"
-          ],
-          "type": "object"
-        },
-        "toolId": {
-          "description": "ID of the tool to update",
+        "id": {
           "format": "uuid",
-          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
           "type": "string"
         },
-        "transferCall": {
-          "description": "Transfer call tool configuration - to transfer calls to destinations",
-          "properties": {
-            "destinations": {
-              "description": "Array of possible transfer destinations",
-              "items": {
-                "additionalProperties": {},
-                "description": "Transfer destination. Other TransferDestinationNumber fields, such as transferPlan and message, are sent as given (see get_api_schema).",
-                "properties": {
-                  "callerId": {
-                    "maxLength": 40,
-                    "type": "string"
-                  },
-                  "description": {
-                    "description": "This is the description of the destination, used by the AI to choose when and how to transfer the call.",
-                    "type": "string"
-                  },
-                  "extension": {
-                    "description": "This is the extension to dial after transferring the call to the `number`.",
-                    "maxLength": 10,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "number": {
-                    "description": "This is the phone number to transfer the call to.",
-                    "maxLength": 40,
-                    "minLength": 3,
-                    "type": "string"
-                  },
-                  "type": {
-                    "const": "number",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "type",
-                  "number"
-                ],
-                "type": "object"
-              },
-              "type": "array"
-            }
-          },
-          "required": [
-            "destinations"
+        "type": {
+          "enum": [
+            "apiRequest",
+            "code",
+            "dtmf",
+            "endCall",
+            "function",
+            "knowledgeBase",
+            "transferCall",
+            "handoff",
+            "bash",
+            "computer",
+            "textEditor",
+            "query",
+            "google.calendar.event.create",
+            "google.sheets.row.append",
+            "google.calendar.availability.check",
+            "slack.message.send",
+            "sms",
+            "mcp",
+            "gohighlevel.calendar.availability.check",
+            "gohighlevel.calendar.event.create",
+            "gohighlevel.contact.create",
+            "gohighlevel.contact.get",
+            "sipRequest",
+            "voicemail"
           ],
-          "type": "object"
+          "type": "string"
         }
       },
       "required": [
-        "toolId"
+        "id"
       ],
       "type": "object"
     }

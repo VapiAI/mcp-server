@@ -1,3 +1,4 @@
+import { validateToolUpdate, toolCreateInputContract, toolUpdateInputContract } from '../schemas/tool-openapi.js';
 import { registerValidatedTool } from './validation.js';
 import { creates, readOnly, updates } from './annotations.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -42,10 +43,11 @@ export const registerToolTools = (
     'create_tool',
     {
       description:
-        'Creates a reusable capability a Vapi voice assistant can invoke during a conversation, such as a custom function, HTTP API request, SMS, or call transfer. ' +
-        'Attach the returned tool ID to an assistant with create_assistant or update_assistant. ' +
+        'Creates a reusable capability a Vapi voice assistant can invoke during a conversation to act on external systems or change the state of a call. ' +
+        'Pass API fields directly, without MCP wrappers or additionalFields. For optional detailed documentation and worked examples, use get_api_schema({"tool":"create_tool"}) and request a returned schema name. Attach the returned tool ID to an assistant with create_assistant or update_assistant. ' +
         'For optional guidance on choosing a tool type, configuring it, and attaching it safely, load the public create-tool skill with load_skill({"name":"create-tool"}).',
       inputSchema: CreateToolInputSchema,
+      advertisedInputSchema: toolCreateInputContract,
       annotations: creates('Create Tool'),
     },
     createToolHandler(async (data) => {
@@ -60,18 +62,19 @@ export const registerToolTools = (
     'update_tool',
     {
       description:
-        'Changes an existing reusable Vapi tool by toolId, such as its description, function endpoint, or transfer destinations. ' +
-        'Inspect the tool with get_tool when preparing an edit. ' +
+        'Changes an existing reusable Vapi tool by id to configure actions on external systems or changes to call state. ' +
+        'Inspect the tool with get_tool when preparing an edit. Pass id plus API update fields directly. Type, if given, must match the existing tool. Optional detailed documentation is available with get_api_schema({"tool":"update_tool"}). ' +
         'For optional guidance on safe configuration updates and assistant attachment management, load the public create-tool skill with load_skill({"name":"create-tool"}).',
       inputSchema: UpdateToolInputSchema,
+      advertisedInputSchema: toolUpdateInputContract,
       annotations: updates('Update Tool'),
     },
     createToolHandler(async (data) => {
-      const existingTool = await vapiClient.tools.get({ id: data.toolId });
-      const updateToolDto = transformUpdateToolInput(data, existingTool);
+      const existingTool = await vapiClient.tools.get({ id: data.id });
+      const updateToolDto = validateToolUpdate(existingTool.type, transformUpdateToolInput(data, existingTool));
       const tool = await vapiClient.tools.update({
-        id: data.toolId,
-        body: updateToolDto,
+        id: data.id,
+        body: updateToolDto as unknown as Vapi.UpdateToolsRequestBody,
       });
       return transformToolOutput(tool);
     })

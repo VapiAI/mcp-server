@@ -27,7 +27,7 @@
   },
   {
     "name": "create_assistant",
-    "description": "Creates a new Vapi assistant",
+    "description": "Creates a saved Vapi voice agent configuration: its instructions, language model, voice, transcription settings, opening message, and callable tools. Reuse the returned assistant ID with create_call to start conversations. For optional guidance on designing the agent and planning its configuration, load the public create-assistant skill with load_skill({\"name\":\"create-assistant\"}).",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
@@ -133,7 +133,7 @@
   },
   {
     "name": "create_call",
-    "description": "Creates a outbound call",
+    "description": "Places an outbound phone call from a saved Vapi voice assistant to a recipient, immediately or at scheduledAt. Choose the assistant, originating phone number, and destination; check that the agent's opening message and tools fit the task. Returns a call ID; use get_call to check progress. For optional guidance on call setup and scheduling, load the public create-call skill with load_skill({\"name\":\"create-call\"}).",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
@@ -185,7 +185,7 @@
   },
   {
     "name": "create_simulation",
-    "description": "Creates a simulation that pairs a scenario with a personality. Run it with run_simulations.",
+    "description": "Creates a reusable test that pairs a scenario (what to test and how to judge it) with a personality (the simulated caller). Use the returned ID with run_simulations to test an assistant or squad. For optional guidance on test coverage and configuration, load the public simulations skill with load_skill({\"name\":\"simulations\"}).",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
@@ -222,7 +222,7 @@
   },
   {
     "name": "create_simulation_personality",
-    "description": "Creates a simulation personality: the simulated caller that talks to the assistant under test",
+    "description": "Creates a simulation personality: the voice-agent configuration and behavior of the simulated caller that tests a Vapi assistant. Pair its ID with a scenario in create_simulation. For optional guidance on realistic caller behavior and test design, load the public simulations skill with load_skill({\"name\":\"simulations\"}).",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
@@ -254,7 +254,7 @@
   },
   {
     "name": "create_simulation_scenario",
-    "description": "Creates a simulation scenario: instructions for the tester plus evaluations that decide whether the assistant passed",
+    "description": "Creates a test case: instructions for the simulated caller and evaluations that determine whether the assistant succeeds. Pair its ID with a personality in create_simulation. For optional guidance on observable requirements and pass/fail criteria, load the public simulations skill with load_skill({\"name\":\"simulations\"}).",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
@@ -351,7 +351,7 @@
   },
   {
     "name": "create_simulation_suite",
-    "description": "Creates a simulation suite that groups simulations so they can be run together",
+    "description": "Groups existing simulations into a named test suite so they can be run together against an assistant or squad. Use the returned suite ID with run_simulations. For optional guidance on organizing coverage and maintaining a regression suite, load the public simulations skill with load_skill({\"name\":\"simulations\"}).",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
@@ -393,7 +393,7 @@
   },
   {
     "name": "create_tool",
-    "description": "Creates a new Vapi tool",
+    "description": "Creates a reusable capability a Vapi voice assistant can invoke during a conversation, such as a custom function, HTTP API request, SMS, or call transfer. Attach the returned tool ID to an assistant with create_assistant or update_assistant. For optional guidance on choosing a tool type, configuring it, and attaching it safely, load the public create-tool skill with load_skill({\"name\":\"create-tool\"}).",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
@@ -1150,7 +1150,7 @@
   },
   {
     "name": "run_simulations",
-    "description": "Starts a simulation run of simulations and/or suites against an assistant or squad. Returns the run with its ID and a dashboard URL to share with the user. Check progress with get_simulation_run.",
+    "description": "Starts a test run of simulations or suites against an assistant or squad to evaluate its behavior. Runs can consume credits and invoke the target's real tools unless those tools are mocked. Returns a run ID and dashboard URL; use get_simulation_run for progress and get_simulation_run_item for detailed results. For optional guidance on test targets, mocks, and run settings, load the public simulations skill with load_skill({\"name\":\"simulations\"}).",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
@@ -1266,7 +1266,7 @@
   },
   {
     "name": "update_assistant",
-    "description": "Updates an existing Vapi assistant",
+    "description": "Updates a saved Vapi voice agent's instructions, language model, voice, transcription settings, opening message, or attached tool IDs. Use this to refine an existing agent's configuration for future calls. For optional guidance on agent design, provider choices, and configuration, load the public create-assistant skill with load_skill({\"name\":\"create-assistant\"}).",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},
@@ -1375,7 +1375,7 @@
   },
   {
     "name": "update_tool",
-    "description": "Updates an existing Vapi tool",
+    "description": "Changes an existing reusable Vapi tool by toolId, such as its description, function endpoint, or transfer destinations. Inspect the tool with get_tool when preparing an edit. For optional guidance on safe configuration updates and assistant attachment management, load the public create-tool skill with load_skill({\"name\":\"create-tool\"}).",
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": {},

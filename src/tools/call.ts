@@ -11,6 +11,21 @@ import {
 import { createToolHandler } from './utils.js';
 import { createV1ListHandler } from './list.js';
 
+export function uncertainCallError(error: unknown): Error {
+  const uncertain = new Error(
+    'Call creation outcome is unknown after one request. Check Vapi call history before retrying.',
+    { cause: error }
+  );
+  Object.assign(uncertain, { outcome: 'uncertain' });
+  if (error && typeof error === 'object') {
+    Object.assign(uncertain, {
+      statusCode: (error as { statusCode?: unknown }).statusCode,
+      rawResponse: (error as { rawResponse?: unknown }).rawResponse,
+    });
+  }
+  return uncertain;
+}
+
 export const registerCallTools = (
   server: McpServer,
   vapiClient: VapiClient
@@ -30,13 +45,30 @@ export const registerCallTools = (
     server,
     'create_call',
     {
-      description: 'Creates a outbound call',
+      description:
+        'Places an outbound phone call from a saved Vapi voice assistant to a recipient, immediately or at scheduledAt. ' +
+        'Choose the assistant, originating phone number, and destination; check that the agent\'s opening message and tools fit the task. ' +
+        'Returns a call ID; use get_call to check progress. ' +
+        'For optional guidance on call setup and scheduling, load the public create-call skill with load_skill({"name":"create-call"}).',
       inputSchema: CallInputSchema,
       annotations: creates('Create Outbound Call', true),
     },
     createToolHandler(async (data) => {
       const createCallDto = transformCallInput(data);
-      const call = await vapiClient.calls.create(createCallDto);
+      let call: Vapi.CreateCallsResponse;
+      try {
+        // Creating a call is non-idempotent. The SDK retries 408, 429, and 5xx
+        // responses by default, which can create another call when the first
+        // request was accepted but its response was lost.
+        call = await vapiClient.calls.create(createCallDto, { maxRetries: 0 });
+      } catch (error) {
+        const statusCode = (error as { statusCode?: unknown })?.statusCode;
+        if (typeof statusCode !== 'number' || statusCode === 408 || statusCode === 429 || statusCode >= 500) {
+          // Preserve SDK metadata without exposing its potentially sensitive body.
+          throw uncertainCallError(error);
+        }
+        throw error;
+      }
       return transformCallOutput(call as unknown as Vapi.Call);
     })
   );

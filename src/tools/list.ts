@@ -1,4 +1,4 @@
-import { createErrorResponse, createSuccessResponse } from './utils.js';
+import { createSuccessResponse } from './utils.js';
 
 const PAGE_SIZE = 10;
 const TIE_WARNING = 'V1 cannot safely continue: more than 10 items share the same creation timestamp. No continuation is provided because it would skip items.';
@@ -30,23 +30,19 @@ export function createV1ListHandler<T extends { createdAt: string }, R>(
   transform: (row: T) => R,
 ) {
   return async (data: { before?: string }) => {
-    try {
-      const page = v1ListPage(await list({
-        limit: PAGE_SIZE + 1,
-        ...(data.before ? { createdAtLt: data.before } : {}),
-      }));
-      const results = page.results.map(transform);
-      const response = createSuccessResponse(results);
-      return {
-        // Preserve the original array in the first text block for existing clients.
-        content: [...response.content, {
-          type: 'text' as const,
-          text: JSON.stringify({ pagination: page.pagination }),
-        }],
-        structuredContent: { results, pagination: page.pagination },
-      };
-    } catch (error) {
-      return createErrorResponse(error);
-    }
+    const page = v1ListPage(await list({
+      limit: PAGE_SIZE + 1,
+      ...(data.before ? { createdAtLt: data.before } : {}),
+    }));
+    const results = page.results.map(transform);
+    const response = createSuccessResponse(results);
+    return {
+      // Preserve the original array in the first text block for existing clients.
+      content: [...response.content, {
+        type: 'text' as const,
+        text: JSON.stringify({ pagination: page.pagination }),
+      }],
+      structuredContent: { results, pagination: page.pagination },
+    };
   };
 }

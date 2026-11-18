@@ -10,7 +10,8 @@ permissions:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Do not interrupt a release after its tag has been created.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/v') }}
 
 jobs:
   compile:
@@ -63,9 +64,53 @@ jobs:
       - name: Test packed package as a clean consumer
         run: npm run test:package
 
-  package:
+  release:
     needs: [compile, test]
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: >-
+      github.event_name != 'pull_request' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      # Read metadata through the API; no package code runs with write access.
+      - name: Select or create release tag
+        id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            echo "tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          version=$(gh api "repos/$GITHUB_REPOSITORY/contents/package.json?ref=$GITHUB_SHA" \
+            -H 'Accept: application/vnd.github.raw+json' --jq '.version')
+          if [[ ! $version =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Expected a release version in package.json."
+            exit 1
+          fi
+          tag="v$version"
+          existing_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$tag" \
+            --jq ".[] | select(.ref == \"refs/tags/$tag\") | .object.sha")
+          if [[ -n $existing_sha && $existing_sha != "$GITHUB_SHA" ]]; then
+            echo "Version $version is already tagged; bump package.json to release."
+            exit 0
+          fi
+          if [[ -z $existing_sha ]]; then
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f ref="refs/tags/$tag" -f sha="$GITHUB_SHA" > /dev/null
+          fi
+          # GITHUB_TOKEN-created tags do not start another push workflow.
+          # Continue packaging and publishing in this already-tested run.
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  package:
+    needs: release
+    if: needs.release.outputs.tag != ''
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -75,6 +120,8 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
+          # Build the tested commit even if a tag is moved while CI runs.
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Set up node
@@ -89,9 +136,11 @@ jobs:
         run: npm run build
 
       - name: Verify tag matches package version
+        env:
+          RELEASE_TAG: ${{ needs.release.outputs.tag }}
         run: >-
           node -e "const version = require('./package.json').version;
-          if ('v' + version !== process.env.GITHUB_REF_NAME)
+          if ('v' + version !== process.env.RELEASE_TAG)
           throw new Error('Tag must match package version: v' + version)"
 
       - name: Pack npm artifact
@@ -108,7 +157,7 @@ jobs:
           retention-days: 1
 
   publish:
-    needs: package
+    needs: [release, package]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -129,16 +178,18 @@ jobs:
           path: .release
 
       - name: Publish npm artifact
+        env:
+          RELEASE_TAG: ${{ needs.release.outputs.tag }}
         run: |
           tarballs=(.release/*.tgz)
           if [[ ${#tarballs[@]} -ne 1 || ! -f "${tarballs[0]}" ]]; then
             echo "::error::Expected exactly one npm package tarball."
             exit 1
           fi
-          if [[ ${GITHUB_REF_NAME} == *alpha* ]]; then
+          if [[ ${RELEASE_TAG} == *alpha* ]]; then
             npm publish "${tarballs[0]}" --access public --provenance --ignore-scripts --tag alpha
-          elif [[ ${GITHUB_REF_NAME} == *beta* ]]; then
+          elif [[ ${RELEASE_TAG} == *beta* ]]; then
             npm publish "${tarballs[0]}" --access public --provenance --ignore-scripts --tag beta
           else
-            npm publish "${tarballs[0]}" --access public --provenance --ignore-scripts
+            npm publish "${tarballs[0]}" --access public --provenance --ignore-scripts --tag latest
           fi

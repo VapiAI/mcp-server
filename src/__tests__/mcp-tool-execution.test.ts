@@ -155,13 +155,13 @@ describe('MCP tool execution compatibility', () => {
       bearerToken: 'synthetic-secret',
       'Ocp-Apim-Subscription-Key': 'synthetic-secret',
     };
-    const url = 'https://example.test/?token=synthetic-secret&key=synthetic-secret&sig=synthetic-secret&auth=synthetic-secret&region=us';
+    const url = "https://example.test/?token=synthetic-secret'private-suffix&key=synthetic-secret&sig=synthetic-secret&auth=synthetic-secret&region=us";
     expect(redactCredentials(fields)).toEqual(
       Object.fromEntries(Object.keys(fields).map(name => [name, '[REDACTED]']))
     );
-    expect(JSON.stringify(redactCredentials({ url }))).not.toContain('synthetic-secret');
+    expect(JSON.stringify(redactCredentials({ url }))).not.toMatch(/synthetic-secret|private-suffix/);
     const diagnostic = redactErrorMessage(new Error(`${url} ${JSON.stringify(fields)}`));
-    expect(diagnostic).not.toContain('synthetic-secret');
+    expect(diagnostic).not.toMatch(/synthetic-secret|private-suffix/);
     expect(diagnostic).toContain('region=us');
   });
 
@@ -447,7 +447,7 @@ describe('MCP tool execution compatibility', () => {
       assistantId: assistant.id,
       phoneNumberId: phoneNumber.id,
       customer: { number: '+15555550100' },
-    });
+    }, { maxRetries: 0 });
   });
 
   test('create_tool preserves an API request tool payload', async () => {

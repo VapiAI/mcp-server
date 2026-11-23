@@ -104,8 +104,8 @@ export function redactErrorMessage(error: unknown): string {
 
 function replaceUrlCredentials(text: string, replace: (credential: string) => string): string {
   return text
-    .replace(/(https?:\/\/)([^\s/@?#"'<>]+)@/gi, (_, scheme: string, credential: string) => `${scheme}${replace(credential)}@`)
-    .replace(/([?&])([^=&#\s"'<>]+)=([^&#\s"'<>]*)/g, (match, separator: string, key: string, credential: string) => {
+    .replace(/(https?:\/\/)([^\s/@?#"<>]+)@/gi, (_, scheme: string, credential: string) => `${scheme}${replace(credential)}@`)
+    .replace(/([?&])([^=&#\s"<>]+)=([^&#\s"<>]*)/g, (match, separator: string, key: string, credential: string) => {
       try {
         return isSecretField(decodeURIComponent(key.replace(/\+/g, ' ')))
           ? `${separator}${key}=${replace(credential)}` : match;

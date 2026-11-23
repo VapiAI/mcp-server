@@ -173,7 +173,7 @@ include secrets or private customer data in docs questions.
 #### Calls
 | Tool | Description |
 |------|-------------|
-| `list_calls` | List call history in pages of up to 10 |
+| [`list_calls`](src/tools/README.md#list_calls) | Filter call history; default 10, up to 100 per page |
 | `get_call` | Get call details |
 | `create_call` | Start outbound call (immediate or scheduled) |
 

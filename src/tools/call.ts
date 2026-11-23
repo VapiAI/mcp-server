@@ -3,7 +3,7 @@ import { creates, readOnly } from './annotations.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient, Vapi } from '@vapi-ai/server-sdk';
 
-import { ListInputSchema, CallInputSchema, GetCallInputSchema } from '../schemas/index.js';
+import { CALL_LIST_LIMIT_MAX, ListCallsInputSchema, CallInputSchema, GetCallInputSchema } from '../schemas/index.js';
 import {
   transformCallInput,
   transformCallOutput,
@@ -34,11 +34,15 @@ export const registerCallTools = (
     server,
     'list_calls',
     {
-      description: 'Lists up to 10 Vapi calls',
-      inputSchema: ListInputSchema,
+      description: 'Lists Vapi calls with ID and date filters, newest first (default 10, maximum 100 per page)',
+      inputSchema: ListCallsInputSchema,
       annotations: readOnly('List Calls'),
     },
-    createV1ListHandler(request => vapiClient.calls.list(request), transformCallOutput)
+    createV1ListHandler(
+      (request: Vapi.ListCallsRequest) => vapiClient.calls.list(request),
+      transformCallOutput,
+      { maxPageSize: CALL_LIST_LIMIT_MAX },
+    )
   );
 
   registerValidatedTool(

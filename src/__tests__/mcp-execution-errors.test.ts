@@ -3,6 +3,9 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient } from '@vapi-ai/server-sdk';
+import { registerAssistantTools } from '../tools/assistant.js';
+import { registerToolTools } from '../tools/tool.js';
+import { parseToolResponse } from '../utils/response.js';
 import { registerCallTools } from '../tools/call.js';
 import { registerApiSchemaTools } from '../tools/api-schema.js';
 import { withToolErrorHandling } from '../tools/utils.js';
@@ -18,7 +21,7 @@ describe('execution error semantics across the MCP and Vapi SDK boundary', () =>
   let client: Client;
   let requests: Array<{ method: string | undefined; path: string | undefined }>;
   let nextResponse:
-    | { status?: number; dropConnection?: boolean; timeout?: boolean }
+    | { status?: number; dropConnection?: boolean; timeout?: boolean; body?: string }
     | undefined;
 
   beforeAll(async () => {
@@ -37,7 +40,7 @@ describe('execution error semantics across the MCP and Vapi SDK boundary', () =>
         throw new TypeError('Authorization: Bearer SEEDED_SECRET');
       }
       const body = behavior?.status !== undefined && behavior.status >= 400
-        ? upstreamBody
+        ? behavior.body ?? upstreamBody
         : '[]';
       return new Response(body, {
         status: behavior?.status ?? 200,
@@ -59,6 +62,8 @@ describe('execution error semantics across the MCP and Vapi SDK boundary', () =>
     });
     mcpServer = new McpServer({ name: 'error-test-server', version: 'test' });
     registerCallTools(mcpServer, vapi);
+    registerAssistantTools(mcpServer, vapi);
+    registerToolTools(mcpServer, vapi);
     registerApiSchemaTools(mcpServer, vapi);
     mcpServer.registerTool('result_passthrough', { inputSchema: {} }, withToolErrorHandling((_args, extra) => ({
       content: [{ type: 'image', data: 'AA==', mimeType: 'image/png' }],
@@ -147,14 +152,52 @@ describe('execution error semantics across the MCP and Vapi SDK boundary', () =>
       error: expect.objectContaining({
         tool: 'create_call',
         outcome: 'uncertain',
-        recovery: behavior.dropConnection || behavior.timeout
-          ? 'Check whether the operation completed before retrying.'
-          : behavior.status === 429
-            ? 'Check whether the operation completed before retrying; observe any indicated retry delay.'
-            : 'Retry reads later; verify resource state before retrying a write.',
+        recovery: 'Call creation outcome is unknown after one request. Check Vapi call history before retrying.' +
+          (behavior.status === 429 ? ' Observe the indicated retry delay.' : ''),
       }),
     });
+    if (behavior.timeout) {
+      expect(result.structuredContent).toEqual({
+        error: expect.objectContaining({ code: 'UPSTREAM_TIMEOUT', source: 'transport' }),
+      });
+    }
     expect(JSON.stringify(result)).not.toContain('customer-secret-123');
+  });
+
+  test.each<[number, string | string[], string[]]>([
+    [400, 'Phone number with ID 9fd4c19 not found', ['The phone number was not found. Check the phoneNumberId and connected account.']],
+    [422, ['assistant.voice.voiceId must be one of: opaque-credential', 'Missing credential: provider-key-123', 'Unrecognized private detail'], [
+      'Check the voiceId supported by the selected voice provider.',
+      'Check that the required provider credential is configured in Vapi.',
+    ]],
+  ])('returns safe diagnostics for an HTTP %i rejection', async (status, message, details) => {
+    nextResponse = { status, body: JSON.stringify({ message }) };
+    const result = await callTool({ name: 'create_call', arguments: { customer: { number: '+15555550100' } } });
+
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toEqual({
+      error: expect.objectContaining({ status, outcome: 'failed', details }),
+    });
+    expect(parseToolResponse(result)).toEqual({ error: expect.stringContaining(details.join(' ')) });
+    for (const privateValue of ['9fd4c19', 'opaque-credential', 'provider-key-123', 'Unrecognized private detail']) {
+      expect(JSON.stringify(result)).not.toContain(privateValue);
+    }
+  });
+
+  test.each([
+    ['update_assistant', 'assistantId', '/assistant'],
+    ['update_tool', 'toolId', '/tool'],
+  ])('reports a failed prerequisite read for %s without an uncertain write', async (name, idField, route) => {
+    const id = 'a01f7e8a-9511-435a-b7f6-684068039bed';
+    nextResponse = { status: 503 };
+    const before = requests.length;
+    const result = await callTool({ name, arguments: { [idField]: id } });
+
+    expect(requests.slice(before)).toEqual([{ method: 'GET', path: route + '/' + id }]);
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toEqual({
+      error: expect.objectContaining({ tool: name, outcome: 'failed', recovery: 'Retry the read later.' }),
+    });
   });
 
   test('sanitizes schema fetch failures through a real MCP client and SDK', async () => {

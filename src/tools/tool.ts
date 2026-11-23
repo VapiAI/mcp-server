@@ -5,7 +5,7 @@ import { VapiClient, Vapi } from '@vapi-ai/server-sdk';
 
 import { ListInputSchema, GetToolInputSchema, CreateToolInputSchema, UpdateToolInputSchema } from '../schemas/index.js';
 import { transformToolInput, transformUpdateToolInput, transformToolOutput } from '../transformers/index.js';
-import { createToolHandler } from './utils.js';
+import { createToolHandler, prepareWrite } from './utils.js';
 import { createV1ListHandler } from './list.js';
 
 export const registerToolTools = (
@@ -67,8 +67,10 @@ export const registerToolTools = (
       annotations: updates('Update Tool'),
     },
     createToolHandler(async (data) => {
-      const existingTool = await vapiClient.tools.get({ id: data.toolId });
-      const updateToolDto = transformUpdateToolInput(data, existingTool);
+      const updateToolDto = await prepareWrite(async () => {
+        const existingTool = await vapiClient.tools.get({ id: data.toolId });
+        return transformUpdateToolInput(data, existingTool);
+      });
       const tool = await vapiClient.tools.update({
         id: data.toolId,
         body: updateToolDto,

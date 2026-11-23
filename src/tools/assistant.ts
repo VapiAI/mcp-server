@@ -13,7 +13,7 @@ import {
   transformAssistantOutput,
   transformUpdateAssistantInput,
 } from '../transformers/index.js';
-import { createToolHandler } from './utils.js';
+import { createToolHandler, prepareWrite } from './utils.js';
 import { createV1ListHandler } from './list.js';
 
 export const registerAssistantTools = (
@@ -87,32 +87,18 @@ export const registerAssistantTools = (
     },
     createToolHandler(async (data) => {
       const assistantId = data.assistantId;
-      try {
-        // First check if the assistant exists
-        const existingAssistant = await vapiClient.assistants.get({
-          id: assistantId,
-        });
+      const updateAssistantDto = await prepareWrite(async () => {
+        const existingAssistant = await vapiClient.assistants.get({ id: assistantId });
         if (!existingAssistant) {
           throw new Error(`Assistant with ID ${assistantId} not found`);
         }
-
-        // Transform the update data
-        const updateAssistantDto = transformUpdateAssistantInput(
-          data,
-          existingAssistant
-        );
-
-        // Update the assistant
-        const updatedAssistant = await vapiClient.assistants.update({
-          ...updateAssistantDto,
-          id: assistantId,
-        });
-
-        return transformAssistantOutput(updatedAssistant);
-      } catch (error: any) {
-        console.error(`Error updating assistant: ${error.message}`);
-        throw error;
-      }
+        return transformUpdateAssistantInput(data, existingAssistant);
+      });
+      const updatedAssistant = await vapiClient.assistants.update({
+        ...updateAssistantDto,
+        id: assistantId,
+      });
+      return transformAssistantOutput(updatedAssistant);
     })
   );
 };

@@ -21,6 +21,7 @@ type ExecutionErrorDescriptor = {
   tool?: string;
   outcome: 'uncertain' | 'failed';
   recovery: string;
+  details?: string[];
   retryAfterMs?: number;
   requestId?: string;
 };
@@ -98,11 +99,54 @@ function statusCodeFrom(error: unknown): number | undefined {
     : undefined;
 }
 
+// Translate recognized diagnostics to fixed text. Upstream messages can
+// contain arbitrary submitted values, including credentials without a prefix.
+const clientErrorDiagnostics: ReadonlyArray<readonly [RegExp, string]> = [
+  [/^(?:assistant\.)?voice\.voiceId (?:must be one of|is invalid)\b/i, 'Check the voiceId supported by the selected voice provider.'],
+  [/^(?:assistant\.)?voice\.provider (?:must be one of|is invalid)\b/i, 'Check the supported voice providers.'],
+  [/^(?:assistant\.)?model\.model (?:must be one of|is invalid)\b/i, 'Check the model supported by the selected model provider.'],
+  [/^(?:assistant\.)?transcriber\.model (?:must be one of|is invalid)\b/i, 'Check the model supported by the selected transcriber provider.'],
+  [/^phone ?number\b[^\r\n]*\bnot found\b/i, 'The phone number was not found. Check the phoneNumberId and connected account.'],
+  [/^(?:assistant\b[^\r\n]*\bnot found\b|invalid assistant (?:id|reference)\b)/i, 'Check that the assistant reference exists in the connected account.'],
+  [/^tool\b[^\r\n]*\bnot found\b/i, 'Check that the referenced tool exists in the connected account.'],
+  [/^(?:missing (?:provider )?credentials?\b|(?:provider )?credentials? (?:not found|missing)\b)/i, 'Check that the required provider credential is configured in Vapi.'],
+];
+
+function clientErrorDetails(body: unknown): string[] {
+  if (!body || typeof body !== 'object') return [];
+  const message = (body as { message?: unknown }).message;
+  const messages = Array.isArray(message) ? message.slice(0, 10) : [message];
+  const details = new Set<string>();
+  for (const item of messages) {
+    if (typeof item !== 'string') continue;
+    const diagnostic = clientErrorDiagnostics.find(([pattern]) => pattern.test(item.slice(0, 512).trim()));
+    if (diagnostic) details.add(diagnostic[1]);
+  }
+  return [...details].slice(0, 3);
+}
+
+class WritePreparationError extends Error {
+  constructor(cause: unknown) {
+    super('Write preparation failed.', { cause });
+  }
+}
+
+export async function prepareWrite<T>(prepare: () => Promise<T>): Promise<T> {
+  try {
+    return await prepare();
+  } catch (error) {
+    throw new WritePreparationError(error);
+  }
+}
+
 export function createErrorResponse(error: unknown, context: ErrorResponseContext = {}): CallToolResult {
-  const details = error && typeof error === 'object'
-    ? error as { name?: unknown; rawResponse?: { status?: unknown; headers?: unknown } }
+  const preparationError = error instanceof WritePreparationError ? error : undefined;
+  const upstreamError: unknown = preparationError ? preparationError.cause : error;
+  const write = context.write === true && !preparationError;
+  const details = upstreamError && typeof upstreamError === 'object'
+    ? upstreamError as { name?: unknown; body?: unknown; rawResponse?: { status?: unknown; headers?: unknown } }
     : undefined;
-  const status = statusCodeFrom(error);
+  const status = statusCodeFrom(upstreamError);
   const responseStatus = typeof details?.rawResponse?.status === 'number'
     ? details.rawResponse.status
     : undefined;
@@ -121,13 +165,22 @@ export function createErrorResponse(error: unknown, context: ErrorResponseContex
         : 'EXECUTION_FAILED';
   const retryAfterMs = retryAfterFrom(details?.rawResponse?.headers);
   const requestId = requestIdFrom(details?.rawResponse?.headers);
-  const recovery = recoveryFor(status, context.write === true, retryAfterMs);
-  const outcome = context.write === true && (
+  const outcome = write && (
     status === undefined || status === 408 || status === 429 || status >= 500
   ) ? 'uncertain' : 'failed';
-  const action = outcome === 'uncertain'
-    ? `The request may have reached Vapi. ${recovery}`
-    : recovery;
+  const uncertainCall = outcome === 'uncertain' && context.tool === 'create_call';
+  const recovery = uncertainCall
+    ? 'Call creation outcome is unknown after one request. Check Vapi call history before retrying.' +
+      (status === 429 && retryAfterMs !== undefined ? ' Observe the indicated retry delay.' : '')
+    : recoveryFor(status, write, retryAfterMs);
+  const action = preparationError
+    ? `The write was not attempted. ${recovery}`
+    : outcome === 'uncertain' && !uncertainCall
+      ? `The request may have reached Vapi. ${recovery}`
+      : recovery;
+  const upstreamDetails = status !== undefined && status >= 400 && status < 500
+    ? clientErrorDetails(details?.body)
+    : [];
   const message = context.tool
     ? status === undefined
       ? `${context.tool} failed: ${source === 'transport' ? 'Vapi could not be reached.' : 'execution failed.'} ${action}`
@@ -142,6 +195,7 @@ export function createErrorResponse(error: unknown, context: ErrorResponseContex
     ...(context.tool ? { tool: context.tool } : {}),
     outcome,
     recovery,
+    ...(upstreamDetails.length ? { details: upstreamDetails } : {}),
     ...(retryAfterMs === undefined ? {} : { retryAfterMs }),
     ...(requestId ? { requestId } : {}),
   };
@@ -150,7 +204,7 @@ export function createErrorResponse(error: unknown, context: ErrorResponseContex
     content: [
       {
         type: 'text' as const,
-        text: message,
+        text: [message, ...upstreamDetails].join(' '),
       },
     ],
     structuredContent: { error: errorDescriptor },

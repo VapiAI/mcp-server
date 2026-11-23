@@ -12,12 +12,13 @@ export const ListInputSchema = z.strictObject({
 
 // Only options shared by the deployed GET /call contract and server SDK v3.
 // Keep one API row available for pagination lookahead (API maximum: 1000).
+export const CALL_LIST_LIMIT_MAX = 100;
 const CallListTimestamp = z.string().meta({ format: 'date-time' }).pipe(z.iso.datetime({ offset: true })).optional();
 export const ListCallsInputSchema = ListInputSchema.extend({
   id: z.uuid().optional().describe('Filter by call ID.'),
   assistantId: z.uuidv4().optional().describe('Filter by assistant ID.'),
   phoneNumberId: z.uuidv4().optional().describe('Filter by phone number ID.'),
-  limit: z.number().int().min(1).max(100).optional().describe('Maximum calls per page (1–100; default 10).'),
+  limit: z.number().int().min(1).max(CALL_LIST_LIMIT_MAX).optional().describe('Maximum calls per page (1–100; default 10).'),
   createdAtGt: CallListTimestamp.describe('Created after this ISO timestamp (exclusive).'),
   createdAtLt: CallListTimestamp.describe('Created before this ISO timestamp (exclusive); combined with before using the earlier bound.'),
   createdAtGe: CallListTimestamp.describe('Created at or after this ISO timestamp.'),

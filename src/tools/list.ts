@@ -27,10 +27,13 @@ export function v1ListPage<T extends { createdAt: string }>(rows: T[], pageSize 
 export function createV1ListHandler<T extends { createdAt: string }, R, Q extends { limit?: number; createdAtLt?: string }>(
   list: (request: Q) => Promise<T[]>,
   transform: (row: T) => R,
+  options: { maxPageSize?: number } = {},
 ) {
   return async (data: Q & { before?: string }) => {
     try {
       const pageSize = data.limit ?? PAGE_SIZE;
+      // List schemas must stay strict: every field except `before` is an SDK
+      // query field. Remove any future MCP-only fields here before forwarding.
       const request = { ...data, limit: pageSize + 1 };
       delete request.before;
       // A continuation narrows the original query, even if its caller supplies
@@ -39,6 +42,11 @@ export function createV1ListHandler<T extends { createdAt: string }, R, Q extend
         request.createdAtLt = data.before;
       }
       const page = v1ListPage(await list(request), pageSize);
+      if (page.pagination.warning && options.maxPageSize) {
+        page.pagination.warning += pageSize < options.maxPageSize
+          ? ` Retry this same page with the same filters and before, increasing limit up to ${options.maxPageSize}; replace the blocked page's results with the retry's results.`
+          : ` The maximum limit is ${options.maxPageSize}. Narrow the filters to reduce the timestamp group.`;
+      }
       const results = page.results.map(transform);
       const response = createSuccessResponse(results);
       return {

@@ -117,6 +117,43 @@ describe('list_calls v1 filters', () => {
       pageSize: limit, hasMore: true, nextBefore: null,
       warning: expect.stringContaining(`more than ${limit} items share`),
     });
+    if (limit < 100) {
+      expect(page.pagination.warning).toContain('same filters and before, increasing limit up to 100');
+      expect(page.pagination.warning).toContain("replace the blocked page's results");
+    } else {
+      expect(page.pagination.warning).toContain('The maximum limit is 100. Narrow the filters');
+      expect(page.pagination.warning).not.toContain('increasing limit');
+    }
+  });
+
+  test('recovers a blocked timestamp group by retrying the same page with a larger limit', async () => {
+    const items = rows(4);
+    items[1].createdAt = items[2].createdAt = items[0].createdAt;
+    const list = jest.fn(async (request: Vapi.ListCallsRequest) => items
+      .filter(item => item.phoneNumberId === request.phoneNumberId && item.assistantId === request.assistantId)
+      .filter(item => !request.createdAtLt || item.createdAt < request.createdAtLt)
+      .slice(0, request.limit));
+    const client = await connect({ calls: { list } } as unknown as VapiClient);
+    const filters = { assistantId, phoneNumberId, createdAtGe: timestamp(100) };
+    const args = { ...filters, before: timestamp(-1), limit: 1 };
+    const blocked = (await client.callTool({ name: 'list_calls', arguments: args })).structuredContent as Page;
+    expect(blocked.pagination.nextBefore).toBeNull();
+    expect(blocked.pagination.warning).toContain('increasing limit');
+
+    const retry = (await client.callTool({ name: 'list_calls', arguments: { ...args, limit: 3 } })).structuredContent as Page;
+    expect(retry.pagination.warning).toBeUndefined();
+    expect(retry.pagination.nextBefore).toBe(items[0].createdAt);
+    const next = (await client.callTool({ name: 'list_calls', arguments: {
+      ...filters, before: retry.pagination.nextBefore, limit: 3,
+    } })).structuredContent as Page;
+    expect(next.pagination.hasMore).toBe(false);
+    // Replace the incomplete blocked page rather than appending it twice.
+    expect([...retry.results, ...next.results].map(item => item.id)).toEqual(items.map(item => item.id));
+    expect(list.mock.calls.map(([request]) => request)).toEqual([
+      { ...filters, createdAtLt: args.before, limit: 2 },
+      { ...filters, createdAtLt: args.before, limit: 4 },
+      { ...filters, createdAtLt: retry.pagination.nextBefore, limit: 4 },
+    ]);
   });
 
   test('rejects invalid or unsupported input before the API is called', async () => {

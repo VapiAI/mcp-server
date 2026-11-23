@@ -437,7 +437,7 @@ describe('MCP tool execution compatibility', () => {
       assistantId: assistant.id,
       phoneNumberId: phoneNumber.id,
       customer: { number: '+15555550100' },
-    });
+    }, { maxRetries: 0 });
   });
 
   test('create_tool preserves an API request tool payload', async () => {

@@ -68,7 +68,9 @@ export const registerSimulationTools = (
     'create_simulation_personality',
     {
       description:
-        'Creates a simulation personality: the simulated caller that talks to the assistant under test',
+        'Creates a simulation personality: the voice-agent configuration and behavior of the simulated caller that tests a Vapi assistant. ' +
+        'Pair its ID with a scenario in create_simulation. ' +
+        'For optional guidance on realistic caller behavior and test design, load the public simulations skill with load_skill({"name":"simulations"}).',
       inputSchema: CreateSimulationPersonalityInputSchema,
       annotations: creates('Create Simulation Personality'),
     },
@@ -101,7 +103,9 @@ export const registerSimulationTools = (
     'create_simulation_scenario',
     {
       description:
-        'Creates a simulation scenario: instructions for the tester plus evaluations that decide whether the assistant passed',
+        'Creates a test case: instructions for the simulated caller and evaluations that determine whether the assistant succeeds. ' +
+        'Pair its ID with a personality in create_simulation. ' +
+        'For optional guidance on observable requirements and pass/fail criteria, load the public simulations skill with load_skill({"name":"simulations"}).',
       inputSchema: CreateSimulationScenarioInputSchema,
       annotations: creates('Create Simulation Scenario'),
     },
@@ -134,7 +138,9 @@ export const registerSimulationTools = (
     'create_simulation',
     {
       description:
-        'Creates a simulation that pairs a scenario with a personality. Run it with run_simulations.',
+        'Creates a reusable test that pairs a scenario (what to test and how to judge it) with a personality (the simulated caller). ' +
+        'Use the returned ID with run_simulations to test an assistant or squad. ' +
+        'For optional guidance on test coverage and configuration, load the public simulations skill with load_skill({"name":"simulations"}).',
       inputSchema: CreateSimulationInputSchema,
       annotations: creates('Create Simulation'),
     },
@@ -163,7 +169,9 @@ export const registerSimulationTools = (
     'create_simulation_suite',
     {
       description:
-        'Creates a simulation suite that groups simulations so they can be run together',
+        'Groups existing simulations into a named test suite so they can be run together against an assistant or squad. ' +
+        'Use the returned suite ID with run_simulations. ' +
+        'For optional guidance on organizing coverage and maintaining a regression suite, load the public simulations skill with load_skill({"name":"simulations"}).',
       inputSchema: CreateSimulationSuiteInputSchema,
       annotations: creates('Create Simulation Suite'),
     },
@@ -180,8 +188,10 @@ export const registerSimulationTools = (
     'run_simulations',
     {
       description:
-        'Starts a simulation run of simulations and/or suites against an assistant or squad. ' +
-        'Returns the run with its ID and a dashboard URL to share with the user. Check progress with get_simulation_run.',
+        'Starts a test run of simulations or suites against an assistant or squad to evaluate its behavior. ' +
+        'Runs can consume credits and invoke the target\'s real tools unless those tools are mocked. ' +
+        'Returns a run ID and dashboard URL; use get_simulation_run for progress and get_simulation_run_item for detailed results. ' +
+        'For optional guidance on test targets, mocks, and run settings, load the public simulations skill with load_skill({"name":"simulations"}).',
       inputSchema: RunSimulationsInputSchema,
       annotations: creates('Run Simulations'),
     },

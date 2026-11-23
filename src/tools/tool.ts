@@ -6,7 +6,7 @@ import { VapiClient, Vapi } from '@vapi-ai/server-sdk';
 import { ListInputSchema, GetToolInputSchema, CreateToolInputSchema, UpdateToolInputSchema } from '../schemas/index.js';
 import { transformToolInput, transformUpdateToolInput, transformToolOutput } from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
-import { containsRedactionMarker } from '../utils/redact.js';
+import { containsRedactionMarker } from '../utils/credential-redaction.js';
 import { createV1ListHandler } from './list.js';
 
 export const registerToolTools = (

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { redactCredentials, redactErrorMessage } from '../utils/redact.js';
+import { redactCredentials, redactErrorMessage } from '../utils/credential-redaction.js';
 
 export type ToolResponse = {
   content: Array<{ type: 'text'; text: string }>;

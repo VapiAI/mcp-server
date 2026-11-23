@@ -5,7 +5,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { registerAllTools } from './tools/index.js';
 import { createVapiClient } from './client.js';
-import { redactErrorMessage } from './utils/redact.js';
+import { redactErrorMessage } from './utils/credential-redaction.js';
 
 import dotenv from 'dotenv';
 dotenv.config();

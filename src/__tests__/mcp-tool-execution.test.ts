@@ -5,7 +5,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient } from '@vapi-ai/server-sdk';
 import { registerAllTools } from '../tools/index.js';
 import { parseToolResponse } from '../utils/response.js';
-import { redactCredentials, redactErrorMessage } from '../utils/redact.js';
+import { redactCredentials, redactErrorMessage } from '../utils/credential-redaction.js';
 
 const timestamp = '2026-01-01T00:00:00.000Z';
 

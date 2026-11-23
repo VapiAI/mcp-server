@@ -14,7 +14,7 @@ import {
   transformUpdateAssistantInput,
 } from '../transformers/index.js';
 import { createToolHandler } from './utils.js';
-import { redactErrorMessage } from '../utils/redact.js';
+import { redactErrorMessage } from '../utils/credential-redaction.js';
 import { createV1ListHandler } from './list.js';
 
 export const registerAssistantTools = (

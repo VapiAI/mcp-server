@@ -1,5 +1,5 @@
 import { createErrorResponse, createSuccessResponse } from './utils.js';
-import { redactCredentials } from '../utils/redact.js';
+import { redactCredentials } from '../utils/credential-redaction.js';
 
 const PAGE_SIZE = 10;
 

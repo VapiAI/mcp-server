@@ -11,7 +11,7 @@ import {
   CreateToolInputSchema,
   UpdateToolInputSchema,
 } from '../schemas/index.js';
-import { isRedactedHeader, REDACTED } from '../utils/redact.js';
+import { isRedactedHeader, REDACTED } from '../utils/credential-redaction.js';
 
 // ===== Assistant Transformers =====
 

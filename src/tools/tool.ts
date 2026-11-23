@@ -68,11 +68,11 @@ export const registerToolTools = (
       annotations: updates('Update Tool'),
     },
     createToolHandler(async (data) => {
-      if (containsRedactionMarker(data)) {
-        throw new Error('Redacted display values cannot be used in an update. Omit them or supply replacement credentials.');
-      }
       const existingTool = await vapiClient.tools.get({ id: data.toolId });
       const updateToolDto = transformUpdateToolInput(data, existingTool);
+      if (containsRedactionMarker(updateToolDto)) {
+        throw new Error('Redacted display values cannot be used in an update. Supply replacement credentials for those values.');
+      }
       const tool = await vapiClient.tools.update({
         id: data.toolId,
         body: updateToolDto,

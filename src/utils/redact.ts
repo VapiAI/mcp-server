@@ -1,83 +1,116 @@
-const SECRET_FIELD = /^(?:authorization|proxy-authorization|cookie|set-cookie|x-vapi-secret|(?:x[-_])?api[-_]?key|access[-_]?token|refresh[-_]?token|client[-_]?secret|password|passwd|secret|credential|private[-_]?key)$/i;
-const REDACTED = '[REDACTED]';
+import { VapiError } from '@vapi-ai/server-sdk';
 
-export function containsRedactionMarker(value: unknown): boolean {
-  if (typeof value === 'string') return value.includes(REDACTED);
-  if (Array.isArray(value)) return value.some(containsRedactionMarker);
-  return !!value && typeof value === 'object' && Object.values(value).some(containsRedactionMarker);
-}
+const SECRET_FIELD = /token|secret|key|auth|password|passwd|signature|cookie/i;
+const EXACT_SECRET_FIELDS = ['sig', 'credential'];
+const INLINE_CREDENTIAL = new RegExp(
+  String.raw`(^|[^\w.-])([\w.-]*(?:${SECRET_FIELD.source})[\w.-]*|${EXACT_SECRET_FIELDS.join('|')})(["']?\s*[:=]\s*)(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s,;{}&]+)`,
+  'gi'
+);
+const CREDENTIAL_REFERENCE = /^credential[-_]?ids?$/i;
+const SAFE_HEADERS = new Set(['accept', 'content-type']);
+export const REDACTED = '[REDACTED]';
 
 function isSecretField(key: string): boolean {
-  // Keep credential references/IDs useful for support and reconciliation.
-  return SECRET_FIELD.test(key);
+  return !CREDENTIAL_REFERENCE.test(key) && (SECRET_FIELD.test(key) || EXACT_SECRET_FIELDS.includes(key.toLowerCase()));
+}
+
+export function isRedactedHeader(name: string): boolean {
+  return !SAFE_HEADERS.has(name.toLowerCase());
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+export function containsRedactionMarker(value: unknown): boolean {
+  if (typeof value === 'string') {
+    let found = false;
+    replaceUrlCredentials(value, credential => {
+      found ||= credential.includes(REDACTED) || /%5bredacted%5d/i.test(credential);
+      return credential;
+    });
+    return found;
+  }
+  if (Array.isArray(value)) return value.some(containsRedactionMarker);
+  if (!isRecord(value)) return false;
+
+  return Object.entries(value).some(([key, item]) => {
+    if (key.toLowerCase() === 'headers' && isRecord(item)) {
+      return Object.entries(item).some(([name, header]) =>
+        (isRedactedHeader(name) && header === REDACTED) || containsRedactionMarker(header)
+      );
+    }
+    return (isSecretField(key) && item === REDACTED) || containsRedactionMarker(item);
+  });
 }
 
 /** Redacts credential-bearing fields and URLs without modifying the source object. */
 export function redactCredentials<T>(value: T): T {
-  if (typeof value === 'string') return redactCredentialText(value, false) as T;
+  if (typeof value === 'string') return replaceUrlCredentials(value, () => REDACTED) as T;
   if (Array.isArray(value)) return value.map((item) => redactCredentials(item)) as T;
-  if (!value || typeof value !== 'object') return value;
+  if (!isRecord(value)) return value;
 
   return Object.fromEntries(
     Object.entries(value).map(([key, item]) => {
-      // A JSON Schema property name is a contract label, not a credential value.
+      if (key.toLowerCase() === 'headers' && isRecord(item)) {
+        return [key, Object.fromEntries(
+          Object.entries(item).map(([name, header]) => [
+            name, isRedactedHeader(name) ? REDACTED : redactCredentials(header),
+          ])
+        )];
+      }
+
+      // JSON Schema property names are contract labels. Object schemas may omit type.
       if (
         key === 'properties' &&
-        (value as { type?: unknown }).type === 'object' &&
-        item &&
-        typeof item === 'object' &&
-        !Array.isArray(item)
+        (value.type === undefined || value.type === 'object') &&
+        isRecord(item) &&
+        Object.values(item).every(schema => isRecord(schema) || typeof schema === 'boolean')
       ) {
-        return [
-          key,
-          Object.fromEntries(
-            Object.entries(item).map(([property, schema]) => [
-              property,
-              redactCredentials(schema),
-            ])
-          ),
-        ];
+        return [key, Object.fromEntries(
+          Object.entries(item).map(([property, schema]) => [property, redactCredentials(schema)])
+        )];
       }
       return [key, isSecretField(key) ? REDACTED : redactCredentials(item)];
     })
   ) as T;
 }
 
-/** Formats an exception for a public result or diagnostic without exposing its body. */
+/** Formats an exception for a public result or diagnostic with its credentials masked. */
 export function redactErrorMessage(error: unknown): string {
-  const message =
-    error instanceof Error
-      ? error.message
-      : error && typeof error === 'object' && 'message' in error
-        ? String(error.message)
-        : String(error);
-  return redactCredentialText(message, true);
+  let message =
+    error && typeof error === 'object' && 'message' in error
+      ? String(error.message)
+      : String(error);
+
+  // The SDK appends the serialized body to the message. Sanitize its structure
+  // first so even arbitrary header names inside that body are covered.
+  if (error instanceof VapiError && (isRecord(error.body) || Array.isArray(error.body))) {
+    const bodyLabel = /(?:^|\n)Body: /.exec(message);
+    if (bodyLabel) {
+      const bodyStart = bodyLabel.index + bodyLabel[0].length;
+      message = message.slice(0, bodyStart) + JSON.stringify(redactCredentials(error.body), null, 2);
+    }
+  }
+
+  return replaceUrlCredentials(message, () => REDACTED)
+    // Cookie lines can contain multiple semicolon-delimited credential values.
+    .replace(/\b((?:set-)?cookie\s*:\s*)[^\r\n]*/gi, `$1${REDACTED}`)
+    .replace(/\b(Bearer|Basic)\s+[^\s,;"']+/gi, `$1 ${REDACTED}`)
+    .replace(INLINE_CREDENTIAL, (match, prefix: string, key: string, separator: string) =>
+      isSecretField(key) ? `${prefix}${key}${separator}${REDACTED}` : match
+    );
 }
 
-function redactCredentialText(text: string, redactInlineCredentials: boolean): string {
-  let safeText = text
-    // Credentials embedded in URL userinfo.
-    .replace(/(https?:\/\/)[^\s/@]+@/gi, `$1${REDACTED}@`)
-    // Secret query parameters, preserving the URL and all ordinary parameters.
-    .replace(/([?&])([^=&#\s]+)=([^&#\s]*)/g, (match, separator: string, key: string) => {
+function replaceUrlCredentials(text: string, replace: (credential: string) => string): string {
+  return text
+    .replace(/(https?:\/\/)([^\s/@?#"'<>]+)@/gi, (_, scheme: string, credential: string) => `${scheme}${replace(credential)}@`)
+    .replace(/([?&])([^=&#\s"'<>]+)=([^&#\s"'<>]*)/g, (match, separator: string, key: string, credential: string) => {
       try {
         return isSecretField(decodeURIComponent(key.replace(/\+/g, ' ')))
-          ? `${separator}${key}=${REDACTED}` : match;
+          ? `${separator}${key}=${replace(credential)}` : match;
       } catch {
         return match;
       }
     });
-
-  if (redactInlineCredentials) {
-    safeText = safeText
-      // A Cookie header contains semicolon-delimited credentials; redact the whole line.
-      .replace(/\b((?:set-)?cookie\s*:\s*)[^\r\n]*/gi, `$1${REDACTED}`)
-      // Common authorization values in upstream error messages and bodies.
-      .replace(/\b(Bearer|Basic)\s+[^\s,;"']+/gi, `$1 ${REDACTED}`)
-      .replace(
-        /((?:authorization|proxy-authorization|cookie|set-cookie|x-vapi-secret|api[-_]?key|access[-_]?token|refresh[-_]?token|client[-_]?secret|password|passwd|secret|credential|private[-_]?key)["']?\s*[:=]\s*)(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s,;}&]+)/gi,
-        `$1${REDACTED}`
-      );
-  }
-  return safeText;
 }

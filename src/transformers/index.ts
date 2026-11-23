@@ -11,6 +11,7 @@ import {
   CreateToolInputSchema,
   UpdateToolInputSchema,
 } from '../schemas/index.js';
+import { isRedactedHeader, REDACTED } from '../utils/redact.js';
 
 // ===== Assistant Transformers =====
 
@@ -326,6 +327,46 @@ export function transformToolInput(
   return toolDto;
 }
 
+function urlOrigin(url: string): string | undefined {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return undefined;
+  }
+}
+
+function preserveRedactedHeaders(
+  submitted: Record<string, unknown> | null | undefined,
+  stored: Record<string, unknown> | undefined,
+  submittedUrl?: string,
+  storedUrl?: string
+): Record<string, unknown> | undefined {
+  const headers = new Map(Object.entries(submitted ?? {}).map(([name, value]) => [
+    name.toLowerCase(), { name, value },
+  ]));
+  const storedOrigin = storedUrl && urlOrigin(storedUrl);
+  const sameDestination = submittedUrl === storedUrl ||
+    (!!storedOrigin && storedOrigin !== 'null' && !!submittedUrl && urlOrigin(submittedUrl) === storedOrigin);
+
+  for (const [name, value] of Object.entries(stored ?? {})) {
+    if (!isRedactedHeader(name)) continue;
+    const normalized = name.toLowerCase();
+    const replacement = headers.get(normalized);
+    if (replacement && replacement.value !== REDACTED) continue;
+
+    if (!sameDestination) {
+      throw new Error('Supply replacement credentials for stored headers when changing the URL origin.');
+    }
+    if (value === REDACTED) {
+      throw new Error('A stored header value is redacted. Supply replacement credentials for that header.');
+    }
+    headers.set(normalized, { name: replacement?.name ?? name, value });
+  }
+
+  if (submitted === undefined) return undefined;
+  return Object.fromEntries([...headers.values()].map(({ name, value }) => [name, value]));
+}
+
 export function transformUpdateToolInput(
   input: z.infer<typeof UpdateToolInputSchema>,
   existing?: Vapi.GetToolsResponse
@@ -389,6 +430,19 @@ export function transformUpdateToolInput(
 
   if (input.additionalFields) {
     Object.assign(updateDto, input.additionalFields);
+  }
+
+  if (updateDto.server && typeof updateDto.server === 'object') {
+    const submittedServer = Object.hasOwn(input.additionalFields ?? {}, 'server')
+      ? input.additionalFields?.server
+      : input.function?.server;
+    const headers = preserveRedactedHeaders(
+      submittedServer?.headers, existingServer?.headers, updateDto.server.url, existingServer?.url
+    );
+    const updatedHeaders = headers ?? existingServer?.headers;
+    if (updatedHeaders !== undefined) {
+      updateDto.server = { ...updateDto.server, headers: updatedHeaders };
+    }
   }
 
   return updateDto;

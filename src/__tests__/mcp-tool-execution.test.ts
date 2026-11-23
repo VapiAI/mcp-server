@@ -11,7 +11,7 @@ const timestamp = '2026-01-01T00:00:00.000Z';
 
 test.each([
   { nested: { password: 'a"sdk-secret\\tail' }, message: 'failed' },
-  { nested: { server: { headers: { Cookie: 'session=sdk-secret; auth=tail' } } } },
+  { nested: { server: { headers: { Cookie: 'session=sdk-secret; auth=tail', 'X-Region': 'sdk-secret' } } } },
   { url: 'https://example.test/?a%70i_key=sdk-secret&API_KEY=tail&region=us' },
 ])('real Vapi SDK error body is redacted across MCP and stderr: %j', async (body) => {
   let attempts = 0;
@@ -146,6 +146,23 @@ describe('MCP tool execution compatibility', () => {
     expect(text).not.toContain('synthetic-one');
     expect(text).not.toContain('synthetic-two');
     expect(redactCredentials({ credentialId: 'safe-id', credentialIds: ['safe-id'] })).toEqual({ credentialId: 'safe-id', credentialIds: ['safe-id'] });
+  });
+
+  test('matches credential names consistently in results, errors, and query parameters', () => {
+    const fields = {
+      apiSecret: 'synthetic-secret',
+      authToken: 'synthetic-secret',
+      bearerToken: 'synthetic-secret',
+      'Ocp-Apim-Subscription-Key': 'synthetic-secret',
+    };
+    const url = 'https://example.test/?token=synthetic-secret&key=synthetic-secret&sig=synthetic-secret&auth=synthetic-secret&region=us';
+    expect(redactCredentials(fields)).toEqual(
+      Object.fromEntries(Object.keys(fields).map(name => [name, '[REDACTED]']))
+    );
+    expect(JSON.stringify(redactCredentials({ url }))).not.toContain('synthetic-secret');
+    const diagnostic = redactErrorMessage(new Error(`${url} ${JSON.stringify(fields)}`));
+    expect(diagnostic).not.toContain('synthetic-secret');
+    expect(diagnostic).toContain('region=us');
   });
 
   test('redacts encoded URL keys and escaped JSON credential values', () => {
@@ -512,7 +529,6 @@ describe('MCP tool execution compatibility', () => {
       function: {
         ...tool.function,
         parameters: {
-          type: 'object',
           properties: {
             password: { type: 'string', description: 'Tool input label' },
           },
@@ -523,7 +539,14 @@ describe('MCP tool execution compatibility', () => {
         headers: {
           Authorization: `Bearer ${secret}`,
           'X-Vapi-Secret': secret,
-          'X-Region': 'us-east',
+          'X-Region': 'private-region-value',
+          'X-Auth-Token': secret,
+          'X-Access-Token': secret,
+          'X-API-Token': secret,
+          'X-Webhook-Secret': secret,
+          'X-Client-Secret': secret,
+          'Ocp-Apim-Subscription-Key': secret,
+          'Content-Type': 'application/json',
         },
       },
     };
@@ -541,7 +564,8 @@ describe('MCP tool execution compatibility', () => {
     expect(serialized).not.toContain('query-secret');
     expect(serialized).toContain('[REDACTED]');
     expect(serialized).toContain('X-Region');
-    expect(serialized).toContain('us-east');
+    expect(serialized).not.toContain('private-region-value');
+    expect(serialized).toContain('application/json');
     expect(serialized).toContain('password');
     expect(serialized).toContain('Tool input label');
     expect(sourceTool.server.headers.Authorization).toBe(`Bearer ${secret}`);
@@ -553,7 +577,7 @@ describe('MCP tool execution compatibility', () => {
       ...tool,
       server: {
         url: 'https://example.test/tools?a%70i_key=list-query-secret&API_KEY=list-query-secret&region=us',
-        headers: { Authorization: `Bearer ${secret}`, 'X-Region': 'us-east' },
+        headers: { Authorization: `Bearer ${secret}`, 'X-Region': 'private-region-value', Accept: 'application/json' },
       },
     }] as any);
 
@@ -564,7 +588,8 @@ describe('MCP tool execution compatibility', () => {
     expect(serialized).not.toContain('list-query-secret');
     expect(serialized).toContain('[REDACTED]');
     expect(serialized).toContain('X-Region');
-    expect(serialized).toContain('us-east');
+    expect(serialized).not.toContain('private-region-value');
+    expect(serialized).toContain('application/json');
     expect(response.structuredContent).toBeDefined();
   });
 
@@ -596,24 +621,83 @@ describe('MCP tool execution compatibility', () => {
     expect(JSON.stringify(vapiOperations.tools.update.mock.lastCall)).not.toContain('[REDACTED]');
   });
 
-  test('rejects echoed redaction markers before an update', async () => {
-    const source = { ...tool, server: { ...tool.server, headers: { Authorization: 'Bearer stored-secret' } } };
-    vapiOperations.tools.get.mockResolvedValueOnce(source as any);
-    const read = parseToolResponse(await client.callTool({ name: 'get_tool', arguments: { toolId: tool.id } }));
-    const beforeGet = vapiOperations.tools.get.mock.calls.length;
-    const beforeUpdate = vapiOperations.tools.update.mock.calls.length;
-    const response = await client.callTool({ name: 'update_tool', arguments: {
-      toolId: tool.id, function: { parameters: read.parameters, server: read.server },
+  test.each([false, true])('a header edit preserves stored credentials (echoed marker: %s)', async (echoMarker) => {
+    const storedHeaders = {
+      Authorization: 'Bearer stored-secret',
+      'X-Custom': 'another-stored-secret',
+      Accept: 'application/json',
+    };
+    vapiOperations.tools.get.mockResolvedValueOnce({
+      ...tool, server: { ...tool.server, headers: storedHeaders },
+    });
+    const description = 'The status message can literally say [REDACTED].';
+
+    await client.callTool({ name: 'update_tool', arguments: {
+      toolId: tool.id, description,
+      function: {
+        parameters: tool.function.parameters,
+        server: {
+          url: tool.server.url,
+          headers: {
+            ...(echoMarker ? { authorization: '[REDACTED]' } : {}),
+            'Content-Type': 'text/plain',
+          },
+        },
+      },
     } });
-    expect(JSON.stringify(response)).toContain('supply replacement credentials');
-    expect(vapiOperations.tools.get).toHaveBeenCalledTimes(beforeGet);
-    expect(vapiOperations.tools.update).toHaveBeenCalledTimes(beforeUpdate);
-    expect(source.server.headers.Authorization).toBe('Bearer stored-secret');
+
+    expect(vapiOperations.tools.update).toHaveBeenLastCalledWith({
+      id: tool.id,
+      body: {
+        function: { ...tool.function, description },
+        server: {
+          ...tool.server,
+          headers: {
+            [echoMarker ? 'authorization' : 'Authorization']: storedHeaders.Authorization,
+            'X-Custom': storedHeaders['X-Custom'],
+            'Content-Type': 'text/plain',
+          },
+        },
+      },
+    });
   });
 
-  test('accepts a real replacement credential', async () => {
+  test('a passthrough server edit preserves stored credential headers', async () => {
+    vapiOperations.tools.get.mockResolvedValueOnce({
+      ...tool, server: { ...tool.server, headers: { 'X-Custom': 'stored-secret' } },
+    });
     await client.callTool({ name: 'update_tool', arguments: {
-      toolId: tool.id, function: { parameters: tool.function.parameters, server: { url: tool.server.url, headers: { Authorization: 'Bearer replacement-secret' } } },
+      toolId: tool.id,
+      additionalFields: { server: { url: tool.server.url, timeoutSeconds: 15 } },
+    } });
+    expect(vapiOperations.tools.update).toHaveBeenLastCalledWith({
+      id: tool.id,
+      body: { server: { url: tool.server.url, timeoutSeconds: 15, headers: { 'X-Custom': 'stored-secret' } } },
+    });
+  });
+
+  test.each([
+    { url: tool.server.url, headers: { 'X-New': '[REDACTED]' } },
+    { url: 'https://example.test/tools?token=[REDACTED]' },
+    { url: 'https://other.example.test/tools', headers: { Accept: 'application/json' } },
+  ])('rejects unresolved placeholders and credential reuse across origins: %j', async (serverInput) => {
+    vapiOperations.tools.get.mockResolvedValueOnce({
+      ...tool, server: { ...tool.server, headers: { Authorization: 'Bearer stored-secret' } },
+    });
+    const beforeUpdate = vapiOperations.tools.update.mock.calls.length;
+    const response = await client.callTool({ name: 'update_tool', arguments: {
+      toolId: tool.id, function: { parameters: tool.function.parameters, server: serverInput },
+    } });
+    expect(JSON.stringify(response)).toContain('Supply replacement credentials');
+    expect(vapiOperations.tools.update).toHaveBeenCalledTimes(beforeUpdate);
+  });
+
+  test('accepts a real replacement credential at a different origin', async () => {
+    vapiOperations.tools.get.mockResolvedValueOnce({
+      ...tool, server: { ...tool.server, headers: { authorization: 'Bearer stored-secret' } },
+    });
+    await client.callTool({ name: 'update_tool', arguments: {
+      toolId: tool.id, function: { parameters: tool.function.parameters, server: { url: 'https://other.example.test/tools', headers: { Authorization: 'Bearer replacement-secret' } } },
     } });
     expect(vapiOperations.tools.update).toHaveBeenLastCalledWith(expect.objectContaining({
       body: expect.objectContaining({ server: expect.objectContaining({ headers: { Authorization: 'Bearer replacement-secret' } }) }),

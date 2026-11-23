@@ -83,17 +83,22 @@ function optionIssue(path: PropertyKey[], values: unknown[]): FieldIssue {
 export function registerValidatedTool<Schema extends z.ZodType>(
   server: McpServer,
   name: string,
-  config: { description: string; inputSchema: Schema; annotations: ToolAnnotations },
+  config: {
+    description: string;
+    inputSchema: Schema;
+    annotations: ToolAnnotations;
+    _meta?: Record<string, unknown>;
+  },
   handler: (params: z.output<Schema>) => Promise<ToolResponse>
 ) {
-  const schema = config.inputSchema;
+  const { inputSchema: schema, ...toolConfig } = config;
   // Advertise a compact input summary, but run the full parser exactly once. This
   // boundary lets us format validation failures before the SDK stringifies a
   // raw ZodError. No request reaches the API handler before parsing succeeds.
   const transportSchema = z.object({}).passthrough().meta(summarizeInputSchema(
     z.toJSONSchema(schema, { io: 'input', target: 'draft-07' })
   ));
-  return server.registerTool(name, { description: config.description, inputSchema: transportSchema, annotations: config.annotations }, async raw => {
+  return server.registerTool(name, { ...toolConfig, inputSchema: transportSchema }, async raw => {
     const parsed = await schema.safeParseAsync(raw);
     if (!parsed.success) {
       const all = validationIssues(parsed.error.issues, raw);

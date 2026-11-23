@@ -335,6 +335,12 @@ function urlOrigin(url: string): string | undefined {
   }
 }
 
+/**
+ * A PATCH that includes server.headers replaces the entire header map.
+ * get_tool displays credential values as [REDACTED], so restore the stored
+ * value when an edit omits the header or echoes the placeholder. Explicit
+ * replacements win, and reusing a stored value requires the same URL origin.
+ */
 function preserveRedactedHeaders(
   submitted: Record<string, unknown> | null | undefined,
   stored: Record<string, unknown> | undefined,

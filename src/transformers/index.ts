@@ -111,15 +111,27 @@ export function transformUpdateAssistantInput(
   }
 
   if (input.transcriber) {
-    // PATCH replaces transcriber as a whole. Preserve the stored settings for
-    // the same provider, but do not carry them into a different provider.
+    // PATCH replaces transcriber as a whole, so copy settings for the same provider.
+    const patch = input.transcriber;
     const existingTranscriber = existing?.transcriber;
-    updateDto.transcriber = {
-      ...(existingTranscriber?.provider === input.transcriber.provider
-        ? existingTranscriber
-        : {}),
-      ...input.transcriber,
-    };
+    const storedSettings = existingTranscriber?.provider === patch.provider
+      ? { ...existingTranscriber }
+      : undefined;
+
+    if (
+      storedSettings?.provider === 'deepgram' &&
+      patch.model !== undefined && patch.model !== storedSettings.model
+    ) {
+      // Language support varies by model. Let the new model use its default
+      // unless the caller supplies a language. The API rejects keyterms on
+      // models outside the nova-3 and flux families.
+      delete storedSettings.language;
+      if (!patch.model.includes('nova-3') && !patch.model.includes('flux')) {
+        delete storedSettings.keyterm;
+      }
+    }
+
+    updateDto.transcriber = { ...storedSettings, ...patch };
   }
 
   if (input.voice) {

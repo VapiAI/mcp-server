@@ -1,37 +1,35 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 
 const url = 'https://api.vapi.ai/api-json';
-const cacheDirectory = new URL('../.cache/vapi/', import.meta.url);
-const cachedSpec = new URL('openapi-source.json', cacheDirectory);
-
-async function fetchSpec() {
-  const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
-  if (!response.ok) throw new Error(`OpenAPI fetch failed: HTTP ${response.status}`);
-  return response.text();
+const sdk = '@vapi-ai/server-sdk';
+const { dependencies } = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+const { packages } = JSON.parse(await readFile(new URL('../package-lock.json', import.meta.url), 'utf8'));
+const sdkVersion = packages[`node_modules/${sdk}`]?.version;
+if (!sdkVersion || dependencies[sdk] !== sdkVersion) {
+  throw new Error(`Pin ${sdk} to the exact version in package-lock.json before generating OpenAPI snapshots.`);
 }
 
-async function loadOpenApiSource(input) {
-  let raw;
-  if (!input) {
-    try {
-      raw = await readFile(cachedSpec, 'utf8');
-    } catch (error) {
-      if (error.code !== 'ENOENT') throw error;
-    }
+const specFile = new URL(`../openapi/vapi-sdk-${sdkVersion}.json`, import.meta.url);
+const refresh = process.argv[2] === '--refresh';
+
+async function readSpec() {
+  if (refresh) {
+    const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+    if (!response.ok) throw new Error(`OpenAPI fetch failed: HTTP ${response.status}`);
+    return response.text();
   }
-
-  const cacheSource = raw === undefined;
-  raw ??= input && input !== '--refresh' ? await readFile(input, 'utf8') : await fetchSpec();
-  const spec = JSON.parse(raw);
-  if (spec.openapi !== '3.0.0') throw new Error(`Unexpected dialect: ${spec.openapi}`);
-
-  if (cacheSource) {
-    await mkdir(cacheDirectory, { recursive: true });
-    await writeFile(cachedSpec, raw);
+  try {
+    return await readFile(specFile, 'utf8');
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    throw new Error(`Missing OpenAPI spec for SDK ${sdkVersion}. Run npm run schemas:snapshot -- --refresh to capture it.`);
   }
-
-  return { spec, source: { url, sha256: createHash('sha256').update(raw).digest('hex') } };
 }
 
-export const { spec, source } = await loadOpenApiSource(process.argv[2]);
+const raw = await readSpec();
+export const spec = JSON.parse(raw);
+if (spec.openapi !== '3.0.0') throw new Error(`Unexpected dialect: ${spec.openapi}`);
+if (refresh) await writeFile(specFile, raw);
+
+export const source = { url, sdkVersion, sha256: createHash('sha256').update(raw).digest('hex') };

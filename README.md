@@ -308,18 +308,19 @@ lookup/update IDs, function parameters, transfer destinations, HTTP methods,
 timeouts and retry plans, plus all 12 simulation tools. The four original list
 tools have local empty input schemas.
 
-A source build fetches the [public API spec](https://api.vapi.ai/api-json) the
-first time and caches it at `.cache/vapi/openapi-source.json`. Each build uses
-that source to generate the assistant and simulation validation snapshots under
-`src/schemas/generated/`. Git ignores the cache and the generated directory.
-The build copies the snapshots to `dist/schemas/generated/` for the npm package.
-The server reads the packaged snapshots at startup.
+Builds read the checked-in public API spec at
+`openapi/vapi-sdk-<version>.json`, selected by the exact server SDK version.
+The build generates validation snapshots under `src/schemas/generated/`,
+which Git ignores, and copies them to `dist/schemas/generated/` for the npm
+package. Builds and startup use local files.
 
-Run `npm run schemas:snapshot -- --refresh` to fetch the current public spec, or
-`npm run schemas:snapshot -- /path/to/spec.json` to regenerate from a saved copy.
-The same input is used for subsequent builds in that checkout. CI saves the raw
-spec as a workflow artifact and reuses it across test and packaging jobs. Each
-snapshot records the source URL and SHA-256.
+When upgrading the SDK, install the new exact version with
+`npm install --save-exact --ignore-scripts @vapi-ai/server-sdk@<version>`. Run
+`npm run schemas:snapshot -- --refresh` to download the
+[public API spec](https://api.vapi.ai/api-json) for that upgrade. Commit the new
+raw spec alongside `package.json` and `package-lock.json`, and remove the
+previous version's raw spec. Each generated snapshot records the source URL,
+SDK version, and SHA-256.
 
 The assistant snapshot contains the compact validation contracts for the
 original tool surfaces. The simulation snapshot contains the full simulation
@@ -343,9 +344,8 @@ The shared normalizer also represents empty preset enums as always-failing
 branches, allows null on nullable reference wrappers, and preserves property
 names such as `oneOf` and `default` when walking JSON Schema definitions.
 
-The public spec and SDK are versioned independently. Contract tests and the
-packed consumer smoke test verify the generated snapshots with the installed
-SDK.
+The refresh captures the public spec at the time of the SDK upgrade. Contract
+tests and the packed consumer smoke test verify the pair.
 
 The adapter documents published contract corrections: overlapping enum/string
 `oneOf` alternatives become `anyOf`; duplicate enum values and JavaScript regex

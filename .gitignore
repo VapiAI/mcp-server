@@ -7,7 +7,6 @@ yarn-error.log*
 # Build output
 dist/
 build/
-.cache/vapi/
 src/schemas/generated/
 
 # Environment variables

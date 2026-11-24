@@ -688,7 +688,15 @@ describe('MCP tool execution compatibility', () => {
     const response = await client.callTool({ name: 'update_tool', arguments: {
       toolId: tool.id, function: { parameters: tool.function.parameters, server: serverInput },
     } });
-    expect(JSON.stringify(response)).toContain('Supply replacement credentials');
+    expect(response.isError).toBe(true);
+    expect(response.structuredContent).toEqual({
+      error: expect.objectContaining({
+        code: 'REPLACEMENT_CREDENTIALS_REQUIRED',
+        outcome: 'failed',
+        recovery: expect.stringContaining('Supply replacement credentials'),
+      }),
+    });
+    expect(JSON.stringify(response.content)).toContain('Supply replacement credentials');
     expect(vapiOperations.tools.update).toHaveBeenCalledTimes(beforeUpdate);
   });
 
@@ -728,7 +736,7 @@ describe('MCP tool execution compatibility', () => {
       expect(logged).not.toContain('query-secret');
       expect(serialized + logged).not.toContain('cookie-one');
       expect(serialized + logged).not.toContain('cookie-two');
-      expect(serialized).toContain('[REDACTED]');
+      expect(response.isError).toBe(true);
       expect(logged).toContain('[REDACTED]');
     } finally {
       diagnostic.mockRestore();
@@ -803,7 +811,7 @@ describe('MCP tool execution compatibility', () => {
     expect(vapiOperations.assistants.create).toHaveBeenCalledTimes(callsBefore);
   });
 
-  test('returns a visible error response when Vapi rejects an operation', async () => {
+  test('returns explicit error semantics when Vapi rejects an operation', async () => {
     vapiOperations.calls.list.mockRejectedValueOnce(
       new Error('simulated Vapi failure') as never
     );
@@ -813,8 +821,14 @@ describe('MCP tool execution compatibility', () => {
       arguments: {},
     });
 
-    expect(parseToolResponse(response)).toEqual({
-      error: 'Error: simulated Vapi failure',
+    expect(response.isError).toBe(true);
+    expect(response.structuredContent).toEqual({
+      error: expect.objectContaining({
+        source: 'unknown',
+        code: 'EXECUTION_FAILED',
+        tool: 'list_calls',
+        outcome: 'failed',
+      }),
     });
   });
 
@@ -848,10 +862,13 @@ describe('MCP tool execution compatibility', () => {
       arguments: { name: 'Fallback' },
     });
 
-    expect(parseToolResponse(response)).toEqual({
-      error:
-        'Error: No schema named Fallback. Similar names: TransferFallbackPlan',
-    });
+    expect(response.isError).toBe(true);
+    expect(response.content).toEqual([
+      expect.objectContaining({
+        type: 'text',
+        text: expect.stringContaining('No schema named Fallback'),
+      }),
+    ]);
   });
 
   test('create_tool sends destination and additional fields it does not model', async () => {

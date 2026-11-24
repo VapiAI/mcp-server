@@ -3,7 +3,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { VapiClient } from '@vapi-ai/server-sdk';
-import { registerCallTools, uncertainCallError } from '../tools/call.js';
+import { registerCallTools } from '../tools/call.js';
 
 const input = {
   assistantId: 'assistant-1',
@@ -33,16 +33,29 @@ describe('create_call SDK retry policy', () => {
     await harness?.server.close();
   });
 
-  test('retains SDK status and response metadata without exposing its body', () => {
-    const rawResponse = new Response('secret', { status: 429, headers: { 'retry-after': '3', 'x-request-id': 'request-1' } });
-    const upstream = Object.assign(new Error('secret'), { statusCode: 429, rawResponse });
-    const wrapped = uncertainCallError(upstream) as Error & { statusCode: number; rawResponse: Response; outcome: string };
-    expect(wrapped.cause).toBe(upstream);
-    expect(wrapped.outcome).toBe('uncertain');
-    expect(wrapped.statusCode).toBe(429);
-    expect(wrapped.rawResponse.headers.get('retry-after')).toBe('3');
-    expect(wrapped.rawResponse.headers.get('x-request-id')).toBe('request-1');
-    expect(wrapped.message).not.toContain('secret');
+  test('retains safe SDK metadata when call creation is rate limited', async () => {
+    const fetch = jest.fn<typeof globalThis.fetch>(async () =>
+      new Response(JSON.stringify({ message: 'secret' }), {
+        status: 429,
+        headers: { 'content-type': 'application/json', 'retry-after': '3', 'x-request-id': 'request-1' },
+      })
+    );
+    harness = createHarness(fetch);
+    await connect(harness);
+
+    const result = await harness.client.callTool({ name: 'create_call', arguments: input });
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toEqual({
+      error: expect.objectContaining({
+        status: 429,
+        outcome: 'uncertain',
+        retryAfterMs: 3000,
+        requestId: 'request-1',
+      }),
+    });
+    expect(JSON.stringify(result)).not.toContain('secret');
   });
 
   test('does not retry a retryable HTTP failure', async () => {

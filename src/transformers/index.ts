@@ -11,7 +11,7 @@ import {
   CreateToolInputSchema,
   UpdateToolInputSchema,
 } from '../schemas/index.js';
-import { isRedactedHeader, REDACTED } from '../utils/credential-redaction.js';
+import { isRedactedHeader, REDACTED, ReplacementCredentialsRequiredError } from '../utils/credential-redaction.js';
 
 // ===== Assistant Transformers =====
 
@@ -361,10 +361,10 @@ function preserveRedactedHeaders(
     if (replacement && replacement.value !== REDACTED) continue;
 
     if (!sameDestination) {
-      throw new Error('Supply replacement credentials for stored headers when changing the URL origin.');
+      throw new ReplacementCredentialsRequiredError('Supply replacement credentials for stored headers when changing the URL origin.');
     }
     if (value === REDACTED) {
-      throw new Error('A stored header value is redacted. Supply replacement credentials for that header.');
+      throw new ReplacementCredentialsRequiredError('A stored header value is redacted. Supply replacement credentials for that header.');
     }
     headers.set(normalized, { name: replacement?.name ?? name, value });
   }

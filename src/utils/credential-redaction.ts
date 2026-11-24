@@ -25,6 +25,9 @@ const CREDENTIAL_REFERENCE = /^credential[-_]?ids?$/i;
 const SAFE_HEADERS = new Set(['accept', 'content-type']);
 export const REDACTED = '[REDACTED]';
 
+/** A local update validation error with guidance safe to return to the caller. */
+export class ReplacementCredentialsRequiredError extends Error {}
+
 // Use the same name rules for object fields, query keys and diagnostic text.
 function isSecretField(key: string): boolean {
   return !CREDENTIAL_REFERENCE.test(key) &&

@@ -1,5 +1,5 @@
-import { createErrorResponse, createSuccessResponse } from './utils.js';
 import { redactCredentials } from '../utils/credential-redaction.js';
+import { createSuccessResponse } from './utils.js';
 
 const PAGE_SIZE = 10;
 
@@ -31,35 +31,31 @@ export function createV1ListHandler<T extends { createdAt: string }, R, Q extend
   options: { maxPageSize?: number } = {},
 ) {
   return async (data: Q & { before?: string }) => {
-    try {
-      const pageSize = data.limit ?? PAGE_SIZE;
-      // List schemas must stay strict: every field except `before` is an SDK
-      // query field. Remove any future MCP-only fields here before forwarding.
-      const request = { ...data, limit: pageSize + 1 };
-      delete request.before;
-      // A continuation narrows the original query, even if its caller supplies
-      // both the API upper bound and the MCP pagination alias.
-      if (data.before && (!data.createdAtLt || Date.parse(data.before) < Date.parse(data.createdAtLt))) {
-        request.createdAtLt = data.before;
-      }
-      const page = v1ListPage(await list(request), pageSize);
-      if (page.pagination.warning && options.maxPageSize) {
-        page.pagination.warning += pageSize < options.maxPageSize
-          ? ` Retry this same page with the same filters and before, increasing limit up to ${options.maxPageSize}; replace the blocked page's results with the retry's results.`
-          : ` The maximum limit is ${options.maxPageSize}. Narrow the filters to reduce the timestamp group.`;
-      }
-      const results = redactCredentials(page.results.map(transform));
-      const response = createSuccessResponse(results);
-      return {
-        // Preserve the original array in the first text block for existing clients.
-        content: [...response.content, {
-          type: 'text' as const,
-          text: JSON.stringify({ pagination: page.pagination }),
-        }],
-        structuredContent: { results, pagination: page.pagination },
-      };
-    } catch (error) {
-      return createErrorResponse(error);
+    const pageSize = data.limit ?? PAGE_SIZE;
+    // List schemas must stay strict: every field except `before` is an SDK
+    // query field. Remove any future MCP-only fields here before forwarding.
+    const request = { ...data, limit: pageSize + 1 };
+    delete request.before;
+    // A continuation narrows the original query, even if its caller supplies
+    // both the API upper bound and the MCP pagination alias.
+    if (data.before && (!data.createdAtLt || Date.parse(data.before) < Date.parse(data.createdAtLt))) {
+      request.createdAtLt = data.before;
     }
+    const page = v1ListPage(await list(request), pageSize);
+    if (page.pagination.warning && options.maxPageSize) {
+      page.pagination.warning += pageSize < options.maxPageSize
+        ? ` Retry this same page with the same filters and before, increasing limit up to ${options.maxPageSize}; replace the blocked page's results with the retry's results.`
+        : ` The maximum limit is ${options.maxPageSize}. Narrow the filters to reduce the timestamp group.`;
+    }
+    const results = redactCredentials(page.results.map(transform));
+    const response = createSuccessResponse(results);
+    return {
+      // Preserve the original array in the first text block for existing clients.
+      content: [...response.content, {
+        type: 'text' as const,
+        text: JSON.stringify({ pagination: page.pagination }),
+      }],
+      structuredContent: { results, pagination: page.pagination },
+    };
   };
 }

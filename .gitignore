@@ -7,6 +7,9 @@ yarn-error.log*
 # Build output
 dist/
 build/
+.cache/vapi/
+src/schemas/assistant-openapi.json
+src/schemas/simulation-openapi.json
 
 # Environment variables
 .env

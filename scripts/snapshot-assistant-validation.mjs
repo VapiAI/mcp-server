@@ -1,16 +1,6 @@
-import { createHash } from 'node:crypto';
-import { readFile, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
+import { source, spec } from './openapi-source.mjs';
 
-const url = 'https://api.vapi.ai/api-json';
-let source;
-if (process.argv[2]) source = await readFile(process.argv[2], 'utf8');
-else {
-  const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
-  if (!response.ok) throw new Error(`OpenAPI fetch failed: HTTP ${response.status}`);
-  source = await response.text();
-}
-const spec = JSON.parse(source);
-if (spec.openapi !== '3.0.0') throw new Error(`Unexpected dialect: ${spec.openapi}`);
 const schemas = spec.components.schemas;
 const fields = {};
 for (const field of ['voice', 'transcriber', 'llm']) {
@@ -81,7 +71,7 @@ function closeReferences(value) {
 }
 closeReferences(apiFields);
 const snapshot = {
-  source: { url, sha256: createHash('sha256').update(source).digest('hex') },
+  source,
   name: {
     create: schemas.CreateAssistantDTO.properties.name,
     update: schemas.UpdateAssistantDTO.properties.name,

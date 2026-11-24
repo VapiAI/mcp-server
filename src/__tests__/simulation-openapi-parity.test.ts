@@ -41,3 +41,10 @@ test('normalization preserves property names that coincide with JSON Schema keyw
   });
   expect(inputContract({ type: 'string', enum: [] })).toEqual({ not: {} });
 });
+
+test('normalization allows null on a nullable reference wrapper', () => {
+  const allOf = [{ $ref: '#/definitions/SipRegisterPlan' }];
+  expect(inputContract({ allOf, nullable: true })).toEqual({
+    anyOf: [{ allOf }, { type: 'null' }],
+  });
+});

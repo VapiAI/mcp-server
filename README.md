@@ -308,25 +308,28 @@ lookup/update IDs, function parameters, transfer destinations, HTTP methods,
 timeouts and retry plans, plus all 12 simulation tools. The four original list
 tools have local empty input schemas.
 
-`src/schemas/assistant-openapi.json` is the compact projection for the original
-tool surfaces (the filename is retained from the initial assistant cutover). It
-records the [public API spec](https://api.vapi.ai/api-json) source SHA-256 and
-includes the recursive JSON-schema definitions needed for function parameters
-and request bodies. Builds and installs use it without network access. Refresh
-explicitly with `npm run schemas:snapshot`, or pass a saved spec with
-`npm run schemas:snapshot -- /path/spec.json`.
+A source build fetches the [public API spec](https://api.vapi.ai/api-json) the
+first time and caches it at `.cache/vapi/openapi-source.json`. Each build uses
+that source to generate the assistant and simulation validation snapshots under
+`src/schemas/`. The cache and generated files are Git-ignored. The build copies
+the snapshots into the npm package, where the server reads them at startup.
 
-`src/schemas/simulation-openapi.json` bundles the full simulation DTOs and their
-referenced definitions from the same public spec. The same refresh command
-updates both snapshots. Simulation validation includes names, folder paths,
+Run `npm run schemas:snapshot -- --refresh` to fetch the current public spec, or
+`npm run schemas:snapshot -- /path/to/spec.json` to regenerate from a saved copy.
+The same input is used for subsequent builds in that checkout. CI saves the raw
+spec as a workflow artifact and reuses it across test and packaging jobs. Each
+snapshot records the source URL and SHA-256.
+
+The assistant snapshot contains the compact validation contracts for the
+original tool surfaces. The simulation snapshot contains the full simulation
+DTOs and their referenced definitions.
+Simulation validation includes names, folder paths,
 UUIDs, instructions, evaluations, nested tester assistants and structured
 outputs. Scenario/suite `additionalFields` are validated after merging, so they
 cannot override an API constraint. Large nested assistant and structured-output
 objects have compact advertised envelopes; their full API contracts are checked
 at runtime. The shared summary projection omits long documentation and recursive
 definitions from simulation discovery. The 25-tool catalog is about 28 KB.
-No runtime schema fetch or
-`get_api_schema` tool is required.
 
 Simulation aliases remain local adapters: `run_simulations` takes exactly one
 assistant/squad target and at least one simulation/suite ID, then builds the API
@@ -336,16 +339,12 @@ lookup endpoint publishes plain strings for its IDs, so those are not assigned
 UUID constraints from a different endpoint.
 
 The shared normalizer also represents empty preset enums as always-failing
-branches and preserves property names such as `oneOf` and `default` when walking
-JSON Schema definitions.
+branches, allows null on nullable reference wrappers, and preserves property
+names such as `oneOf` and `default` when walking JSON Schema definitions.
 
-When upgrading `@vapi-ai/server-sdk`, refresh and review the bundled schema in
-the same PR, then run `npm run typecheck`, `npm test`, and `npm run test:package`.
-Check changes against the SDK's request types and the MCP adapters below. The
-public endpoint serves the current API spec, not a spec version tied to the SDK
-release, so refreshing does not by itself guarantee compatibility. Keep the
-reviewed schema bundled with the release; do not refresh it during installation
-or startup.
+The public spec and SDK are versioned independently. Contract tests and the
+packed consumer smoke test verify the generated snapshots with the installed
+SDK.
 
 The adapter documents published contract corrections: overlapping enum/string
 `oneOf` alternatives become `anyOf`; duplicate enum values and JavaScript regex

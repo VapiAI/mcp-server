@@ -1,4 +1,5 @@
 import { createErrorResponse, createSuccessResponse } from './utils.js';
+import { redactCredentials } from '../utils/credential-redaction.js';
 
 const PAGE_SIZE = 10;
 
@@ -47,7 +48,7 @@ export function createV1ListHandler<T extends { createdAt: string }, R, Q extend
           ? ` Retry this same page with the same filters and before, increasing limit up to ${options.maxPageSize}; replace the blocked page's results with the retry's results.`
           : ` The maximum limit is ${options.maxPageSize}. Narrow the filters to reduce the timestamp group.`;
       }
-      const results = page.results.map(transform);
+      const results = redactCredentials(page.results.map(transform));
       const response = createSuccessResponse(results);
       return {
         // Preserve the original array in the first text block for existing clients.

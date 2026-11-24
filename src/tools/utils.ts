@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { redactCredentials, ReplacementCredentialsRequiredError } from '../utils/credential-redaction.js';
 
 export function createSuccessResponse(data: unknown): CallToolResult {
+  const safeData = redactCredentials(data);
   return {
     content: [
       {
         type: 'text' as const,
-        text: typeof data === 'string' ? data : JSON.stringify(data),
+        text: typeof safeData === 'string' ? safeData : JSON.stringify(safeData),
       },
     ],
   };
@@ -142,6 +144,9 @@ export async function prepareWrite<T>(prepare: () => Promise<T>): Promise<T> {
 export function createErrorResponse(error: unknown, context: ErrorResponseContext = {}): CallToolResult {
   const preparationError = error instanceof WritePreparationError ? error : undefined;
   const upstreamError: unknown = preparationError ? preparationError.cause : error;
+  const credentialError = preparationError && upstreamError instanceof ReplacementCredentialsRequiredError
+    ? upstreamError
+    : undefined;
   const write = context.write === true && !preparationError;
   const details = upstreamError && typeof upstreamError === 'object'
     ? upstreamError as { name?: unknown; body?: unknown; rawResponse?: { status?: unknown; headers?: unknown } }
@@ -162,7 +167,7 @@ export function createErrorResponse(error: unknown, context: ErrorResponseContex
       ? 'UPSTREAM_TIMEOUT'
       : source === 'transport'
         ? 'UPSTREAM_TRANSPORT_ERROR'
-        : 'EXECUTION_FAILED';
+        : credentialError ? 'REPLACEMENT_CREDENTIALS_REQUIRED' : 'EXECUTION_FAILED';
   const retryAfterMs = retryAfterFrom(details?.rawResponse?.headers);
   const requestId = requestIdFrom(details?.rawResponse?.headers);
   const outcome = write && (
@@ -172,7 +177,7 @@ export function createErrorResponse(error: unknown, context: ErrorResponseContex
   const recovery = uncertainCall
     ? 'Call creation outcome is unknown after one request. Check Vapi call history before retrying.' +
       (status === 429 && retryAfterMs !== undefined ? ' Observe the indicated retry delay.' : '')
-    : recoveryFor(status, write, retryAfterMs);
+    : credentialError?.message ?? recoveryFor(status, write, retryAfterMs);
   const action = preparationError
     ? `The write was not attempted. ${recovery}`
     : outcome === 'uncertain' && !uncertainCall

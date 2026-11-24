@@ -13,6 +13,7 @@ import {
   transformAssistantOutput,
   transformUpdateAssistantInput,
 } from '../transformers/index.js';
+import { redactErrorMessage } from '../utils/credential-redaction.js';
 import { createToolHandler, prepareWrite } from './utils.js';
 import { createV1ListHandler } from './list.js';
 
@@ -68,7 +69,7 @@ export const registerAssistantTools = (
         }
         return transformAssistantOutput(assistant);
       } catch (error: any) {
-        console.error(`Error getting assistant: ${error.message}`);
+        console.error(`Error getting assistant: ${redactErrorMessage(error)}`);
         throw error;
       }
     })

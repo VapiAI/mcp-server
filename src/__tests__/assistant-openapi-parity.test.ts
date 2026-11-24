@@ -39,7 +39,7 @@ describe.each([
 });
 
 test('name validation agrees with the published constraints for create and update', () => {
-  const source = JSON.parse(readFileSync(new URL('../schemas/assistant-openapi.json', import.meta.url), 'utf8'));
+  const source = JSON.parse(readFileSync(new URL('../schemas/generated/assistant-openapi.json', import.meta.url), 'utf8'));
   for (const [operation, schema] of [['create', CreateAssistantNameSchema], ['update', UpdateAssistantNameSchema]] as const) {
     const reference = new Ajv({ strict: false }).compile(source.name[operation]);
     for (const input of [null, 42, '', 'x'.repeat(40), 'x'.repeat(41), '😀'.repeat(40), '😀'.repeat(41)]) {

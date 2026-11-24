@@ -1,4 +1,4 @@
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { source, spec } from './openapi-source.mjs';
 
 const schemas = spec.components.schemas;
@@ -84,7 +84,9 @@ const snapshot = {
     .map(name => schemas[name].properties.type.enum[0]),
   functionRequiresName: schemas.OpenAIFunction.required.includes('name'),
 };
-await writeFile(new URL('../src/schemas/assistant-openapi.json', import.meta.url), `${JSON.stringify(snapshot, null, 2)}\n`);
+const output = new URL('../src/schemas/generated/', import.meta.url);
+await mkdir(output, { recursive: true });
+await writeFile(new URL('assistant-openapi.json', output), `${JSON.stringify(snapshot, null, 2)}\n`);
 console.log('Saved compact input contracts for all current MCP tool surfaces');
 
 // Simulation inputs share the source and normalization strategy above, but keep
@@ -121,7 +123,7 @@ for (const path of ['/eval/simulation/personality', '/eval/simulation/scenario',
 for (const key of Object.keys(definitions)) delete definitions[key];
 closeReferences(simulationSchemas);
 closeReferences(simulationParameters);
-await writeFile(new URL('../src/schemas/simulation-openapi.json', import.meta.url), `${JSON.stringify({
+await writeFile(new URL('simulation-openapi.json', output), `${JSON.stringify({
   source: snapshot.source, schemas: simulationSchemas, parameters: simulationParameters, definitions,
 }, null, 2)}\n`);
 console.log('Saved full simulation input contracts');

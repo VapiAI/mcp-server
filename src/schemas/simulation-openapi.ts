@@ -8,7 +8,7 @@ type Snapshot = {
   parameters: Record<string, JsonSchema>;
   definitions: Record<string, JsonSchema>;
 };
-const snapshot: Snapshot = JSON.parse(readFileSync(new URL('./simulation-openapi.json', import.meta.url), 'utf8'));
+const snapshot: Snapshot = JSON.parse(readFileSync(new URL('./generated/simulation-openapi.json', import.meta.url), 'utf8'));
 
 export function simulationContract(name: string): JsonSchema {
   const schema = snapshot.schemas[name] ?? snapshot.parameters[name] ?? snapshot.definitions[name];

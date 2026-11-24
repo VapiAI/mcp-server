@@ -18,7 +18,7 @@ type Snapshot = {
   functionRequiresName: boolean;
 };
 
-const snapshot: Snapshot = JSON.parse(readFileSync(new URL('./assistant-openapi.json', import.meta.url), 'utf8'));
+const snapshot: Snapshot = JSON.parse(readFileSync(new URL('./generated/assistant-openapi.json', import.meta.url), 'utf8'));
 export const requiredToolConfigurations = snapshot.requiredToolConfigurations;
 export const functionRequiresName = snapshot.functionRequiresName;
 

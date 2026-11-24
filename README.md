@@ -311,8 +311,9 @@ tools have local empty input schemas.
 A source build fetches the [public API spec](https://api.vapi.ai/api-json) the
 first time and caches it at `.cache/vapi/openapi-source.json`. Each build uses
 that source to generate the assistant and simulation validation snapshots under
-`src/schemas/`. The cache and generated files are Git-ignored. The build copies
-the snapshots into the npm package, where the server reads them at startup.
+`src/schemas/generated/`. Git ignores the cache and the generated directory.
+The build copies the snapshots to `dist/schemas/generated/` for the npm package.
+The server reads the packaged snapshots at startup.
 
 Run `npm run schemas:snapshot -- --refresh` to fetch the current public spec, or
 `npm run schemas:snapshot -- /path/to/spec.json` to regenerate from a saved copy.

@@ -8,8 +8,7 @@ yarn-error.log*
 dist/
 build/
 .cache/vapi/
-src/schemas/assistant-openapi.json
-src/schemas/simulation-openapi.json
+src/schemas/generated/
 
 # Environment variables
 .env

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
+import { writeToolSnapshot } from './snapshot-tool-validation.mjs';
 
 const url = 'https://api.vapi.ai/api-json';
 let source;
@@ -135,3 +136,5 @@ await writeFile(new URL('../src/schemas/simulation-openapi.json', import.meta.ur
   source: snapshot.source, schemas: simulationSchemas, parameters: simulationParameters, definitions,
 }, null, 2)}\n`);
 console.log('Saved full simulation input contracts');
+
+await writeToolSnapshot(spec, snapshot.source);

@@ -115,10 +115,8 @@ liveDescribe('live Vapi create/update compatibility', () => {
         type: 'apiRequest',
         name: createdToolName,
         description: 'Disposable compatibility test tool',
-        apiRequest: {
-          url: 'https://example.com/',
-          method: 'GET',
-        },
+        url: 'https://example.com/',
+        method: 'GET',
       });
       toolId = createdTool.id;
       expect(typeof toolId).toBe('string');
@@ -129,7 +127,7 @@ liveDescribe('live Vapi create/update compatibility', () => {
       expect(retrievedTool.name).toBe(createdToolName);
 
       const updatedTool = await invoke('update_tool', {
-        toolId,
+        id: toolId,
         name: updatedToolName,
         description: 'Updated disposable compatibility test tool',
       });
@@ -139,9 +137,9 @@ liveDescribe('live Vapi create/update compatibility', () => {
       const persistedTool = await invoke('get_tool', { toolId });
       expect(persistedTool.name).toBe(updatedToolName);
 
-      // A description-only update must not drop the function name.
+      // A description-only update preserves the tool name.
       const redescribedTool = await invoke('update_tool', {
-        toolId,
+        id: toolId,
         description: 'Redescribed disposable compatibility test tool',
       });
       expect(redescribedTool.name).toBe(updatedToolName);

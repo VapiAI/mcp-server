@@ -37,9 +37,10 @@
   "scripts": {
     "prepare": "npm run build",
     "clean": "shx rm -rf dist",
-    "build": "npm run clean && tsc -p tsconfig.build.json && shx cp src/schemas/assistant-openapi.json src/schemas/simulation-openapi.json dist/schemas/ && shx chmod +x dist/*.js",
+    "build": "npm run schemas:snapshot && npm run clean && tsc -p tsconfig.build.json && shx mkdir -p dist/schemas/generated && shx cp src/schemas/generated/assistant-openapi.json src/schemas/generated/simulation-openapi.json dist/schemas/generated/ && shx chmod +x dist/*.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "start": "node dist/index.js",
+    "predev": "npm run schemas:snapshot",
     "dev": "tsx watch src/index.ts",
     "dev:stdio-example": "tsx examples/stdio-client.ts",
     "dev:sse-example": "tsx examples/sse-client.ts",
@@ -47,6 +48,7 @@
     "inspector": "mcp-inspector",
     "pretest": "npm run build",
     "test": "VAPI_TOKEN=test-mock-token NODE_OPTIONS=--experimental-vm-modules jest --runInBand --testPathIgnorePatterns='.*-live\\.test\\.ts$'",
+    "pretest:unit": "npm run schemas:snapshot",
     "test:unit": "VAPI_TOKEN=test-mock-token NODE_OPTIONS=--experimental-vm-modules jest --runInBand src/__tests__/mcp-tool-execution.test.ts src/__tests__/mcp-tools-list.test.ts",
     "test:docs": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand src/__tests__/documentation-tools.test.ts",
     "schemas:snapshot": "node scripts/snapshot-assistant-validation.mjs",
@@ -64,7 +66,7 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",
-    "@vapi-ai/server-sdk": "^3.0.0",
+    "@vapi-ai/server-sdk": "3.0.0",
     "dotenv": "^16.4.7",
     "yaml": "^2.9.1",
     "zod": "4.6.7"

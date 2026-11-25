@@ -1,16 +1,6 @@
-import { createHash } from 'node:crypto';
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { source, spec } from './openapi-source.mjs';
 
-const url = 'https://api.vapi.ai/api-json';
-let source;
-if (process.argv[2]) source = await readFile(process.argv[2], 'utf8');
-else {
-  const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
-  if (!response.ok) throw new Error(`OpenAPI fetch failed: HTTP ${response.status}`);
-  source = await response.text();
-}
-const spec = JSON.parse(source);
-if (spec.openapi !== '3.0.0') throw new Error(`Unexpected dialect: ${spec.openapi}`);
 const schemas = spec.components.schemas;
 const fields = {};
 for (const field of ['voice', 'transcriber', 'llm']) {
@@ -81,7 +71,7 @@ function closeReferences(value) {
 }
 closeReferences(apiFields);
 const snapshot = {
-  source: { url, sha256: createHash('sha256').update(source).digest('hex') },
+  source,
   name: {
     create: schemas.CreateAssistantDTO.properties.name,
     update: schemas.UpdateAssistantDTO.properties.name,
@@ -94,7 +84,9 @@ const snapshot = {
     .map(name => schemas[name].properties.type.enum[0]),
   functionRequiresName: schemas.OpenAIFunction.required.includes('name'),
 };
-await writeFile(new URL('../src/schemas/assistant-openapi.json', import.meta.url), `${JSON.stringify(snapshot, null, 2)}\n`);
+const output = new URL('../src/schemas/generated/', import.meta.url);
+await mkdir(output, { recursive: true });
+await writeFile(new URL('assistant-openapi.json', output), `${JSON.stringify(snapshot, null, 2)}\n`);
 console.log('Saved compact input contracts for all current MCP tool surfaces');
 
 // Simulation inputs share the source and normalization strategy above, but keep
@@ -131,7 +123,7 @@ for (const path of ['/eval/simulation/personality', '/eval/simulation/scenario',
 for (const key of Object.keys(definitions)) delete definitions[key];
 closeReferences(simulationSchemas);
 closeReferences(simulationParameters);
-await writeFile(new URL('../src/schemas/simulation-openapi.json', import.meta.url), `${JSON.stringify({
+await writeFile(new URL('simulation-openapi.json', output), `${JSON.stringify({
   source: snapshot.source, schemas: simulationSchemas, parameters: simulationParameters, definitions,
 }, null, 2)}\n`);
 console.log('Saved full simulation input contracts');

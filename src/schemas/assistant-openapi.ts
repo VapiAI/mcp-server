@@ -18,7 +18,7 @@ type Snapshot = {
   functionRequiresName: boolean;
 };
 
-const snapshot: Snapshot = JSON.parse(readFileSync(new URL('./assistant-openapi.json', import.meta.url), 'utf8'));
+const snapshot: Snapshot = JSON.parse(readFileSync(new URL('./generated/assistant-openapi.json', import.meta.url), 'utf8'));
 export const requiredToolConfigurations = snapshot.requiredToolConfigurations;
 export const functionRequiresName = snapshot.functionRequiresName;
 
@@ -35,6 +35,12 @@ export function inputContract(value: unknown, schemaMap = false): unknown {
   // An empty published preset enum denotes no preset values. Represent that
   // branch as an always-failing schema so it remains valid JSON Schema.
   if (Array.isArray(schema.enum) && schema.enum.length === 0) return { not: {} };
+  // The public spec uses nullable on some reference wrappers without a type.
+  // Express null as a separate branch so both importers accept the contract.
+  if (schema.nullable === true && schema.type === undefined) {
+    const { nullable, ...nonNull } = schema;
+    return { anyOf: [inputContract(nonNull), { type: 'null' }] };
+  }
   const alternatives = Array.isArray(schema.oneOf) ? schema.oneOf as JsonSchema[] : undefined;
   const overlap = alternatives?.some(branch => branch.type === 'string' &&
     Object.keys(branch).every(key => ['type', 'title', 'description'].includes(key))) &&

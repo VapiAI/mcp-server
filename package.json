@@ -55,7 +55,8 @@
     "pretest:package": "npm run build",
     "test:package": "node scripts/package-smoke.mjs",
     "test:live:readonly": "npm run build && RUN_VAPI_READONLY_TESTS=1 NODE_OPTIONS=--experimental-vm-modules jest --runInBand src/__tests__/mcp-server-readonly-live.test.ts",
-    "test:live:mutating": "npm run build && RUN_VAPI_MUTATING_TESTS=1 NODE_OPTIONS=--experimental-vm-modules jest --runInBand src/__tests__/mcp-server-mutating-live.test.ts"
+    "test:live:mutating": "npm run build && RUN_VAPI_MUTATING_TESTS=1 NODE_OPTIONS=--experimental-vm-modules jest --runInBand src/__tests__/mcp-server-mutating-live.test.ts",
+    "eval:mcpjam": "npm run build && node scripts/mcpjam-eval.mjs"
   },
   "files": [
     "dist",
@@ -70,6 +71,7 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@mcpjam/sdk": "10.2.0",
     "@modelcontextprotocol/inspector": "1.0.1",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.14.0",
@@ -80,5 +82,8 @@
     "ts-jest": "^29.3.1",
     "tsx": "^4.19.3",
     "typescript": "^5.8.3"
+  },
+  "overrides": {
+    "re2js": "2.8.7"
   }
 }

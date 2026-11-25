@@ -257,74 +257,8 @@ export function transformPhoneNumberOutput(
 
 // ===== Tool Transformers =====
 
-export function transformToolInput(
-  input: z.infer<typeof CreateToolInputSchema>
-): any {
-  let toolDto: any = {
-    type: input.type,
-  };
-
-  // Add function definition if name and description are provided
-  if (input.name || input.description) {
-    toolDto.function = {
-      ...(input.name && { name: input.name }),
-      ...(input.description && { description: input.description }),
-    };
-  }
-
-  // Handle different tool types using the new nested structure
-  switch (input.type) {
-    case 'sms':
-      if (input.sms?.metadata) {
-        toolDto.metadata = input.sms.metadata;
-      }
-      break;
-
-    case 'transferCall':
-      if (input.transferCall?.destinations) {
-        toolDto.destinations = input.transferCall.destinations;
-      }
-      break;
-
-    case 'function':
-      if (input.function?.parameters && input.function?.server) {
-        // For function tools, add parameters to the existing function object
-        if (toolDto.function) {
-          toolDto.function.parameters = input.function.parameters;
-        } else {
-          toolDto.function = {
-            parameters: input.function.parameters,
-          };
-        }
-        
-        toolDto.server = {
-          url: input.function.server.url,
-          ...(input.function.server.headers && { headers: input.function.server.headers }),
-        };
-      }
-      break;
-
-    case 'apiRequest':
-      if (input.apiRequest?.url) {
-        toolDto.url = input.apiRequest.url;
-        toolDto.method = input.apiRequest.method || 'POST';
-        
-        if (input.apiRequest.headers) toolDto.headers = input.apiRequest.headers;
-        if (input.apiRequest.body) toolDto.body = input.apiRequest.body;
-        if (input.apiRequest.backoffPlan) toolDto.backoffPlan = input.apiRequest.backoffPlan;
-        if (input.apiRequest.timeoutSeconds) toolDto.timeoutSeconds = input.apiRequest.timeoutSeconds;
-      }
-      break;
-
-    default:
-      throw new Error(`Unsupported tool type: ${(input as any).type}`);
-  }
-
-  if (input.additionalFields) {
-    Object.assign(toolDto, input.additionalFields);
-  }
-
-  return toolDto;
+export function transformToolInput(input: z.infer<typeof CreateToolInputSchema>): any {
+  return input;
 }
 
 function urlOrigin(url: string): string | undefined {
@@ -342,7 +276,7 @@ function urlOrigin(url: string): string | undefined {
  * replacements win, and reusing a stored value requires the same URL origin.
  */
 function preserveRedactedHeaders(
-  submitted: Record<string, unknown> | null | undefined,
+  submitted: Record<string, unknown> | undefined,
   stored: Record<string, unknown> | undefined,
   submittedUrl?: string,
   storedUrl?: string
@@ -376,82 +310,29 @@ function preserveRedactedHeaders(
 export function transformUpdateToolInput(
   input: z.infer<typeof UpdateToolInputSchema>,
   existing?: Vapi.GetToolsResponse
-): any {
-  let updateDto: any = {};
-  // PATCH replaces `function` and `server` as a whole, so start from the
-  // tool's current values. Sending only the changed fields drops
-  // `function.name` and the API rejects the update.
-  const existingFunction: any =
-    existing && 'function' in existing ? existing.function : undefined;
-  const existingServer: any =
-    existing && 'server' in existing ? existing.server : undefined;
-
-  // Add function definition if name and description are provided
-  if (input.name || input.description) {
-    updateDto.function = {
-      ...existingFunction,
-      ...(input.name && { name: input.name }),
-      ...(input.description && { description: input.description }),
-    };
+): Record<string, unknown> {
+  const { id, ...body } = input;
+  // PATCH replaces these objects. Preserve existing configuration for sparse edits.
+  for (const key of ['function', 'server'] as const) {
+    const submitted = body[key];
+    if (!submitted || typeof submitted !== 'object' || Array.isArray(submitted)) continue;
+    const stored = existing?.[key as keyof Vapi.GetToolsResponse];
+    body[key] = { ...stored as object, ...submitted };
   }
 
-  // Handle SMS tool configuration
-  if (input.sms?.metadata) {
-    updateDto.metadata = input.sms.metadata;
-  }
-
-  // Handle Transfer call tool configuration
-  if (input.transferCall?.destinations) {
-    updateDto.destinations = input.transferCall.destinations;
-  }
-
-  // Handle Function tool configuration
-  if (input.function?.parameters && input.function?.server) {
-    // For function tools, add parameters to the existing function object
-    if (updateDto.function) {
-      updateDto.function.parameters = input.function.parameters;
-    } else {
-      updateDto.function = {
-        ...existingFunction,
-        parameters: input.function.parameters,
-      };
-    }
-
-    updateDto.server = {
-      ...existingServer,
-      url: input.function.server.url,
-      ...(input.function.server.headers && { headers: input.function.server.headers }),
-    };
-  }
-
-  // Handle API Request tool configuration
-  if (input.apiRequest) {
-    if (input.apiRequest.url) updateDto.url = input.apiRequest.url;
-    if (input.apiRequest.method) updateDto.method = input.apiRequest.method;
-    if (input.apiRequest.headers) updateDto.headers = input.apiRequest.headers;
-    if (input.apiRequest.body) updateDto.body = input.apiRequest.body;
-    if (input.apiRequest.backoffPlan) updateDto.backoffPlan = input.apiRequest.backoffPlan;
-    if (input.apiRequest.timeoutSeconds) updateDto.timeoutSeconds = input.apiRequest.timeoutSeconds;
-  }
-
-  if (input.additionalFields) {
-    Object.assign(updateDto, input.additionalFields);
-  }
-
-  if (updateDto.server && typeof updateDto.server === 'object') {
-    const submittedServer = Object.hasOwn(input.additionalFields ?? {}, 'server')
-      ? input.additionalFields?.server
-      : input.function?.server;
-    const headers = preserveRedactedHeaders(
-      submittedServer?.headers, existingServer?.headers, updateDto.server.url, existingServer?.url
-    );
-    const updatedHeaders = headers ?? existingServer?.headers;
-    if (updatedHeaders !== undefined) {
-      updateDto.server = { ...updateDto.server, headers: updatedHeaders };
+  const submittedServer = input.server;
+  if (submittedServer && typeof submittedServer === 'object' && !Array.isArray(submittedServer)) {
+    const { headers } = submittedServer as { headers?: unknown };
+    const server = body.server as { url?: string; headers?: Record<string, unknown> };
+    const stored = existing && 'server' in existing ? existing.server : undefined;
+    if (headers === undefined || (headers && typeof headers === 'object' && !Array.isArray(headers))) {
+      const preserved = preserveRedactedHeaders(
+        headers as Record<string, unknown> | undefined, stored?.headers, server.url, stored?.url
+      );
+      if (preserved !== undefined) server.headers = preserved;
     }
   }
-
-  return updateDto;
+  return body;
 }
 
 export function transformToolOutput(

@@ -87,15 +87,16 @@ export function registerValidatedTool<Schema extends z.ZodType>(
     description: string;
     inputSchema: Schema;
     annotations: ToolAnnotations;
+    advertisedInputSchema?: z.core.JSONSchema.JSONSchema;
     _meta?: Record<string, unknown>;
   },
   handler: (params: z.output<Schema>) => Promise<ToolResponse>
 ) {
-  const { inputSchema: schema, ...toolConfig } = config;
-  // Advertise a compact input summary, but run the full parser exactly once. This
+  const { inputSchema: schema, advertisedInputSchema, ...toolConfig } = config;
+  // Advertise the supplied contract or a compact summary and parse inputs once. This
   // boundary lets us format validation failures before the SDK stringifies a
   // raw ZodError. No request reaches the API handler before parsing succeeds.
-  const transportSchema = z.object({}).passthrough().meta(summarizeInputSchema(
+  const transportSchema = z.object({}).passthrough().meta(advertisedInputSchema ?? summarizeInputSchema(
     z.toJSONSchema(schema, { io: 'input', target: 'draft-07' })
   ));
   return server.registerTool(name, { ...toolConfig, inputSchema: transportSchema }, async raw => {

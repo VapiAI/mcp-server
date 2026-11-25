@@ -191,6 +191,8 @@ include secrets or private customer data in docs questions.
 | `create_tool` | Create tool for API integration |
 | `update_tool` | Update tool |
 
+See the [tool configuration README](src/tools/tool/README.md) for calling examples and schema lookup.
+
 #### Public Skills
 | Tool | Description |
 |------|-------------|
@@ -318,15 +320,17 @@ explicitly with `npm run schemas:snapshot`, or pass a saved spec with
 
 `src/schemas/simulation-openapi.json` bundles the full simulation DTOs and their
 referenced definitions from the same public spec. The same refresh command
-updates both snapshots. Simulation validation includes names, folder paths,
+updates all three snapshots. Simulation validation includes names, folder paths,
 UUIDs, instructions, evaluations, nested tester assistants and structured
 outputs. Scenario/suite `additionalFields` are validated after merging, so they
 cannot override an API constraint. Large nested assistant and structured-output
 objects have compact advertised envelopes; their full API contracts are checked
 at runtime. The shared summary projection omits long documentation and recursive
-definitions from simulation discovery. The 25-tool catalog is about 28 KB.
-No runtime schema fetch or
-`get_api_schema` tool is required.
+definitions from simulation discovery.
+
+`src/schemas/tool-openapi.json` bundles the API create and update tool request
+variants and their referenced schemas. Runtime validation and tool configuration
+lookups through `get_api_schema` use this snapshot.
 
 Simulation aliases remain local adapters: `run_simulations` takes exactly one
 assistant/squad target and at least one simulation/suite ID, then builds the API
@@ -357,12 +361,8 @@ the current interface remain excluded: custom
 voice, Neuphonic voice, custom transcriber, Speechmatics transcriber, and custom
 LLM. Adding their required fields needs an explicit interface extension.
 
-MCP wrappers preserve field aliases and sparse updates. URL checks and
-string-valued header maps remain explicit transport rules because the spec only
-describes a string/object. API-request header maps and SMS metadata retain legacy MCP representations;
-they are explicit compatibility adapters, not claimed to be full API DTO
-validation. SMS metadata is not described in the published DTO. Response summaries also remain
-local: they are transformed MCP representations, not raw API DTOs.
+MCP adapters preserve field aliases for assistant and simulation inputs.
+Response summaries are transformed MCP representations.
 
 Validation failures return `isError: true`, concise text and structured
 `validationError` details: tool name, issue code, field path, message and allowed
@@ -372,13 +372,10 @@ truncation. Submitted values and credential contents are not echoed. Agents
 should correct the listed fields and retry; a validation failure never invokes
 the API handler. Tests exercise this correction loop through a real MCP client.
 
-`tools/list` advertises a compact input summary derived from the same validators:
-field names, basic types, required fields, defaults, and short constraints. It
-omits provider/model catalogs, lengthy API documentation, and recursive schema
-definitions. The full OpenAPI-derived validator still runs before any API call;
-the advertised summary is intentionally broader. Catalog tests cap the
-original 13-tool list at 20 KB, the 12 simulation tools at 10 KB, and the complete
-25-tool list at 30 KB to prevent unexpected agent-context growth.
+`tools/list` advertises compact input summaries for assistant and simulation
+tools. The full OpenAPI-derived validators run before those API calls.
+See the [tool configuration README](src/tools/tool/README.md) for the
+`create_tool` and `update_tool` schemas.
 
 `npm test` includes schema contract tests, independent Ajv parity cases, and
 validation-feedback tests. The existing live compatibility

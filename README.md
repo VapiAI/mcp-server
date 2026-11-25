@@ -357,6 +357,15 @@ the current interface remain excluded: custom
 voice, Neuphonic voice, custom transcriber, Speechmatics transcriber, and custom
 LLM. Adding their required fields needs an explicit interface extension.
 
+Deepgram transcriber inputs also support `language`, `numerals`, and `keyterm`.
+Assistant updates preserve stored transcriber settings when the provider stays
+the same, with supplied fields replacing the stored values (including `false`
+and empty arrays). Changing provider replaces the transcriber configuration.
+When changing Deepgram models, the stored language carries over unless you
+supply a different one. Stored keyterms carry over to nova-3 and flux models.
+The API can reject a model change if the resulting language or keyterms are
+incompatible with the new model. Assistant responses retain their compact summaries.
+
 MCP wrappers preserve field aliases and sparse updates. URL checks and
 string-valued header maps remain explicit transport rules because the spec only
 describes a string/object. API-request header maps and SMS metadata retain legacy MCP representations;

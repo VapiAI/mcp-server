@@ -56,6 +56,7 @@ export const registerCallTools = (
         'For optional guidance on call setup and scheduling, load the public create-call skill with load_skill({"name":"create-call"}).',
       inputSchema: CallInputSchema,
       annotations: creates('Create Outbound Call', true),
+      _meta: { 'anthropic/requiresUserInteraction': true },
     },
     createToolHandler(async (data) => {
       const createCallDto = transformCallInput(data);

@@ -142,6 +142,10 @@ describe('MCP tools/list compatibility baseline', () => {
         });
       }
       expect(response.tools.find(tool => tool.name === 'create_call')!.annotations?.openWorldHint).toBe(true);
+      const toolsRequiringUserInteraction = response.tools
+        .filter(tool => tool._meta?.['anthropic/requiresUserInteraction'] === true)
+        .map(tool => tool.name);
+      expect(toolsRequiringUserInteraction).toEqual(['create_call']);
 
       // Compact discovery remains usable JSON Schema, but is intentionally
       // broader than the full validator used by the execution boundary.

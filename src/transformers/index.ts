@@ -118,17 +118,13 @@ export function transformUpdateAssistantInput(
       ? { ...existingTranscriber }
       : undefined;
 
+    // The API rejects keyterms on models outside the nova-3 and flux families.
     if (
       storedSettings?.provider === 'deepgram' &&
-      patch.model !== undefined && patch.model !== storedSettings.model
+      patch.model !== undefined && patch.model !== storedSettings.model &&
+      !patch.model.includes('nova-3') && !patch.model.includes('flux')
     ) {
-      // Language support varies by model. Let the new model use its default
-      // unless the caller supplies a language. The API rejects keyterms on
-      // models outside the nova-3 and flux families.
-      delete storedSettings.language;
-      if (!patch.model.includes('nova-3') && !patch.model.includes('flux')) {
-        delete storedSettings.keyterm;
-      }
+      delete storedSettings.keyterm;
     }
 
     updateDto.transcriber = { ...storedSettings, ...patch };

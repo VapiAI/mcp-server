@@ -361,10 +361,10 @@ Deepgram transcriber inputs also support `language`, `numerals`, and `keyterm`.
 Assistant updates preserve stored transcriber settings when the provider stays
 the same, with supplied fields replacing the stored values (including `false`
 and empty arrays). Changing provider replaces the transcriber configuration.
-When changing Deepgram models, specify `language` to override the new model's
-default. Stored keyterms carry over to nova-3 and flux models. The API can
-reject a model change if the supplied language or keyterms are incompatible
-with the new model. Assistant responses retain their compact summaries.
+When changing Deepgram models, the stored language carries over unless you
+supply a different one. Stored keyterms carry over to nova-3 and flux models.
+The API can reject a model change if the resulting language or keyterms are
+incompatible with the new model. Assistant responses retain their compact summaries.
 
 MCP wrappers preserve field aliases and sparse updates. URL checks and
 string-valued header maps remain explicit transport rules because the spec only

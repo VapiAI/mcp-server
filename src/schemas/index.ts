@@ -172,7 +172,11 @@ export const UpdateAssistantInputSchema = z.object({
     .describe('New IDs of tools to use with this assistant'),
   transcriber: TranscriberInputSchema
     .optional()
-    .describe('New transcription configuration'),
+    .describe(
+      'With the same provider, supplied settings override stored values and omitted settings such as language carry over, even when the model changes. ' +
+      'A Deepgram model change drops inherited keyterms when the new model is outside the Nova 3 and Flux families. ' +
+      'The API validates model compatibility. Changing providers replaces the configuration. Supply the supported settings you want for the new provider.'
+    ),
   voice: VoiceInputSchema
     .optional()
     .describe('New voice configuration'),

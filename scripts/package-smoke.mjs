@@ -11,7 +11,7 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
@@ -82,13 +82,18 @@ function run(command, args, options) {
   });
 }
 
-function startServer(binPath, workingDirectory) {
+function startServer(binPath, workingDirectory, fetchHookPath, capturePath) {
   const child = spawn(binPath, [], {
     cwd: workingDirectory,
     shell: process.platform === 'win32',
     env: {
       ...process.env,
       VAPI_TOKEN: 'package-smoke-test-token',
+      VAPI_MCP_SMOKE_CAPTURE: capturePath,
+      NODE_OPTIONS: [
+        process.env.NODE_OPTIONS,
+        `--import=${pathToFileURL(fetchHookPath).href}`,
+      ].filter(Boolean).join(' '),
     },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
@@ -189,7 +194,7 @@ function startServer(binPath, workingDirectory) {
 }
 
 const temporaryRoot = await mkdtemp(join(tmpdir(), 'vapi-mcp-package-smoke-'));
-const npmCacheDirectory = join(temporaryRoot, 'npm-cache');
+const npmCacheDirectory = process.env.VAPI_MCP_SMOKE_NPM_CACHE ?? join(temporaryRoot, 'npm-cache');
 let server;
 
 try {
@@ -265,7 +270,22 @@ try {
   );
   await access(binPath);
 
-  server = startServer(binPath, consumerDirectory);
+  const capturePath = join(temporaryRoot, 'vapi-requests.jsonl');
+  const fetchHookPath = join(temporaryRoot, 'fetch-hook.mjs');
+  await writeFile(
+    fetchHookPath,
+    [
+      "import { appendFile } from 'node:fs/promises';",
+      'globalThis.fetch = async (input, init) => {',
+      '  const request = new Request(input, init);',
+      "  if (new URL(request.url).hostname !== 'api.vapi.ai') throw new Error('Unexpected outbound request in package smoke');",
+      '  await appendFile(process.env.VAPI_MCP_SMOKE_CAPTURE, `${JSON.stringify({ url: request.url, headers: Object.fromEntries(request.headers) })}\\n`);',
+      "  return new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } });",
+      '};',
+    ].join('\n')
+  );
+
+  server = startServer(binPath, consumerDirectory, fetchHookPath, capturePath);
   const initialization = await server.request('initialize', {
     protocolVersion: '2025-11-25',
     capabilities: {},
@@ -298,6 +318,40 @@ try {
     throw new Error(
       `Installed tool catalog did not match: ${JSON.stringify(actualToolNames)}`
     );
+  }
+
+  for (const tool of ['list_assistants', 'list_calls']) {
+    const response = await server.request('tools/call', {
+      name: tool,
+      arguments: {},
+    });
+    if (response.error || response.result?.isError === true) {
+      throw new Error(`Packed ${tool} call failed: ${JSON.stringify(response)}`);
+    }
+  }
+
+  const capturedRequests = (await readFile(capturePath, 'utf8'))
+    .trim()
+    .split('\n')
+    .map((line) => JSON.parse(line));
+  const attributions = capturedRequests.map((request) => {
+    const value = request.headers['x-vapi-client'];
+    const match = /^mcp\/([0-9A-Za-z.+-]{1,32}); command=([a-z0-9_-]{1,64}); run=([A-Za-z0-9-]{8,64})$/.exec(value ?? '');
+    if (!match) throw new Error(`Packed SDK request had an invalid x-vapi-client: ${value}`);
+    if (!match[3].startsWith('local-')) {
+      throw new Error(`Packed SDK request did not identify local origin: ${value}`);
+    }
+    if (match[1] !== packageMetadata.version) {
+      throw new Error(`Packed SDK request used version ${match[1]}, expected ${packageMetadata.version}`);
+    }
+    return { command: match[2], runId: match[3] };
+  });
+  const commands = attributions.map(({ command }) => command).sort();
+  if (JSON.stringify(commands) !== JSON.stringify(['list_assistants', 'list_calls'])) {
+    throw new Error(`Packed SDK requests had unexpected commands: ${JSON.stringify(commands)}`);
+  }
+  if (new Set(attributions.map(({ runId }) => runId)).size !== 1) {
+    throw new Error('Packed SDK requests did not share one process session id');
   }
 
   const invalidInput = await server.request('tools/call', {

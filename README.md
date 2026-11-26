@@ -109,7 +109,7 @@ Run the server on your own machine if your client only supports local stdio serv
 Configure your MCP client to run:
 
 ```text
-npx -y @vapi-ai/mcp-server
+npx -y @vapi-ai/mcp-server@latest
 ```
 
 Set `VAPI_TOKEN` to your Vapi API key in the server environment. MCP client configuration formats vary, but the server definition generally looks like this:
@@ -119,7 +119,7 @@ Set `VAPI_TOKEN` to your Vapi API key in the server environment. MCP client conf
   "mcpServers": {
     "vapi": {
       "command": "npx",
-      "args": ["-y", "@vapi-ai/mcp-server"],
+      "args": ["-y", "@vapi-ai/mcp-server@latest"],
       "env": {
         "VAPI_TOKEN": "<your_vapi_token>"
       }
@@ -131,7 +131,7 @@ Set `VAPI_TOKEN` to your Vapi API key in the server environment. MCP client conf
 For Claude Code:
 
 ```bash
-claude mcp add -e VAPI_TOKEN=your_vapi_token vapi -- npx -y @vapi-ai/mcp-server
+claude mcp add -e VAPI_TOKEN=your_vapi_token vapi -- npx -y @vapi-ai/mcp-server@latest
 ```
 
 For Claude Desktop, add the configuration above to the Claude Desktop configuration file.

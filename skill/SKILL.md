@@ -15,7 +15,7 @@ Check whether a Vapi MCP server is connected by discovering tools such as `list_
 
 If the server is unavailable, tell the user to configure one of these supported connections in their MCP host:
 
-- Local stdio command: `npx -y @vapi-ai/mcp-server`, with `VAPI_TOKEN` set in the server environment
+- Local stdio command: `npx -y @vapi-ai/mcp-server@latest`, with `VAPI_TOKEN` set in the server environment
 - Remote Streamable HTTP: `https://mcp.vapi.ai/mcp`, with an `Authorization: Bearer <VAPI_TOKEN>` header
 
 Tell the user to reload or restart their MCP host if it requires that after configuration.
